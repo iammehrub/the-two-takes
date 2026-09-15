@@ -1,0 +1,70 @@
+{
+  "name": "The Two Takes — Daily Podcast",
+  "type": "SHARED",
+  "summary": "Daily 10-minute two-host YouTube podcast automation",
+  "description": "Triggers a GitHub Actions workflow every day at 8 AM Bangladesh time. GitHub builds and publishes the episode.",
+  "tags": ["youtube", "podcast", "automation"],
+  "blogUrl": "",
+  "metadata": {"externalId": "the-two-takes-daily"},
+  "author": "The Two Takes",
+  "categories": [],
+  "pieces": ["@activepieces/piece-schedule", "@activepieces/piece-http"],
+  "flows": [{
+    "displayName": "The Two Takes — 8 AM",
+    "trigger": {
+      "name": "trigger",
+      "valid": true,
+      "displayName": "Every Day at 8 AM",
+      "nextAction": {
+        "name": "trigger_github",
+        "skip": false,
+        "type": "PIECE",
+        "valid": true,
+        "settings": {
+          "input": {
+            "url": "https://api.github.com/repos/YOUR_GITHUB_USERNAME/YOUR_REPO/actions/workflows/daily-podcast.yml/dispatches",
+            "body": {"data": {"ref": "main", "inputs": {"trigger_source": "Activepieces 8 AM"}}},
+            "method": "POST",
+            "headers": {
+              "Accept": "application/vnd.github+json",
+              "Authorization": "Bearer YOUR_GITHUB_TOKEN",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json"
+            },
+            "authType": "NONE",
+            "body_type": "json",
+            "use_proxy": false,
+            "authFields": {},
+            "failureMode": "continue_none",
+            "queryParams": {},
+            "proxy_settings": {},
+            "followRedirects": true,
+            "response_is_binary": false
+          },
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "sampleData": {},
+          "pieceVersion": "0.12.0",
+          "propertySettings": {
+            "url": {"type": "MANUAL"}, "body": {"type":"MANUAL","schema":{"data":{"type":"JSON","required":true,"displayName":"JSON Body"}},
+            "method":{"type":"MANUAL"}, "headers":{"type":"MANUAL"}, "authType":{"type":"MANUAL"}, "body_type":{"type":"MANUAL"},
+            "use_proxy":{"type":"MANUAL"}, "authFields":{"type":"MANUAL","schema":{}}, "failureMode":{"type":"MANUAL"}, "queryParams":{"type":"MANUAL"},
+            "proxy_settings":{"type":"MANUAL","schema":{}}, "followRedirects":{"type":"MANUAL"}, "response_is_binary":{"type":"MANUAL"}
+          },
+          "errorHandlingOptions":{"retryOnFailure":{"value":true},"continueOnFailure":{"value":false}}
+        },
+        "displayName":"Start GitHub video builder",
+        "lastUpdatedDate":"2026-09-15T00:00:00.000Z"
+      },
+      "lastUpdatedDate":"2026-09-15T00:00:00.000Z",
+      "type":"PIECE_TRIGGER",
+      "settings":{
+        "propertySettings":{"timezone":{"type":"MANUAL"},"hour_of_the_day":{"type":"MANUAL"},"run_on_weekends":{"type":"MANUAL"}},
+        "pieceName":"@activepieces/piece-schedule","pieceVersion":"0.1.22","triggerName":"every_day",
+        "input":{"timezone":"Asia/Dhaka","hour_of_the_day":8,"run_on_weekends":true}
+      }
+    },
+    "valid":true,"schemaVersion":"26","notes":[]
+  }],
+  "status":"DRAFT"
+}

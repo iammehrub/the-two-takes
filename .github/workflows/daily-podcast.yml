@@ -38,79 +38,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
 
-      - name: Harden Gemini episode generation
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          path = Path('scripts/build_podcast.py')
-          text = path.read_text(encoding='utf-8')
-
-          text = text.replace('"maxOutputTokens": 5000', '"maxOutputTokens": 7000', 1)
-
-          marker = '    text = gemini_generate(prompt, 0.85)\n'
-          if marker not in text:
-              raise SystemExit('Gemini generation marker not found; stopping safely.')
-
-          replacement = '''    text = gemini_generate(prompt, 0.85)
-
-    # Robust fallback: Gemini sometimes returns only the metadata or a very short
-    # answer. Generate the actual dialogue in three smaller sections and combine.
-    if len(text.split()) < 800:
-        print("Gemini episode was too short. Using multi-part script fallback...")
-
-        script_base = f"""
-You are writing the spoken script for THE TWO TAKES, an English two-host YouTube podcast.
-Hosts: Himel (male, curious, calm) and Niha (female, warm, sharp).
-
-CURRENT HEADLINES:
-{headline_block}
-
-Choose ONE current topic from these headlines.
-Write spoken dialogue only, with every line beginning exactly with Himel: or Niha:.
-The conversation must be factual, natural, original, easy to understand, and suitable for about 10 minutes.
-Do not use Markdown. Do not add headings. Do not summarize.
-"""
-
-        sections = []
-        section_specs = [
-            ("OPENING + SETUP", "Write the hook, short branded intro, and explain why the topic matters today. Produce about 450-550 words."),
-            ("MAIN DISCUSSION", "Continue directly into the main discussion. Explain the important ideas, include examples, and have Himel and Niha respectfully challenge each other. Produce about 550-650 words."),
-            ("TAKEAWAY + OUTRO", "Finish the discussion with the practical takeaway, final perspective, and a short memorable outro. Produce about 400-500 words. Do not restart the episode."),
-        ]
-
-        for section_name, instruction in section_specs:
-            section_prompt = script_base + "\n\nSECTION: " + section_name + "\n" + instruction
-            part = gemini_generate(section_prompt, 0.65)
-            part_lines = []
-            for raw in part.splitlines():
-                line = raw.strip()
-                if re.match(r'^(Himel|Niha)\s*:', line, re.I):
-                    line = re.sub(r'^(Himel|Niha)\s*:\s*', lambda m: 'Himel: ' if m.group(1).lower() == 'himel' else 'Niha: ', line)
-                    part_lines.append(line)
-            if part_lines:
-                sections.append('\n'.join(part_lines))
-
-        combined = '\n'.join(sections).strip()
-        if len(combined.split()) >= 1100:
-            text = (
-                'TITLE: The Two Takes — Daily Current Story\n'
-                'TOPIC: Current technology and world news discussion\n'
-                'VISUAL_KEYWORDS: technology, AI, news, future, people talking\n'
-                'DESCRIPTION_HOOK: Today Himel and Niha unpack one important current story and what it means.\n'
-                'SCRIPT:\n' + combined + '\nEND_SCRIPT'
-            )
-            print(f'Fallback episode built: {len(combined.split())} script words')
-        else:
-            print(f'Fallback combined script was only {len(combined.split())} words; keeping original response for normal validation.')
-'''
-
-          text = text.replace(marker, replacement, 1)
-          path.write_text(text, encoding='utf-8')
-          print('Gemini fallback patch applied successfully.')
-          PY
-
       - name: Build and publish episode
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -120,24 +47,11 @@ Do not use Markdown. Do not add headings. Do not summarize.
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
           echo "=== PODCAST DEBUG START ==="
-          echo "Current directory:"
           pwd
-
-          echo "=== ROOT FILES ==="
-          ls -la
-
           echo "=== SCRIPTS DIRECTORY ==="
           ls -la scripts
-
-          echo "=== BUILD SCRIPT CHECK ==="
-          ls -lh scripts/build_podcast.py
-          echo "Lines in build_podcast.py:"
-          wc -l scripts/build_podcast.py
-
           echo "=== PYTHON VERSION ==="
           python --version
-
-          echo "=== RUNNING PODCAST BUILDER ==="
-          python -u scripts/build_podcast.py
-
+          echo "=== RUNNING PERMANENT PODCAST RUNNER ==="
+          PYTHONPATH=scripts python -u scripts/run_podcast.py
           echo "=== PODCAST BUILDER FINISHED ==="

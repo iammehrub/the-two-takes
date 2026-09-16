@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       trigger_source:
-        description: 'Optional trigger label'
+        description: Optional trigger label
         required: false
-        default: 'Activepieces'
-
+        default: Activepieces
+        type: string
   schedule:
     - cron: '0 2 * * *'
 
@@ -20,7 +20,6 @@ jobs:
     timeout-minutes: 40
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v5
 
@@ -38,65 +37,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
-
-      - name: Harden Gemini episode generation
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("scripts/build_podcast.py")
-          text = path.read_text(encoding="utf-8")
-
-          text = text.replace(
-              '"maxOutputTokens": 5000',
-              '"maxOutputTokens": 7000'
-          )
-
-          old = '    text = gemini_generate(prompt, 0.85)\n'
-          new = '''    text = gemini_generate(prompt, 0.85)
-
-    # Gemini can occasionally return a valid but extremely short response.
-    # Retry the content generation with a stronger full-length instruction
-    # before the normal 1100-word safety check rejects the episode.
-    if len(text.split()) < 850:
-        print("Gemini response was too short. Requesting a fresh full-length episode...")
-        retry_prompt = prompt + """
-
-CRITICAL REGENERATION INSTRUCTION:
-The previous response was too short and cannot be used.
-Generate the COMPLETE 1,350–1,550 word podcast now.
-Do not summarize it.
-Do not shorten it.
-Do not stop early.
-Use at least 35–45 alternating Himel and Niha speaking turns.
-Every speaking turn MUST begin exactly with either "Himel:" or "Niha:".
-Return the full required TITLE, TOPIC, VISUAL_KEYWORDS, DESCRIPTION_HOOK, SCRIPT, and END_SCRIPT fields.
-"""
-        text = gemini_generate(retry_prompt, 0.55)
-
-    if len(text.split()) < 850:
-        print("Gemini response is still too short. Performing one final regeneration...")
-        retry_prompt = prompt + """
-
-FINAL REGENERATION:
-Produce a complete 1,350–1,550 word two-host podcast script.
-The response must contain many alternating lines beginning exactly with:
-Himel:
-Niha:
-Do not return a summary or a short answer.
-Do not stop after the introduction.
-Return the complete episode through END_SCRIPT.
-"""
-        text = gemini_generate(retry_prompt, 0.4)
-'''
-
-          if old not in text:
-              raise SystemExit("Expected Gemini generation line was not found; refusing to modify the builder.")
-
-          text = text.replace(old, new, 1)
-          path.write_text(text, encoding="utf-8")
-          print("Gemini hardening patch applied.")
-          PY
 
       - name: Build and publish episode
         env:
@@ -118,7 +58,6 @@ Return the complete episode through END_SCRIPT.
 
           echo "=== BUILD SCRIPT CHECK ==="
           ls -lh scripts/build_podcast.py
-
           echo "Lines in build_podcast.py:"
           wc -l scripts/build_podcast.py
 

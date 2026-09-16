@@ -261,16 +261,16 @@ Most speaking turns should be 1–4 sentences. Do not use stage directions.
 Every dialogue item must contain a speaker of exactly Himel or Niha and a text string.
 
 Return ONLY valid JSON. Use exactly this structure:
-{
+{{
   "title": "...",
   "topic": "...",
   "visual_keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
   "description_hook": "...",
   "dialogue": [
-    {"speaker": "Himel", "text": "..."},
-    {"speaker": "Niha", "text": "..."}
+    {{"speaker": "Himel", "text": "..."}},
+    {{"speaker": "Niha", "text": "..."}}
   ]
-}
+}}
 """
 
     raw = gemini_lite_generate(prompt, 0.7)

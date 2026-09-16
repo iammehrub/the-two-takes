@@ -1,8 +1,6 @@
 name: The Two Takes — Daily Episode
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       trigger_source:

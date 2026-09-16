@@ -37,7 +37,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
 
-      - name: Build and publish episode
+          - name: Build and publish episode
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
@@ -45,4 +45,25 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
+          echo "=== PODCAST DEBUG START ==="
+          echo "Current directory:"
+          pwd
+
+          echo "=== ROOT FILES ==="
+          ls -la
+
+          echo "=== SCRIPTS DIRECTORY ==="
+          ls -la scripts
+
+          echo "=== BUILD SCRIPT CHECK ==="
+          ls -lh scripts/build_podcast.py
+          echo "Lines in build_podcast.py:"
+          wc -l scripts/build_podcast.py
+
+          echo "=== PYTHON VERSION ==="
+          python --version
+
+          echo "=== RUNNING PODCAST BUILDER ==="
           python -u scripts/build_podcast.py
+
+          echo "=== PODCAST BUILDER FINISHED ==="

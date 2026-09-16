@@ -1,11 +1,13 @@
 import os
 import re
+import time
+import random
 import requests
 import build_podcast as app
 
 
-# Use Flash-Lite for the episode-writing call so one episode does not burn
-# several Gemini Flash requests through the old fallback loop.
+# Use Flash-Lite for episode writing so one episode does not burn several
+# Gemini Flash requests through the old fallback loop.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
 GEMINI_URL = (
@@ -26,51 +28,88 @@ def gemini_lite_generate(prompt, temperature=0.7):
         },
     }
 
-    print(f"Generating episode with {GEMINI_TEXT_MODEL}...")
-    response = requests.post(
-        GEMINI_URL,
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": GEMINI_API_KEY,
-        },
-        json=payload,
-        timeout=180,
-    )
+    max_attempts = 4
+    last_error = None
 
-    if response.status_code == 429:
+    for attempt in range(1, max_attempts + 1):
+        print(f"Gemini {GEMINI_TEXT_MODEL} attempt {attempt}/{max_attempts}...")
+        try:
+            response = requests.post(
+                GEMINI_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": GEMINI_API_KEY,
+                },
+                json=payload,
+                timeout=180,
+            )
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt >= max_attempts:
+                raise RuntimeError(
+                    f"Gemini network request failed after {max_attempts} attempts: {exc}"
+                ) from exc
+            delay = min(60, 5 * (2 ** (attempt - 1))) + random.uniform(0, 2)
+            print(f"Gemini network error. Retrying in {delay:.1f}s...")
+            time.sleep(delay)
+            continue
+
+        if response.status_code == 503:
+            last_error = response.text[:1200]
+            if attempt >= max_attempts:
+                raise RuntimeError(
+                    "Gemini remained unavailable (503) after "
+                    f"{max_attempts} attempts. The service is temporarily overloaded. "
+                    "Please retry the workflow later."
+                )
+            delay = min(60, 5 * (2 ** (attempt - 1))) + random.uniform(0, 2)
+            print(f"Gemini 503 temporary capacity error. Retrying in {delay:.1f}s...")
+            time.sleep(delay)
+            continue
+
+        if response.status_code == 429:
+            try:
+                data = response.json()
+                error = data.get("error", {})
+                message = error.get("message", response.text)
+            except Exception:
+                message = response.text
+            raise RuntimeError(
+                "Gemini quota/rate limit was hit. "
+                "The workflow will not loop on 429 errors. "
+                f"Details: {message}"
+            )
+
+        if response.status_code >= 500:
+            raise RuntimeError(
+                f"Gemini server error {response.status_code}: {response.text[:1200]}"
+            )
+
+        if response.status_code >= 400:
+            raise RuntimeError(
+                f"Gemini request failed with HTTP {response.status_code}: "
+                f"{response.text[:1200]}"
+            )
+
         try:
             data = response.json()
-            message = data.get("error", {}).get("message", response.text)
-        except Exception:
-            message = response.text
-        raise RuntimeError(
-            "Gemini quota is currently exhausted for the episode-writing call. "
-            "Wait for the quota reset or use a Gemini API key/project with available quota. "
-            f"Details: {message}"
-        )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Gemini returned invalid JSON: {response.text[:1200]}"
+            ) from exc
 
-    if response.status_code >= 500:
-        raise RuntimeError(
-            f"Gemini server error {response.status_code}. "
-            "Please run the workflow again later."
-        )
+        candidates = data.get("candidates", [])
+        if not candidates:
+            raise RuntimeError(f"Gemini returned no candidates: {response.text[:1200]}")
 
-    if response.status_code >= 400:
-        raise RuntimeError(
-            f"Gemini request failed with HTTP {response.status_code}: {response.text[:1000]}"
-        )
+        parts = candidates[0].get("content", {}).get("parts", [])
+        text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
+        if not text.strip():
+            raise RuntimeError("Gemini returned an empty episode response.")
 
-    data = response.json()
-    candidates = data.get("candidates", [])
-    if not candidates:
-        raise RuntimeError(f"Gemini returned no candidates: {response.text[:1000]}")
+        return text.strip()
 
-    parts = candidates[0].get("content", {}).get("parts", [])
-    text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
-    if not text.strip():
-        raise RuntimeError("Gemini returned an empty episode response.")
-
-    return text.strip()
+    raise RuntimeError(f"Gemini generation failed: {last_error}")
 
 
 def parse_dialogue(text):
@@ -191,7 +230,5 @@ END_SCRIPT
     return title[:100], topic[:300], keyword_list, hook[:500], script
 
 
-# Replace only the episode-writing function. The original builder still handles
-# news fetching, TTS, visuals, FFmpeg, thumbnail creation, and YouTube upload.
 app.make_episode = make_episode
 app.main()

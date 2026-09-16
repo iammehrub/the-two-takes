@@ -8,7 +8,7 @@ on:
         required: false
         default: 'Activepieces'
   schedule:
-    - cron: '0 2 * * *' # 08:00 Bangladesh time (UTC+6)
+    - cron: '0 2 * * *'
 
 permissions:
   contents: read
@@ -16,10 +16,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install system packages
         run: |
@@ -27,7 +28,7 @@ jobs:
           sudo apt-get install -y -qq ffmpeg imagemagick fonts-dejavu
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -43,4 +44,5 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python scripts/build_podcast.py
+        run: |
+          python -u scripts/build_podcast.py

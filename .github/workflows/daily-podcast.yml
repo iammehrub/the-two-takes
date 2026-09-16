@@ -1,6 +1,8 @@
 name: The Two Takes — Daily Episode
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       trigger_source:
@@ -81,25 +83,25 @@ Do not use Markdown. Do not add headings. Do not summarize.
         ]
 
         for section_name, instruction in section_specs:
-            section_prompt = script_base + "\\n\\nSECTION: " + section_name + "\\n" + instruction
+            section_prompt = script_base + "\n\nSECTION: " + section_name + "\n" + instruction
             part = gemini_generate(section_prompt, 0.65)
             part_lines = []
             for raw in part.splitlines():
                 line = raw.strip()
-                if re.match(r'^(Himel|Niha)\\s*:', line, re.I):
-                    line = re.sub(r'^(Himel|Niha)\\s*:\\s*', lambda m: 'Himel: ' if m.group(1).lower() == 'himel' else 'Niha: ', line)
+                if re.match(r'^(Himel|Niha)\s*:', line, re.I):
+                    line = re.sub(r'^(Himel|Niha)\s*:\s*', lambda m: 'Himel: ' if m.group(1).lower() == 'himel' else 'Niha: ', line)
                     part_lines.append(line)
             if part_lines:
-                sections.append('\\n'.join(part_lines))
+                sections.append('\n'.join(part_lines))
 
-        combined = '\\n'.join(sections).strip()
+        combined = '\n'.join(sections).strip()
         if len(combined.split()) >= 1100:
             text = (
-                'TITLE: The Two Takes — Daily Current Story\\n'
-                'TOPIC: Current technology and world news discussion\\n'
-                'VISUAL_KEYWORDS: technology, AI, news, future, people talking\\n'
-                'DESCRIPTION_HOOK: Today Himel and Niha unpack one important current story and what it means.\\n'
-                'SCRIPT:\\n' + combined + '\\nEND_SCRIPT'
+                'TITLE: The Two Takes — Daily Current Story\n'
+                'TOPIC: Current technology and world news discussion\n'
+                'VISUAL_KEYWORDS: technology, AI, news, future, people talking\n'
+                'DESCRIPTION_HOOK: Today Himel and Niha unpack one important current story and what it means.\n'
+                'SCRIPT:\n' + combined + '\nEND_SCRIPT'
             )
             print(f'Fallback episode built: {len(combined.split())} script words')
         else:

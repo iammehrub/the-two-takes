@@ -2,6 +2,32 @@ import re
 import build_podcast as app
 
 
+# Gemini 2.5 Flash can temporarily return 503 during capacity spikes.
+# Keep the existing builder unchanged, but transparently fall back to the
+# lighter 2.5 Flash-Lite model for text generation when that happens.
+_original_gemini_generate = app.gemini_generate
+
+
+def resilient_gemini_generate(prompt, temperature=0.9):
+    try:
+        return _original_gemini_generate(prompt, temperature)
+    except RuntimeError as exc:
+        message = str(exc)
+        if "503" not in message and "UNAVAILABLE" not in message:
+            raise
+
+        print("Gemini 2.5 Flash is temporarily unavailable. Switching to Gemini 2.5 Flash-Lite...")
+        original_model = app.GEMINI_TEXT_MODEL
+        try:
+            app.GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
+            return _original_gemini_generate(prompt, temperature)
+        finally:
+            app.GEMINI_TEXT_MODEL = original_model
+
+
+app.gemini_generate = resilient_gemini_generate
+
+
 def parse_dialogue(text):
     lines = []
     for raw in text.splitlines():
@@ -84,7 +110,7 @@ END_SCRIPT
     first = app.gemini_generate(prompt, 0.75)
     title, topic, keywords, hook, script = parse_full(first)
 
-    if title and topic and keywords and hook and len(script.split()) >= 1100:
+    if title and topic and keywords and len(script.split()) >= 1100:
         print(f"Primary episode accepted: {len(script.split())} words")
         keyword_list = [re.sub(r"^[\-*\d.\)\s]+", "", k).strip("\"'") for k in keywords.split(",")]
         keyword_list = [k for k in keyword_list if k][:5]
@@ -99,7 +125,6 @@ END_SCRIPT
     ]
 
     parts = []
-    chosen_topic = None
     for name, low, high, instruction in section_specs:
         section_prompt = base + f"""
 

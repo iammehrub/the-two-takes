@@ -8,16 +8,12 @@ import build_podcast as app
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    f"{GEMINI_TEXT_MODEL}:generateContent"
-)
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent"
 
 
-def gemini_lite_generate(prompt, temperature=0.7):
+def gemini_generate(prompt, temperature=0.7):
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not configured.")
-
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -26,93 +22,59 @@ def gemini_lite_generate(prompt, temperature=0.7):
             "responseMimeType": "application/json",
         },
     }
-
-    max_attempts = 3
-    for attempt in range(1, max_attempts + 1):
-        print(f"Gemini {GEMINI_TEXT_MODEL} attempt {attempt}/{max_attempts}...")
+    for attempt in range(1, 4):
+        print(f"Gemini {GEMINI_TEXT_MODEL} attempt {attempt}/3...")
         try:
-            response = requests.post(
+            r = requests.post(
                 GEMINI_URL,
-                headers={
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": GEMINI_API_KEY,
-                },
+                headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
                 json=payload,
                 timeout=180,
             )
         except requests.RequestException as exc:
-            if attempt >= max_attempts:
+            if attempt == 3:
                 raise RuntimeError(f"Gemini network request failed: {exc}") from exc
-            delay = 5 * attempt + random.uniform(0, 2)
-            print(f"Gemini network error. Retrying in {delay:.1f}s...")
-            time.sleep(delay)
+            time.sleep(4 * attempt + random.uniform(0, 2))
             continue
-
-        if response.status_code == 429:
-            try:
-                message = response.json().get("error", {}).get("message", response.text)
-            except Exception:
-                message = response.text
-            raise RuntimeError(f"Gemini quota/rate limit was hit. {message}")
-
-        if response.status_code == 503:
-            if attempt >= max_attempts:
-                raise RuntimeError("Gemini is temporarily unavailable (503).")
-            delay = 5 * attempt + random.uniform(0, 2)
-            print(f"Gemini 503 temporary capacity error. Retrying in {delay:.1f}s...")
-            time.sleep(delay)
+        if r.status_code == 429:
+            raise RuntimeError(f"Gemini quota/rate limit was hit: {r.text[:1000]}")
+        if r.status_code == 503 and attempt < 3:
+            time.sleep(5 * attempt + random.uniform(0, 2))
             continue
-
-        if response.status_code >= 400:
-            raise RuntimeError(
-                f"Gemini request failed with HTTP {response.status_code}: {response.text[:1200]}"
-            )
-
-        try:
-            data = response.json()
-        except ValueError as exc:
-            raise RuntimeError("Gemini returned invalid JSON.") from exc
-
-        candidates = data.get("candidates", [])
-        if not candidates:
-            raise RuntimeError(f"Gemini returned no candidates: {response.text[:1200]}")
-        text = "\n".join(
-            part.get("text", "")
-            for part in candidates[0].get("content", {}).get("parts", [])
-            if part.get("text")
-        )
-        if not text.strip():
-            raise RuntimeError("Gemini returned an empty response.")
-        return text.strip()
-
+        if r.status_code >= 400:
+            raise RuntimeError(f"Gemini request failed with HTTP {r.status_code}: {r.text[:1200]}")
+        data = r.json()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
+        if text.strip():
+            return text.strip()
+        raise RuntimeError("Gemini returned an empty response.")
     raise RuntimeError("Gemini generation failed.")
 
 
-def _clean(text):
+def clean(text):
     return (text or "").strip().replace("\\r\\n", "\n").replace("\\n", "\n")
 
 
-def _parse_json(text):
-    clean = _clean(text)
-    clean = re.sub(r"^```(?:json)?\s*", "", clean, flags=re.I)
-    clean = re.sub(r"\s*```$", "", clean).strip()
+def parse_json(text):
+    text = clean(text)
+    text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.I)
+    text = re.sub(r"\s*```$", "", text).strip()
     try:
-        obj = json.loads(clean)
+        obj = json.loads(text)
         return obj if isinstance(obj, dict) else None
     except Exception:
-        pass
-    start = clean.find("{")
-    end = clean.rfind("}")
-    if start >= 0 and end > start:
-        try:
-            obj = json.loads(clean[start:end + 1])
-            return obj if isinstance(obj, dict) else None
-        except Exception:
-            pass
+        start, end = text.find("{"), text.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                obj = json.loads(text[start:end + 1])
+                return obj if isinstance(obj, dict) else None
+            except Exception:
+                return None
     return None
 
 
-def _speaker_line(item):
+def speaker_line(item):
     if not isinstance(item, dict):
         return ""
     speaker = str(item.get("speaker", "")).strip().lower()
@@ -122,47 +84,37 @@ def _speaker_line(item):
     return ("Himel: " if speaker == "himel" else "Niha: ") + spoken
 
 
-def parse_dialogue(text):
-    obj = _parse_json(text)
+def extract_dialogue(raw):
+    obj = parse_json(raw)
     if isinstance(obj, dict):
         dialogue = obj.get("dialogue", obj.get("script", []))
         if isinstance(dialogue, list):
-            lines = [_speaker_line(x) for x in dialogue]
+            lines = [speaker_line(x) for x in dialogue]
             lines = [x for x in lines if x]
             if lines:
                 return "\n".join(lines)
-        if isinstance(dialogue, str):
-            nested = parse_dialogue(dialogue)
-            if nested:
-                return nested
-
-    text = _clean(text)
-    pattern = re.compile(r"(?im)^\s*(Himel|Niha)\s*:\s*(.*)$")
+    text = clean(raw)
     lines = []
-    for raw in text.splitlines():
-        match = pattern.match(raw)
-        if match:
-            speaker = "Himel" if match.group(1).lower() == "himel" else "Niha"
-            spoken = match.group(2).strip()
-            if spoken:
-                lines.append(f"{speaker}: {spoken}")
-    return "\n".join(lines).strip()
+    for raw_line in text.splitlines():
+        m = re.match(r"^\s*(Himel|Niha)\s*:\s*(.+)$", raw_line, flags=re.I)
+        if m:
+            speaker = "Himel" if m.group(1).lower() == "himel" else "Niha"
+            lines.append(f"{speaker}: {m.group(2).strip()}")
+    if lines:
+        return "\n".join(lines)
 
-
-def parse_full(text):
-    obj = _parse_json(text)
-    if isinstance(obj, dict):
-        title = str(obj.get("title", obj.get("TITLE", ""))).strip()
-        topic = str(obj.get("topic", obj.get("TOPIC", ""))).strip()
-        hook = str(obj.get("description_hook", obj.get("DESCRIPTION_HOOK", obj.get("hook", "")))).strip()
-        keywords_raw = obj.get("visual_keywords", obj.get("VISUAL_KEYWORDS", []))
-        if isinstance(keywords_raw, list):
-            keywords = ", ".join(str(x).strip() for x in keywords_raw if str(x).strip())
-        else:
-            keywords = str(keywords_raw or "").strip()
-        return title, topic, keywords, hook, parse_dialogue(text)
-
-    return "", "", "", "", parse_dialogue(text)
+    # Last-resort extraction for partially truncated JSON.
+    pattern = re.compile(r'"speaker"\s*:\s*"(Himel|Niha)"\s*,\s*"text"\s*:\s*"((?:\\.|[^"\\])*)"', re.I)
+    found = []
+    for m in pattern.finditer(text):
+        try:
+            spoken = json.loads('"' + m.group(2) + '"').strip()
+        except Exception:
+            spoken = m.group(2).replace('\\"', '"').replace('\\n', ' ').strip()
+        if spoken:
+            speaker = "Himel" if m.group(1).lower() == "himel" else "Niha"
+            found.append(f"{speaker}: {spoken}")
+    return "\n".join(found).strip()
 
 
 def make_episode(news):
@@ -170,32 +122,21 @@ def make_episode(news):
         f"{i + 1}. {x['title']} — {x['source']} ({x['pubDate']})"
         for i, x in enumerate(news)
     )
-
     prompt = f"""
-You are the lead writer for a polished English YouTube podcast called THE TWO TAKES.
-Hosts: Himel (male, curious, quick-witted, calm) and Niha (female, warm, sharp, thoughtful).
-Audience: international young adults who like intelligent but easy-to-follow conversations.
+You are the lead writer for the English YouTube podcast THE TWO TAKES.
+Hosts: Himel (male, curious, calm, quick-witted) and Niha (female, warm, sharp, thoughtful).
 
 CURRENT NEWS HEADLINES:
 {headline_block}
 
-Choose ONE genuinely current topic from the headlines.
-Use only facts supported by the headlines or broadly established knowledge.
-Do not invent quotes, statistics, events, sources, or breaking-news details.
+Choose ONE current topic from these headlines. Do not invent quotes, statistics, events, or sources.
+Write an ORIGINAL 1,200–1,350 word two-host conversation with a cold hook, branded intro,
+clear explanation of what happened and why it matters now, examples, respectful disagreement,
+practical takeaway, and short outro.
 
-Write an ORIGINAL 1,200–1,350 word two-host spoken podcast with:
-- cold hook
-- branded intro
-- what happened and why it matters today
-- main discussion with simple examples
-- respectful disagreement
-- practical takeaway
-- short memorable outro
-
-Every dialogue item must be a JSON object with speaker exactly Himel or Niha and a text string.
-Do not include headings inside dialogue text.
-
-Return ONLY valid JSON matching this schema:
+Return ONLY valid JSON. Do not use markdown fences.
+Every dialogue item must have speaker exactly Himel or Niha and a non-empty text string.
+Use this shape:
 {{
   "title": "...",
   "topic": "...",
@@ -208,32 +149,43 @@ Return ONLY valid JSON matching this schema:
 }}
 """
 
-    raw = gemini_lite_generate(prompt, 0.7)
-    title, topic, keywords, hook, script = parse_full(raw)
+    raw = gemini_generate(prompt)
+    obj = parse_json(raw) or {}
+    script = extract_dialogue(raw)
     word_count = len(script.split())
 
-    if not (title and topic and keywords and hook):
+    # Metadata is useful but not allowed to kill an otherwise valid script.
+    title = str(obj.get("title", "")).strip()
+    topic = str(obj.get("topic", "")).strip()
+    hook = str(obj.get("description_hook", obj.get("hook", ""))).strip()
+    keywords_raw = obj.get("visual_keywords", [])
+    if isinstance(keywords_raw, list):
+        keywords = [str(x).strip() for x in keywords_raw if str(x).strip()]
+    else:
+        keywords = [x.strip() for x in str(keywords_raw or "").split(",") if x.strip()]
+
+    if not script or word_count < 1100:
         debug = app.WORK / "gemini_episode_raw.txt"
         debug.write_text(raw, encoding="utf-8")
         raise RuntimeError(
-            f"Gemini returned incomplete episode metadata. Raw output saved to {debug}"
+            f"Gemini dialogue was too short ({word_count} words). Raw output saved to {debug}"
         )
 
-    if word_count < 1100:
-        debug = app.WORK / "gemini_episode_raw.txt"
-        debug.write_text(raw, encoding="utf-8")
-        raise RuntimeError(
-            f"Gemini returned only {word_count} dialogue words; need at least 1100. "
-            f"Raw output saved to {debug}"
-        )
+    if not topic:
+        topic = news[0]["title"] if news else "Today’s biggest technology story"
+    if not title:
+        title = f"The Two Takes: {topic}"
+    if not keywords:
+        keywords = ["technology", "artificial intelligence", "news", "innovation", "future"]
+    if not hook:
+        hook = f"Today on The Two Takes, we are unpacking {topic}."
 
-    keyword_list = [
-        re.sub(r"^[\-*\d.\)\s]+", "", item).strip("\"'")
-        for item in keywords.split(",")
-    ]
-    keyword_list = [item for item in keyword_list if item][:5]
+    keywords = keywords[:5]
     print(f"Episode accepted: {word_count} dialogue words")
-    return title[:100], topic[:300], keyword_list, hook[:500], script
+    print(f"Episode: {title}")
+    print(f"Topic: {topic}")
+    print(f"Script length: {word_count} words")
+    return title[:100], topic[:300], keywords, hook[:500], script
 
 
 app.make_episode = make_episode

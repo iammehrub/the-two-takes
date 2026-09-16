@@ -1,31 +1,76 @@
+import os
 import re
+import requests
 import build_podcast as app
 
 
-# Gemini 2.5 Flash can temporarily return 503 during capacity spikes.
-# Keep the existing builder unchanged, but transparently fall back to the
-# lighter 2.5 Flash-Lite model for text generation when that happens.
-_original_gemini_generate = app.gemini_generate
+# Use Flash-Lite for the episode-writing call so one episode does not burn
+# several Gemini Flash requests through the old fallback loop.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{GEMINI_TEXT_MODEL}:generateContent"
+)
 
 
-def resilient_gemini_generate(prompt, temperature=0.9):
-    try:
-        return _original_gemini_generate(prompt, temperature)
-    except RuntimeError as exc:
-        message = str(exc)
-        if "503" not in message and "UNAVAILABLE" not in message:
-            raise
+def gemini_lite_generate(prompt, temperature=0.7):
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured.")
 
-        print("Gemini 2.5 Flash is temporarily unavailable. Switching to Gemini 2.5 Flash-Lite...")
-        original_model = app.GEMINI_TEXT_MODEL
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": 7000,
+        },
+    }
+
+    print(f"Generating episode with {GEMINI_TEXT_MODEL}...")
+    response = requests.post(
+        GEMINI_URL,
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY,
+        },
+        json=payload,
+        timeout=180,
+    )
+
+    if response.status_code == 429:
         try:
-            app.GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
-            return _original_gemini_generate(prompt, temperature)
-        finally:
-            app.GEMINI_TEXT_MODEL = original_model
+            data = response.json()
+            message = data.get("error", {}).get("message", response.text)
+        except Exception:
+            message = response.text
+        raise RuntimeError(
+            "Gemini quota is currently exhausted for the episode-writing call. "
+            "Wait for the quota reset or use a Gemini API key/project with available quota. "
+            f"Details: {message}"
+        )
 
+    if response.status_code >= 500:
+        raise RuntimeError(
+            f"Gemini server error {response.status_code}. "
+            "Please run the workflow again later."
+        )
 
-app.gemini_generate = resilient_gemini_generate
+    if response.status_code >= 400:
+        raise RuntimeError(
+            f"Gemini request failed with HTTP {response.status_code}: {response.text[:1000]}"
+        )
+
+    data = response.json()
+    candidates = data.get("candidates", [])
+    if not candidates:
+        raise RuntimeError(f"Gemini returned no candidates: {response.text[:1000]}")
+
+    parts = candidates[0].get("content", {}).get("parts", [])
+    text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
+    if not text.strip():
+        raise RuntimeError("Gemini returned an empty episode response.")
+
+    return text.strip()
 
 
 def parse_dialogue(text):
@@ -42,59 +87,70 @@ def parse_dialogue(text):
     return "\n".join(lines).strip()
 
 
-def make_episode_robust(news):
+def parse_full(text):
+    text = re.sub(r"```(?:text|txt|markdown)?", "", text, flags=re.I)
+    text = text.replace("```", "").replace("\r\n", "\n").replace("\r", "\n").strip()
+
+    def field(name, next_fields):
+        pattern = (
+            rf"(?im)^[ \t]*{re.escape(name)}[ \t]*:[ \t]*(.*?)(?=\n[ \t]*(?:"
+            + "|".join(re.escape(x) for x in next_fields)
+            + r")[ \t]*:|\Z)"
+        )
+        match = re.search(pattern, text, re.S)
+        return match.group(1).strip() if match else ""
+
+    title = field("TITLE", ["TOPIC", "VISUAL_KEYWORDS", "DESCRIPTION_HOOK", "SCRIPT"])
+    topic = field("TOPIC", ["VISUAL_KEYWORDS", "DESCRIPTION_HOOK", "SCRIPT"])
+    keywords = field("VISUAL_KEYWORDS", ["DESCRIPTION_HOOK", "SCRIPT"])
+    hook = field("DESCRIPTION_HOOK", ["SCRIPT"])
+
+    match = re.search(
+        r"(?is)^[ \t]*SCRIPT[ \t]*:[ \t]*\n?(.*?)(?:^[ \t]*END_SCRIPT[ \t]*$|\Z)",
+        text,
+    )
+    script_raw = match.group(1).strip() if match else ""
+    script = parse_dialogue(script_raw)
+    return title, topic, keywords, hook, script
+
+
+def make_episode(news):
     headline_block = "\n".join(
         f"{i + 1}. {x['title']} — {x['source']} ({x['pubDate']})"
         for i, x in enumerate(news)
     )
 
-    base = f"""
+    prompt = f"""
 You are the lead writer for a polished English YouTube podcast called THE TWO TAKES.
-Hosts: Himel (male, curious, quick-witted, calm) and Niha (female, warm, sharp, thoughtful).
+
+Hosts:
+- Himel: male, curious, quick-witted, calm.
+- Niha: female, warm, sharp, thoughtful.
+
 Audience: international young adults who like intelligent but easy-to-follow conversations.
 
 CURRENT NEWS HEADLINES:
 {headline_block}
 
-Choose ONE genuinely current topic from these headlines.
-Use only facts supported by the headlines or broadly established knowledge. Do not invent quotes, statistics, events, or sources.
-Keep the conversation original, natural, factual and suitable for YouTube.
+Choose ONE genuinely current topic from the headlines above.
+Use only facts supported by the headlines or broadly established knowledge.
+Do not invent quotes, statistics, events, sources, or breaking-news details.
+Make the discussion original, natural, factual, balanced, and suitable for YouTube.
+
+Write an ORIGINAL 1,200–1,350 word two-host spoken podcast.
+Structure it as:
+1. Cold hook
+2. Branded intro
+3. What happened and why it matters today
+4. Main discussion with simple examples
+5. Respectful disagreement between the hosts
+6. Practical takeaway
+7. Short memorable outro
+
+Most speaking turns should be 1–4 sentences. Do not use stage directions.
 Every speaking line MUST begin exactly with Himel: or Niha:.
-"""
 
-    def parse_full(text):
-        text = re.sub(r"```(?:text|txt|markdown)?", "", text, flags=re.I)
-        text = text.replace("```", "").replace("\r\n", "\n").replace("\r", "\n").strip()
-
-        def field(name, next_fields):
-            pattern = (
-                rf"(?im)^[ \t]*{re.escape(name)}[ \t]*:[ \t]*(.*?)(?=\n[ \t]*(?:"
-                + "|".join(re.escape(x) for x in next_fields)
-                + r")[ \t]*:|\Z)"
-            )
-            m = re.search(pattern, text, re.S)
-            return m.group(1).strip() if m else ""
-
-        title = field("TITLE", ["TOPIC", "VISUAL_KEYWORDS", "DESCRIPTION_HOOK", "SCRIPT"])
-        topic = field("TOPIC", ["VISUAL_KEYWORDS", "DESCRIPTION_HOOK", "SCRIPT"])
-        keywords = field("VISUAL_KEYWORDS", ["DESCRIPTION_HOOK", "SCRIPT"])
-        hook = field("DESCRIPTION_HOOK", ["SCRIPT"])
-
-        m = re.search(
-            r"(?is)^[ \t]*SCRIPT[ \t]*:[ \t]*\n?(.*?)(?:^[ \t]*END_SCRIPT[ \t]*$|\Z)",
-            text,
-        )
-        script_raw = m.group(1).strip() if m else ""
-        script = parse_dialogue(script_raw)
-        return title.strip(), topic.strip(), keywords.strip(), hook.strip(), script
-
-    prompt = base + """
-
-Write an ORIGINAL 1,350–1,550 word two-host podcast script.
-Structure: cold hook, branded intro, why it matters today, main discussion, simple examples, respectful disagreement, useful takeaway, memorable outro.
-Most speaking turns should be 1–4 sentences.
-
-Return ONLY:
+Return ONLY this format:
 TITLE: ...
 TOPIC: ...
 VISUAL_KEYWORDS: keyword1, keyword2, keyword3, keyword4, keyword5
@@ -106,55 +162,36 @@ Niha: ...
 END_SCRIPT
 """
 
-    print("Generating primary Gemini episode...")
-    first = app.gemini_generate(prompt, 0.75)
-    title, topic, keywords, hook, script = parse_full(first)
+    raw = gemini_lite_generate(prompt, 0.7)
+    title, topic, keywords, hook, script = parse_full(raw)
+    word_count = len(script.split())
 
-    if title and topic and keywords and len(script.split()) >= 1100:
-        print(f"Primary episode accepted: {len(script.split())} words")
-        keyword_list = [re.sub(r"^[\-*\d.\)\s]+", "", k).strip("\"'") for k in keywords.split(",")]
-        keyword_list = [k for k in keyword_list if k][:5]
-        return title[:100], topic[:300], keyword_list, hook[:500], script
-
-    print(f"Primary response was too short/incomplete ({len(script.split())} dialogue words). Using section fallback...")
-
-    section_specs = [
-        ("OPENING + SETUP", 450, 550, "Write the cold hook, branded intro, choose and establish ONE headline topic, and explain why it matters today."),
-        ("MAIN DISCUSSION", 550, 650, "Continue directly. Explain the important ideas with simple examples and have Himel and Niha respectfully challenge each other. Do not restart the episode."),
-        ("TAKEAWAY + OUTRO", 400, 500, "Continue directly to the useful takeaway, final perspective, and a short memorable outro. Do not restart the episode."),
-    ]
-
-    parts = []
-    for name, low, high, instruction in section_specs:
-        section_prompt = base + f"""
-
-The episode topic must remain consistent across all sections. Use the same topic unless the headlines make it impossible.
-SECTION: {name}
-{instruction}
-Produce about {low}-{high} words.
-Return dialogue ONLY. Every line must begin exactly with Himel: or Niha:.
-No headings, no bullets, no metadata, no Markdown.
-"""
-        raw = app.gemini_generate(section_prompt, 0.6)
-        dialogue = parse_dialogue(raw)
-        if dialogue:
-            parts.append(dialogue)
-        print(f"{name}: {len(dialogue.split())} words")
-
-    combined = "\n".join(parts).strip()
-    count = len(combined.split())
-    if count < 1100:
+    if not (title and topic and keywords and hook):
         debug = app.WORK / "gemini_episode_raw.txt"
-        debug.write_text(first + "\n\n--- FALLBACK ---\n" + combined, encoding="utf-8")
-        raise RuntimeError(f"Gemini could not produce a complete episode ({count} words). Raw output: {debug}")
+        debug.write_text(raw, encoding="utf-8")
+        raise RuntimeError(
+            f"Gemini returned incomplete episode metadata. Raw output saved to {debug}"
+        )
 
-    first_topic = topic or "Current technology and world news"
-    first_title = title or "The Two Takes — Today’s Big Story"
-    first_hook = hook or "Today Himel and Niha break down one current story and what it means."
-    keyword_list = ["technology", "AI", "news", "future", "discussion"]
-    print(f"Section fallback accepted: {count} words")
-    return first_title[:100], first_topic[:300], keyword_list, first_hook[:500], combined
+    if word_count < 1100:
+        debug = app.WORK / "gemini_episode_raw.txt"
+        debug.write_text(raw, encoding="utf-8")
+        raise RuntimeError(
+            f"Gemini returned only {word_count} dialogue words; need at least 1100. "
+            f"Raw output saved to {debug}"
+        )
+
+    keyword_list = [
+        re.sub(r"^[\-*\d.\)\s]+", "", item).strip("\"'")
+        for item in keywords.split(",")
+    ]
+    keyword_list = [item for item in keyword_list if item][:5]
+
+    print(f"Episode accepted: {word_count} dialogue words")
+    return title[:100], topic[:300], keyword_list, hook[:500], script
 
 
-app.make_episode = make_episode_robust
+# Replace only the episode-writing function. The original builder still handles
+# news fetching, TTS, visuals, FFmpeg, thumbnail creation, and YouTube upload.
+app.make_episode = make_episode
 app.main()

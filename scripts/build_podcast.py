@@ -77,15 +77,58 @@ def gemini_generate(prompt, temperature=0.9):
         }
     }
 
-    r = requests.post(
-        url,
-        headers={
-            "x-goog-api-key": GEMINI,
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=90
-    )
+retry_statuses = {429, 500, 502, 503, 504}
+last_error = None
+
+for attempt in range(1, 5):
+    try:
+        print(f"Gemini text attempt {attempt}/4...")
+
+        r = requests.post(
+            url,
+            headers={
+                "x-goog-api-key": GEMINI,
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=(30, 240)
+        )
+
+        if r.status_code in retry_statuses:
+            last_error = f"Gemini text temporary error {r.status_code}: {r.text[:500]}"
+            wait_time = 5 * attempt
+            print(f"Temporary Gemini error. Retrying in {wait_time}s...")
+            time.sleep(wait_time)
+            continue
+
+        if r.status_code >= 400:
+            raise RuntimeError(
+                f"Gemini text API {r.status_code}: {r.text[:1000]}"
+            )
+
+        data = r.json()
+
+        return (
+            data["candidates"][0]["content"]["parts"][0]["text"]
+            .strip()
+        )
+
+    except requests.exceptions.Timeout as e:
+        last_error = f"Gemini text timeout on attempt {attempt}: {e}"
+        wait_time = 5 * attempt
+        print(f"Gemini text timed out. Retrying in {wait_time}s...")
+        time.sleep(wait_time)
+
+    except requests.exceptions.RequestException as e:
+        last_error = f"Gemini text network error: {e}"
+        wait_time = 5 * attempt
+        print(f"Network error. Retrying in {wait_time}s...")
+        time.sleep(wait_time)
+
+raise RuntimeError(
+    f"Gemini text generation failed after 4 attempts. "
+    f"Last error: {last_error}"
+)
 
     if r.status_code >= 400:
         raise RuntimeError(

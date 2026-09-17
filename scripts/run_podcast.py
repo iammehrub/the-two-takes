@@ -11,7 +11,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 GEMINI_TEXT_MODEL = "gemini-3.5-flash-lite"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent"
-OPENAI_TEXT_MODEL = "gpt-5-mini"
+OPENAI_TEXT_MODEL = "gpt-5.6-luna"
 OPENAI_URL = "https://api.openai.com/v1/responses"
 
 
@@ -93,7 +93,6 @@ def openai_generate(prompt):
         data = r.json()
         text = data.get("output_text", "")
         if not text:
-            # Defensive fallback for Responses API response shapes.
             chunks = []
             for item in data.get("output", []):
                 for content in item.get("content", []):

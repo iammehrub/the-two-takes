@@ -26,7 +26,7 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg imagemagick fonts-dejavu
+          sudo apt-get install -y -qq ffmpeg imagemagick fonts-dejavu espeak-ng
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -36,7 +36,7 @@ jobs:
       - name: Install Python packages
         run: |
           python -m pip install --upgrade pip
-          pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
+          pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile
 
       - name: Build and publish episode
         env:
@@ -53,6 +53,8 @@ jobs:
           ls -la scripts
           echo "=== PYTHON VERSION ==="
           python --version
-          echo "=== RUNNING OPENAI-ONLY PODCAST RUNNER ==="
+          echo "=== KOKORO CHECK ==="
+          python -c "from kokoro import KPipeline; print('Kokoro import OK')"
+          echo "=== RUNNING OPENAI + KOKORO PODCAST RUNNER ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
           echo "=== PODCAST BUILDER FINISHED ==="

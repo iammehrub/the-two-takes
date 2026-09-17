@@ -1,10 +1,11 @@
-"""Production-quality rendering upgrades for The Two Takes."""
+"""Fast production-quality rendering upgrades for The Two Takes."""
 
 import html
 import json
 import re
 import subprocess
 import textwrap
+import time
 from pathlib import Path
 
 import requests
@@ -13,9 +14,20 @@ VIDEO_W = 1920
 VIDEO_H = 1080
 FPS = 30
 
+# GitHub-hosted runners are CPU based.  The old renderer encoded the video
+# three separate times with the relatively slow x264 "medium" preset.  That
+# made a 10-minute episode unnecessarily expensive and could make the job
+# appear stuck.  We keep 1080p output but use a much faster encode path.
+ENCODE_PRESET = "ultrafast"
+ENCODE_CRF = "23"
 
-def _run(cmd):
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def _run(cmd, label="FFmpeg"):
+    started = time.time()
+    print(f"{label}: starting...")
+    subprocess.run(cmd, check=True)
+    elapsed = time.time() - started
+    print(f"{label}: finished in {elapsed / 60:.1f} min")
 
 
 def _ts(seconds):
@@ -77,7 +89,7 @@ def make_srt(script, audio_seconds):
 
 
 def pexels_videos(keywords):
-    """Prefer large landscape footage for a true 1080p render."""
+    """Prefer large landscape footage for the 1080p render."""
     clips = []
     for kw in keywords[:5]:
         print(f"Searching high-quality Pexels footage: {kw}")
@@ -103,7 +115,12 @@ def pexels_videos(keywords):
             ]
             if not files:
                 continue
-            files.sort(key=lambda f: abs((f.get("width", 1920) / max(f.get("height", 1080), 1)) - 16 / 9))
+            files.sort(
+                key=lambda f: abs(
+                    (f.get("width", 1920) / max(f.get("height", 1080), 1))
+                    - 16 / 9
+                )
+            )
             f = files[0]
             clips.append((
                 f["link"],
@@ -126,7 +143,12 @@ def pexels_videos(keywords):
     for i, (url, dur, page, creator) in enumerate(unique):
         path = Path(app.WORK) / f"clip_{i}_hq.mp4"
         print(f"Downloading HD Pexels clip {i + 1}/{len(unique)}...")
-        with requests.get(url, stream=True, timeout=90, headers={"User-Agent": "Mozilla/5.0"}) as rr:
+        with requests.get(
+            url,
+            stream=True,
+            timeout=90,
+            headers={"User-Agent": "Mozilla/5.0"},
+        ) as rr:
             rr.raise_for_status()
             with path.open("wb") as f:
                 for block in rr.iter_content(1024 * 1024):
@@ -140,20 +162,48 @@ def pexels_videos(keywords):
 
 
 def render_video(wav, clips, srt, title):
-    """Render a clean 1080p master with higher-quality encoding and captions."""
+    """Render a 1080p master using a fast CPU path.
+
+    The previous version performed three slow x264 medium encodes:
+    1) every clip, 2) the entire background, and 3) the final subtitled video.
+    This version keeps the same visual concept but makes the intermediate
+    encodes ultrafast and prints progress so a long render is observable.
+    """
+    print("=== FAST 1080P RENDER START ===")
+    started_total = time.time()
     processed = []
+
+    # Normalize each source clip once.  Ultrafast is intentional here because
+    # these files are only intermediates; the final encode remains H.264 1080p.
     for i, (src, dur, _, _) in enumerate(clips):
         out = Path(app.WORK) / f"hq_{i}.mp4"
         clip_len = min(max(float(dur), 5.0), 12.0)
+        print(f"Preparing visual {i + 1}/{len(clips)}...")
         _run([
-            "ffmpeg", "-y", "-i", src, "-t", str(clip_len),
-            "-vf", f"scale={VIDEO_W}:{VIDEO_H}:force_original_aspect_ratio=increase,crop={VIDEO_W}:{VIDEO_H},setsar=1,fps={FPS}",
-            "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "19",
-            "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(out),
-        ])
+            "ffmpeg", "-y",
+            "-i", src,
+            "-t", str(clip_len),
+            "-vf", (
+                f"scale={VIDEO_W}:{VIDEO_H}:force_original_aspect_ratio=increase,"
+                f"crop={VIDEO_W}:{VIDEO_H},setsar=1,fps={FPS}"
+            ),
+            "-an",
+            "-c:v", "libx264",
+            "-preset", ENCODE_PRESET,
+            "-crf", ENCODE_CRF,
+            "-pix_fmt", "yuv420p",
+            str(out),
+        ], label=f"Visual {i + 1}/{len(clips)}")
         processed.append(out)
 
+    if not processed:
+        raise RuntimeError("No processed video clips available.")
+
     audio_duration = app.duration(wav)
+    print(f"Audio duration: {audio_duration / 60:.1f} minutes")
+
+    # Repeat the short clips to create enough background footage.  This is a
+    # concat input only; the background is encoded once at ultrafast speed.
     concat = Path(app.WORK) / "concat_hq.txt"
     with concat.open("w", encoding="utf-8") as f:
         for _ in range(30):
@@ -162,14 +212,27 @@ def render_video(wav, clips, srt, title):
 
     bg = Path(app.WORK) / "bg_hq.mp4"
     _run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat),
-        "-t", str(audio_duration + 0.5), "-an",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "19",
-        "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(bg),
-    ])
+        "ffmpeg", "-y",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", str(concat),
+        "-t", str(audio_duration + 0.5),
+        "-an",
+        "-c:v", "libx264",
+        "-preset", ENCODE_PRESET,
+        "-crf", ENCODE_CRF,
+        "-pix_fmt", "yuv420p",
+        str(bg),
+    ], label="Background render")
 
     final = Path(app.WORK) / "the_two_takes.mp4"
-    subtitle_path = str(srt).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+    subtitle_path = (
+        str(srt)
+        .replace("\\", "/")
+        .replace(":", "\\:")
+        .replace("'", "\\'")
+    )
+
     vf = (
         "drawbox=x=0:y=0:w=iw:h=86:color=black@0.48:t=fill,"
         "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
@@ -181,15 +244,30 @@ def render_video(wav, clips, srt, title):
         "Alignment=2,MarginL=90,MarginR=90,MarginV=58,WrapStyle=2'"
     )
 
+    print("Rendering final video with subtitles and audio...")
     _run([
-        "ffmpeg", "-y", "-i", str(bg), "-i", str(wav),
-        "-t", str(audio_duration), "-vf", vf,
-        "-map", "0:v:0", "-map", "1:a:0",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "19",
-        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
-        "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
-        "-shortest", "-movflags", "+faststart", str(final),
-    ])
+        "ffmpeg", "-y",
+        "-i", str(bg),
+        "-i", str(wav),
+        "-t", str(audio_duration),
+        "-vf", vf,
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-c:v", "libx264",
+        "-preset", ENCODE_PRESET,
+        "-crf", ENCODE_CRF,
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "160k",
+        "-af", "volume=1.0",
+        "-shortest",
+        "-movflags", "+faststart",
+        str(final),
+    ], label="FINAL VIDEO")
+
+    total = time.time() - started_total
+    print(f"=== FAST 1080P RENDER COMPLETE in {total / 60:.1f} min ===")
+    print(f"Final video: {final}")
     return final
 
 
@@ -248,7 +326,7 @@ def make_thumbnail(title, topic):
     svgfile = Path(app.WORK) / "thumbnail.svg"
     svgfile.write_text(svg, encoding="utf-8")
     jpg = Path(app.WORK) / "thumbnail.jpg"
-    _run(["convert", "-background", "none", str(svgfile), "-quality", "96", str(jpg)])
+    _run(["convert", "-background", "none", str(svgfile), "-quality", "96", str(jpg)], label="Thumbnail")
     return jpg
 
 

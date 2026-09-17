@@ -2,19 +2,22 @@ import os
 import re
 import json
 import subprocess
-import time
-import random
 from pathlib import Path
 
+import numpy as np
+import soundfile as sf
 import requests
 import build_podcast as app
+from kokoro import KPipeline
 
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = "gpt-5.6-luna"
-OPENAI_TTS_MODEL = "gpt-4o-mini-tts"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
-OPENAI_SPEECH_URL = "https://api.openai.com/v1/audio/speech"
+
+KOKORO_HIMEL_VOICE = "am_michael"
+KOKORO_NIHA_VOICE = "af_heart"
+KOKORO_SAMPLE_RATE = 24000
 
 
 if not OPENAI_API_KEY:
@@ -27,38 +30,11 @@ HEADERS = {
 }
 
 
-def request_with_retries(url, payload, label, timeout=(30, 240), attempts=3):
-    last_error = None
-    for attempt in range(1, attempts + 1):
-        print(f"{label} attempt {attempt}/{attempts}...")
-        try:
-            r = requests.post(
-                url,
-                headers=HEADERS,
-                json=payload,
-                timeout=timeout,
-            )
-        except requests.RequestException as exc:
-            last_error = str(exc)
-            if attempt < attempts:
-                time.sleep(4 * attempt + random.uniform(0, 2))
-                continue
-            break
-
-        if r.status_code in {429, 500, 502, 503, 504}:
-            last_error = f"HTTP {r.status_code}: {r.text[:800]}"
-            if attempt < attempts:
-                wait = min(30, 5 * attempt + random.uniform(0, 3))
-                print(f"  Temporary OpenAI error. Retrying in {wait:.1f}s...")
-                time.sleep(wait)
-                continue
-
-        if r.status_code >= 400:
-            raise RuntimeError(f"{label} failed with HTTP {r.status_code}: {r.text[:1200]}")
-
-        return r
-
-    raise RuntimeError(f"{label} failed after {attempts} attempts. Last error: {last_error}")
+print("=== INITIALIZING KOKORO TTS ===")
+KOKORO_PIPELINE = KPipeline(lang_code="a")
+print("Kokoro pipeline initialized")
+print(f"Himel voice: {KOKORO_HIMEL_VOICE}")
+print(f"Niha voice: {KOKORO_NIHA_VOICE}")
 
 
 def openai_generate(prompt):
@@ -67,26 +43,46 @@ def openai_generate(prompt):
         "input": prompt,
         "max_output_tokens": 9000,
     }
-    r = request_with_retries(
-        OPENAI_RESPONSES_URL,
-        payload,
-        f"OpenAI {OPENAI_TEXT_MODEL}",
-    )
-    data = r.json()
 
-    text = data.get("output_text", "")
-    if not text:
-        chunks = []
-        for item in data.get("output", []):
-            for content in item.get("content", []):
-                if content.get("type") == "output_text" and content.get("text"):
-                    chunks.append(content["text"])
-        text = "\n".join(chunks)
+    last_error = None
+    for attempt in range(1, 4):
+        print(f"OpenAI {OPENAI_TEXT_MODEL} attempt {attempt}/3...")
+        try:
+            r = requests.post(
+                OPENAI_RESPONSES_URL,
+                headers=HEADERS,
+                json=payload,
+                timeout=(30, 240),
+            )
+        except requests.RequestException as exc:
+            last_error = str(exc)
+            if attempt < 3:
+                continue
+            raise RuntimeError(f"OpenAI network request failed: {exc}") from exc
 
-    if not text.strip():
-        raise RuntimeError("OpenAI returned an empty script response")
+        if r.status_code >= 400:
+            last_error = f"HTTP {r.status_code}: {r.text[:1200]}"
+            if r.status_code in {429, 500, 502, 503, 504} and attempt < 3:
+                print("Temporary OpenAI error; retrying...")
+                continue
+            raise RuntimeError(f"OpenAI script generation failed: {last_error}")
 
-    return text.strip()
+        data = r.json()
+        text = data.get("output_text", "")
+        if not text:
+            chunks = []
+            for item in data.get("output", []):
+                for content in item.get("content", []):
+                    if content.get("type") == "output_text" and content.get("text"):
+                        chunks.append(content["text"])
+            text = "\n".join(chunks)
+
+        if text.strip():
+            return text.strip()
+
+        last_error = "OpenAI returned an empty script response"
+
+    raise RuntimeError(f"OpenAI script generation failed: {last_error}")
 
 
 def parse_json(text):
@@ -218,130 +214,115 @@ RETURN ONLY VALID JSON with exactly this shape:
     return title[:100], topic[:300], keywords[:5], hook[:500], script
 
 
-def split_for_openai_tts(script, max_chars=3600):
-    segments = []
+def split_for_kokoro(script, max_chars=1800):
+    chunks = []
     current_speaker = None
-    current_text = []
+    current_parts = []
+    current_length = 0
 
     def flush():
-        nonlocal current_text, current_speaker
-        if not current_speaker or not current_text:
-            return
-        text = " ".join(current_text).strip()
-        if text:
-            segments.append((current_speaker, text))
-        current_text = []
+        nonlocal current_parts, current_length
+        if current_speaker and current_parts:
+            text = " ".join(current_parts).strip()
+            if text:
+                chunks.append((current_speaker, text))
+        current_parts = []
+        current_length = 0
 
     for raw_line in script.splitlines():
         line = raw_line.strip()
-        m = re.match(r"^(Himel|Niha):\s*(.+)$", line, flags=re.I)
-        if not m:
+        match = re.match(r"^(Himel|Niha):\s*(.+)$", line, flags=re.I)
+        if not match:
             continue
-        speaker = "Himel" if m.group(1).lower() == "himel" else "Niha"
-        text = m.group(2).strip()
+
+        speaker = "Himel" if match.group(1).lower() == "himel" else "Niha"
+        text = match.group(2).strip()
+
         if speaker != current_speaker:
             flush()
             current_speaker = speaker
-        current_text.append(text)
-    flush()
 
-    final = []
-    for speaker, text in segments:
-        while len(text) > max_chars:
-            cut = text.rfind(". ", 0, max_chars)
-            if cut < 800:
-                cut = text.rfind(" ", 0, max_chars)
+        while text:
+            remaining = max_chars - current_length - 1
+            if remaining <= 0:
+                flush()
+                continue
+
+            if len(text) <= remaining:
+                current_parts.append(text)
+                current_length += len(text) + 1
+                text = ""
+                continue
+
+            cut = text.rfind(". ", 0, remaining)
+            if cut < 200:
+                cut = text.rfind(" ", 0, remaining)
             if cut <= 0:
-                cut = max_chars
-            final.append((speaker, text[:cut + (1 if text[cut:cut + 2] == ". " else 0)].strip()))
-            text = text[cut + 1:].strip()
-        if text:
-            final.append((speaker, text))
+                cut = remaining
 
-    return final
+            part = text[:cut + (1 if text[cut:cut + 2] == ". " else 0)].strip()
+            text = text[len(part):].strip()
+            current_parts.append(part)
+            current_length += len(part) + 1
+            flush()
+
+    flush()
+    return chunks
+
+
+def kokoro_segment(speaker, text, index, total):
+    voice = KOKORO_HIMEL_VOICE if speaker == "Himel" else KOKORO_NIHA_VOICE
+    print(f"Kokoro TTS segment {index}/{total} — {speaker} / {voice} ({len(text)} chars)...")
+
+    for attempt in range(1, 3):
+        try:
+            generator = KOKORO_PIPELINE(text, voice=voice, speed=1.0)
+            audio_parts = []
+            for _, _, audio in generator:
+                audio_parts.append(np.asarray(audio, dtype=np.float32))
+
+            if not audio_parts:
+                raise RuntimeError("Kokoro returned no audio")
+            return np.concatenate(audio_parts)
+        except Exception as exc:
+            print(f"  Kokoro attempt {attempt}/2 failed: {exc}")
+            if attempt == 2:
+                raise RuntimeError(
+                    f"Kokoro TTS failed for {speaker} segment {index}: {exc}"
+                ) from exc
+
+    raise RuntimeError("Kokoro TTS failed unexpectedly")
 
 
 def tts(script):
-    segments = split_for_openai_tts(script)
-    print(f"OpenAI TTS: {len(segments)} speaker segments.")
+    segments = split_for_kokoro(script)
+    print(f"Kokoro TTS: {len(segments)} speaker segments.")
 
-    pcm_parts = []
+    audio_parts = []
+    silence = np.zeros(int(KOKORO_SAMPLE_RATE * 0.12), dtype=np.float32)
+
     for i, (speaker, text) in enumerate(segments, 1):
-        voice = "cedar" if speaker == "Himel" else "marin"
-        print(f"OpenAI TTS segment {i}/{len(segments)} — {speaker} / {voice} ({len(text)} chars)...")
+        audio_parts.append(kokoro_segment(speaker, text, i, len(segments)))
+        if i < len(segments):
+            audio_parts.append(silence)
 
-        payload = {
-            "model": OPENAI_TTS_MODEL,
-            "voice": voice,
-            "input": text,
-            "instructions": (
-                "Natural polished podcast delivery. "
-                + ("Confident, curious, youthful male host." if speaker == "Himel" else "Warm, intelligent, expressive female host.")
-                + " Keep the wording exactly as provided. Do not add or omit words."
-            ),
-            "response_format": "mp3",
-            "speed": 1.0,
-        }
+    if not audio_parts:
+        raise RuntimeError("Kokoro produced no audio segments")
 
-        r = request_with_retries(
-            OPENAI_SPEECH_URL,
-            payload,
-            f"OpenAI TTS {speaker}",
-            timeout=(30, 180),
-            attempts=3,
-        )
-
-        mp3_path = app.WORK / f"openai_tts_{i:03d}.mp3"
-        wav_path = app.WORK / f"openai_tts_{i:03d}.pcm"
-        mp3_path.write_bytes(r.content)
-
-        result = subprocess.run(
-            [
-                "ffmpeg", "-y",
-                "-i", str(mp3_path),
-                "-f", "s16le",
-                "-ar", "24000",
-                "-ac", "1",
-                "-",
-            ],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-        )
-        pcm_parts.append(result.stdout)
-
-    if not pcm_parts:
-        raise RuntimeError("OpenAI TTS produced no audio segments")
-
-    pcm_path = app.WORK / "voice.pcm"
-    wav_path = app.WORK / "voice.wav"
-    pcm_path.write_bytes(b"".join(pcm_parts))
-
-    subprocess.run(
-        [
-            "ffmpeg", "-y",
-            "-f", "s16le",
-            "-ar", "24000",
-            "-ac", "1",
-            "-i", str(pcm_path),
-            str(wav_path),
-        ],
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-    print(f"Combined OpenAI TTS audio: {wav_path}")
-    return wav_path
+    audio = np.concatenate(audio_parts)
+    wav = app.WORK / "voice.wav"
+    sf.write(str(wav), audio, KOKORO_SAMPLE_RATE)
+    print(f"Combined Kokoro TTS audio: {wav}")
+    return wav
 
 
-# Replace both Gemini-backed runtime functions before app.main().
 app.make_episode = make_episode
 app.tts = tts
 
-print("=== OPENAI-ONLY PIPELINE ENABLED ===")
+print("=== OPENAI + KOKORO PIPELINE ENABLED ===")
 print(f"Script model: {OPENAI_TEXT_MODEL}")
-print(f"TTS model: {OPENAI_TTS_MODEL}")
-print("Gemini is not used for script generation or TTS in this runner.")
+print(f"Kokoro Himel: {KOKORO_HIMEL_VOICE}")
+print(f"Kokoro Niha: {KOKORO_NIHA_VOICE}")
+print("No Gemini TTS or OpenAI TTS API is used.")
 
 app.main()

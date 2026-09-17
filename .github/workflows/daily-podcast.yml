@@ -53,6 +53,6 @@ jobs:
           ls -la scripts
           echo "=== PYTHON VERSION ==="
           python --version
-          echo "=== RUNNING PERMANENT PODCAST RUNNER ==="
-          PYTHONPATH=scripts python -u scripts/run_podcast.py
+          echo "=== RUNNING OPENAI-ONLY PODCAST RUNNER ==="
+          PYTHONPATH=scripts python -u scripts/openai_pipeline.py
           echo "=== PODCAST BUILDER FINISHED ==="

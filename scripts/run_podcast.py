@@ -15,46 +15,6 @@ OPENAI_TEXT_MODEL = "gpt-5.6-luna"
 OPENAI_URL = "https://api.openai.com/v1/responses"
 
 
-def gemini_generate(prompt, temperature=0.7):
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is not configured.")
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "maxOutputTokens": 7000,
-            "responseMimeType": "application/json",
-        },
-    }
-    for attempt in range(1, 4):
-        print(f"Gemini {GEMINI_TEXT_MODEL} attempt {attempt}/3...")
-        try:
-            r = requests.post(
-                GEMINI_URL,
-                headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
-                json=payload,
-                timeout=180,
-            )
-        except requests.RequestException as exc:
-            if attempt == 3:
-                raise RuntimeError(f"Gemini network request failed: {exc}") from exc
-            time.sleep(4 * attempt + random.uniform(0, 2))
-            continue
-        if r.status_code == 429:
-            raise RuntimeError(f"Gemini quota/rate limit was hit: {r.text[:1000]}")
-        if r.status_code == 503 and attempt < 3:
-            time.sleep(5 * attempt + random.uniform(0, 2))
-            continue
-        if r.status_code >= 400:
-            raise RuntimeError(f"Gemini request failed with HTTP {r.status_code}: {r.text[:1200]}")
-        data = r.json()
-        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-        text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
-        if text.strip():
-            return text.strip()
-        raise RuntimeError("Gemini returned an empty response.")
-    raise RuntimeError("Gemini generation failed.")
-
-
 def openai_generate(prompt):
     if not OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY is not configured.")
@@ -66,7 +26,7 @@ def openai_generate(prompt):
     }
 
     for attempt in range(1, 3):
-        print(f"OpenAI {OPENAI_TEXT_MODEL} fallback attempt {attempt}/2...")
+        print(f"OpenAI {OPENAI_TEXT_MODEL} attempt {attempt}/2...")
         try:
             r = requests.post(
                 OPENAI_URL,
@@ -106,22 +66,63 @@ def openai_generate(prompt):
     raise RuntimeError("OpenAI generation failed.")
 
 
+def gemini_generate(prompt, temperature=0.7):
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured.")
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "maxOutputTokens": 7000,
+            "responseMimeType": "application/json",
+        },
+    }
+    for attempt in range(1, 4):
+        print(f"Gemini {GEMINI_TEXT_MODEL} fallback attempt {attempt}/3...")
+        try:
+            r = requests.post(
+                GEMINI_URL,
+                headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
+                json=payload,
+                timeout=180,
+            )
+        except requests.RequestException as exc:
+            if attempt == 3:
+                raise RuntimeError(f"Gemini network request failed: {exc}") from exc
+            time.sleep(4 * attempt + random.uniform(0, 2))
+            continue
+        if r.status_code == 429:
+            raise RuntimeError(f"Gemini quota/rate limit was hit: {r.text[:1000]}")
+        if r.status_code == 503 and attempt < 3:
+            time.sleep(5 * attempt + random.uniform(0, 2))
+            continue
+        if r.status_code >= 400:
+            raise RuntimeError(f"Gemini request failed with HTTP {r.status_code}: {r.text[:1200]}")
+        data = r.json()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
+        if text.strip():
+            return text.strip()
+        raise RuntimeError("Gemini returned an empty response.")
+    raise RuntimeError("Gemini generation failed.")
+
+
 def generate_with_fallback(prompt):
-    gemini_error = None
+    openai_error = None
     try:
-        return gemini_generate(prompt), "Gemini"
+        print("=== PRIMARY SCRIPT PROVIDER: OPENAI ===")
+        return openai_generate(prompt), "OpenAI"
     except Exception as exc:
-        gemini_error = exc
-        print(f"Gemini failed: {exc}")
-        print("=== SWITCHING TO OPENAI FALLBACK ===")
+        openai_error = exc
+        print(f"OpenAI failed: {exc}")
+        print("=== SWITCHING TO GEMINI FALLBACK ===")
 
     try:
-        return openai_generate(prompt), "OpenAI"
-    except Exception as openai_error:
+        return gemini_generate(prompt), "Gemini"
+    except Exception as gemini_error:
         raise RuntimeError(
             "Both script generators failed. "
-            f"Gemini error: {gemini_error}; OpenAI error: {openai_error}"
-        ) from openai_error
+            f"OpenAI error: {openai_error}; Gemini error: {gemini_error}"
+        ) from gemini_error
 
 
 def clean(text):
@@ -236,7 +237,7 @@ Use this shape:
         keywords = [x.strip() for x in str(keywords_raw or "").split(",") if x.strip()]
 
     if not script or word_count < 1100:
-        debug = app.WORK / "gemini_episode_raw.txt"
+        debug = app.WORK / "episode_raw.txt"
         debug.write_text(raw, encoding="utf-8")
         raise RuntimeError(
             f"{provider} dialogue was too short ({word_count} words). Raw output saved to {debug}"

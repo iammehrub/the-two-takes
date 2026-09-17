@@ -7,7 +7,7 @@ import requests
 import build_podcast as app
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_TEXT_MODEL = "gemini-2.5-flash-lite"
+GEMINI_TEXT_MODEL = "gemini-3.5-flash-lite"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent"
 
 

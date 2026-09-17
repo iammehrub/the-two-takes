@@ -319,10 +319,19 @@ def tts(script):
 app.make_episode = make_episode
 app.tts = tts
 
-print("=== OPENAI + KOKORO PIPELINE ENABLED ===")
+# Production upgrade: keep the working OAuth/upload path, but replace the weak
+# visual/caption/render layer with 1080p encoding, short paced captions,
+# improved Pexels selection, audio normalization, and a new thumbnail system.
+import production_upgrade as visual_upgrade
+app.pexels_videos = visual_upgrade.pexels_videos
+app.make_srt = visual_upgrade.make_srt
+app.render_video = visual_upgrade.render_video
+app.make_thumbnail = visual_upgrade.make_thumbnail
+
+print("=== OPENAI + KOKORO + PRODUCTION VISUAL UPGRADE ENABLED ===")
 print(f"Script model: {OPENAI_TEXT_MODEL}")
 print(f"Kokoro Himel: {KOKORO_HIMEL_VOICE}")
 print(f"Kokoro Niha: {KOKORO_NIHA_VOICE}")
-print("No Gemini TTS or OpenAI TTS API is used.")
+print("Output: 1920x1080 H.264, 30fps, loudness-normalized audio, short paced captions.")
 
 app.main()

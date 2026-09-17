@@ -1,4 +1,8 @@
-"""Fast production-quality rendering upgrades for The Two Takes."""
+"""Original studio-style production layer for The Two Takes.
+
+Designed around the English-learning podcast genre without copying another
+channel's protected branding, artwork, scripts, characters, or exact voice.
+"""
 
 import html
 import json
@@ -8,16 +12,9 @@ import textwrap
 import time
 from pathlib import Path
 
-import requests
-
 VIDEO_W = 1920
 VIDEO_H = 1080
 FPS = 30
-
-# GitHub-hosted runners are CPU based.  The old renderer encoded the video
-# three separate times with the relatively slow x264 "medium" preset.  That
-# made a 10-minute episode unnecessarily expensive and could make the job
-# appear stuck.  We keep 1080p output but use a much faster encode path.
 ENCODE_PRESET = "ultrafast"
 ENCODE_CRF = "23"
 
@@ -26,8 +23,7 @@ def _run(cmd, label="FFmpeg"):
     started = time.time()
     print(f"{label}: starting...")
     subprocess.run(cmd, check=True)
-    elapsed = time.time() - started
-    print(f"{label}: finished in {elapsed / 60:.1f} min")
+    print(f"{label}: finished in {(time.time() - started) / 60:.1f} min")
 
 
 def _ts(seconds):
@@ -56,273 +52,220 @@ def _caption_chunks(script, max_words=5):
     return chunks
 
 
+def _speech_intervals(wav, total_duration):
+    """Find major pauses so caption timing does not drift through silence."""
+    cmd = [
+        "ffmpeg", "-hide_banner", "-i", str(wav), "-af",
+        "silencedetect=noise=-34dB:d=0.22", "-f", "null", "-"
+    ]
+    p = subprocess.run(cmd, capture_output=True, text=True)
+    silence_starts = []
+    silence_ends = []
+    for line in (p.stderr or "").splitlines():
+        m = re.search(r"silence_start:\s*([0-9.]+)", line)
+        if m:
+            silence_starts.append(float(m.group(1)))
+        m = re.search(r"silence_end:\s*([0-9.]+)", line)
+        if m:
+            silence_ends.append(float(m.group(1)))
+
+    intervals = []
+    cursor = 0.0
+    for start, end in zip(silence_starts, silence_ends):
+        if start - cursor >= 0.35:
+            intervals.append((cursor, min(start, total_duration)))
+        cursor = max(cursor, end)
+    if total_duration - cursor >= 0.35:
+        intervals.append((cursor, total_duration))
+    return intervals or [(0.15, total_duration)]
+
+
 def make_srt(script, audio_seconds):
-    """Short 2-5 word captions paced across the real audio duration."""
+    """Create short captions anchored to detected speech windows."""
     chunks = _caption_chunks(script, max_words=5)
     if not chunks:
-        raise RuntimeError("Could not create subtitle chunks from the dialogue")
+        raise RuntimeError("Could not create subtitle chunks from dialogue")
 
-    total_words = sum(len(text.split()) for _, text in chunks)
-    available = max(0.5, audio_seconds - 0.25)
-    cursor = 0.15
+    intervals = _speech_intervals(app.WORK / "voice.wav", audio_seconds)
+    total_words = sum(len(text.split()) for _, text in chunks) or 1
+    total_speech = sum(max(0.2, b - a) for a, b in intervals)
     rows = []
+    interval_index = 0
+    interval_pos = intervals[0][0]
 
-    for _, text in chunks:
-        weight = len(text.split()) / max(total_words, 1)
-        span = max(0.55, available * weight)
-        start = cursor
-        end = min(audio_seconds, start + span)
-        rows.append((start, end, text))
-        cursor = end
-        if cursor >= audio_seconds:
+    for speaker, text in chunks:
+        need = max(0.55, total_speech * len(text.split()) / total_words)
+        remaining = need
+        while remaining > 0 and interval_index < len(intervals):
+            a, b = intervals[interval_index]
+            start = max(interval_pos, a)
+            available = max(0.05, b - start)
+            take = min(remaining, available)
+            if take >= 0.35:
+                rows.append((start, start + take, speaker, text if not rows or rows[-1][3] != text else text))
+            remaining -= take
+            interval_pos = start + take
+            if interval_pos >= b - 0.03:
+                interval_index += 1
+                if interval_index < len(intervals):
+                    interval_pos = intervals[interval_index][0]
+        if interval_index >= len(intervals):
             break
 
-    if rows:
-        a, _, text = rows[-1]
-        rows[-1] = (a, audio_seconds, text)
+    # If a chunk crossed a pause, merge its pieces into one readable caption.
+    merged = []
+    for a, b, speaker, text in rows:
+        if merged and merged[-1][2] == speaker and merged[-1][3] == text and a - merged[-1][1] < 0.5:
+            merged[-1] = (merged[-1][0], b, speaker, text)
+        else:
+            merged.append((a, b, speaker, text))
 
     path = Path(app.WORK) / "captions.srt"
     with path.open("w", encoding="utf-8") as f:
-        for i, (start, end, text) in enumerate(rows, 1):
-            f.write(f"{i}\n{_ts(start)} --> {_ts(end)}\n{text}\n\n")
+        for i, (start, end, speaker, text) in enumerate(merged, 1):
+            f.write(f"{i}\n{_ts(start)} --> {_ts(end)}\n{speaker}\n{text}\n\n")
     return path
 
 
 def pexels_videos(keywords):
-    """Prefer large landscape footage for the 1080p render."""
-    clips = []
-    for kw in keywords[:5]:
-        print(f"Searching high-quality Pexels footage: {kw}")
-        r = requests.get(
-            "https://api.pexels.com/videos/search",
-            headers={"Authorization": app.PEXELS},
-            params={
-                "query": kw,
-                "per_page": 12,
-                "orientation": "landscape",
-                "size": "large",
-            },
-            timeout=30,
-        )
-        if r.status_code >= 400:
-            print(f"Pexels search failed for '{kw}': {r.status_code}")
-            continue
+    """Keep the existing pipeline contract but stop downloading stock footage."""
+    print("Studio mode: skipping Pexels and all external background footage.")
+    # render_video ignores the placeholder path. The tuple keeps the old main()
+    # interface compatible and avoids changing the upload workflow.
+    return [("__ORIGINAL_STUDIO__", 600, "", "")]
 
-        for v in r.json().get("videos", []):
-            files = [
-                f for f in v.get("video_files", [])
-                if f.get("width", 0) >= 1280 and f.get("height", 0) >= 720
-            ]
-            if not files:
-                continue
-            files.sort(
-                key=lambda f: abs(
-                    (f.get("width", 1920) / max(f.get("height", 1080), 1))
-                    - 16 / 9
-                )
-            )
-            f = files[0]
-            clips.append((
-                f["link"],
-                v.get("duration", 8),
-                v.get("url", ""),
-                v.get("user", {}).get("name", "Pexels creator"),
-            ))
-        if len(clips) >= 10:
-            break
 
-    seen = set()
-    unique = []
-    for item in clips:
-        if item[0] not in seen:
-            seen.add(item[0])
-            unique.append(item)
-    unique = unique[:10]
+def _studio_svg():
+    return '''<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#26354a"/></linearGradient>
+        <radialGradient id="light1"><stop offset="0" stop-color="#f3d6a0" stop-opacity=".42"/><stop offset="1" stop-color="#f3d6a0" stop-opacity="0"/></radialGradient>
+        <radialGradient id="light2"><stop offset="0" stop-color="#9ec5ff" stop-opacity=".28"/><stop offset="1" stop-color="#9ec5ff" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="1920" height="1080" fill="url(#wall)"/>
+      <rect y="0" width="1920" height="180" fill="#0b1220" opacity=".5"/>
+      <circle cx="350" cy="250" r="390" fill="url(#light1)"/>
+      <circle cx="1570" cy="240" r="430" fill="url(#light2)"/>
+      <rect x="85" y="90" width="1750" height="760" rx="36" fill="#ffffff" opacity=".035" stroke="#ffffff" stroke-opacity=".11" stroke-width="3"/>
+      <text x="960" y="150" text-anchor="middle" font-family="DejaVu Sans" font-size="42" font-weight="700" fill="#ffffff" opacity=".95">THE TWO TAKES</text>
+      <text x="960" y="205" text-anchor="middle" font-family="DejaVu Sans" font-size="24" fill="#d9e2f0">English conversations • listening • speaking practice</text>
 
-    downloaded = []
-    for i, (url, dur, page, creator) in enumerate(unique):
-        path = Path(app.WORK) / f"clip_{i}_hq.mp4"
-        print(f"Downloading HD Pexels clip {i + 1}/{len(unique)}...")
-        with requests.get(
-            url,
-            stream=True,
-            timeout=90,
-            headers={"User-Agent": "Mozilla/5.0"},
-        ) as rr:
-            rr.raise_for_status()
-            with path.open("wb") as f:
-                for block in rr.iter_content(1024 * 1024):
-                    if block:
-                        f.write(block)
-        downloaded.append((str(path), dur, page, creator))
+      <g transform="translate(410,300)">
+        <circle cx="250" cy="170" r="132" fill="#c98f6b"/>
+        <path d="M125 165 Q135 35 250 35 Q365 35 375 165 Q335 100 250 105 Q165 100 125 165Z" fill="#20242b"/>
+        <circle cx="210" cy="180" r="11" fill="#18212c"/><circle cx="290" cy="180" r="11" fill="#18212c"/>
+        <path d="M215 232 Q250 250 285 232" fill="none" stroke="#60332e" stroke-width="8" stroke-linecap="round"/>
+        <path d="M145 330 Q250 285 355 330 L400 585 L100 585Z" fill="#314b70"/>
+        <rect x="365" y="210" width="28" height="160" rx="14" fill="#222b38"/>
+        <ellipse cx="379" cy="195" rx="54" ry="30" fill="#171d26"/>
+        <circle cx="250" cy="145" r="150" fill="none" stroke="#ffffff" stroke-opacity=".13" stroke-width="6"/>
+        <text x="250" y="635" text-anchor="middle" font-family="DejaVu Sans" font-size="30" font-weight="700" fill="#ffffff">HIMEL</text>
+      </g>
 
-    if not downloaded:
-        raise RuntimeError("No high-quality Pexels clips were returned.")
-    return downloaded
+      <g transform="translate(1100,315)">
+        <circle cx="250" cy="155" r="125" fill="#c99070"/>
+        <path d="M120 155 Q112 28 250 28 Q388 28 380 160 Q335 85 250 88 Q165 85 120 155Z" fill="#3a2830"/>
+        <circle cx="212" cy="168" r="10" fill="#18212c"/><circle cx="288" cy="168" r="10" fill="#18212c"/>
+        <path d="M218 220 Q250 238 282 220" fill="none" stroke="#60332e" stroke-width="8" stroke-linecap="round"/>
+        <path d="M150 315 Q250 275 350 315 L390 580 L110 580Z" fill="#865f70"/>
+        <rect x="100" y="210" width="28" height="150" rx="14" fill="#222b38"/>
+        <ellipse cx="114" cy="195" rx="52" ry="29" fill="#171d26"/>
+        <circle cx="250" cy="140" r="143" fill="none" stroke="#ffffff" stroke-opacity=".11" stroke-width="6"/>
+        <text x="250" y="630" text-anchor="middle" font-family="DejaVu Sans" font-size="30" font-weight="700" fill="#ffffff">NIHA</text>
+      </g>
+
+      <rect x="245" y="840" width="1430" height="125" rx="35" fill="#101722" stroke="#ffffff" stroke-opacity=".12" stroke-width="3"/>
+      <rect x="390" y="875" width="1140" height="8" rx="4" fill="#ffffff" opacity=".1"/>
+      <circle cx="960" cy="920" r="25" fill="#ffffff" opacity=".12"/>
+      <text x="960" y="925" text-anchor="middle" font-family="DejaVu Sans" font-size="22" fill="#cbd5e1">A calm place to practice real English.</text>
+    </svg>'''
+
+
+def _make_studio_png():
+    svgfile = Path(app.WORK) / "studio.svg"
+    pngfile = Path(app.WORK) / "studio.png"
+    svgfile.write_text(_studio_svg(), encoding="utf-8")
+    _run(["convert", "-background", "none", str(svgfile), "-quality", "96", str(pngfile)], label="Studio artwork")
+    return pngfile
 
 
 def render_video(wav, clips, srt, title):
-    """Render a 1080p master using a fast CPU path.
-
-    The previous version performed three slow x264 medium encodes:
-    1) every clip, 2) the entire background, and 3) the final subtitled video.
-    This version keeps the same visual concept but makes the intermediate
-    encodes ultrafast and prints progress so a long render is observable.
-    """
-    print("=== FAST 1080P RENDER START ===")
-    started_total = time.time()
-    processed = []
-
-    # Normalize each source clip once.  Ultrafast is intentional here because
-    # these files are only intermediates; the final encode remains H.264 1080p.
-    for i, (src, dur, _, _) in enumerate(clips):
-        out = Path(app.WORK) / f"hq_{i}.mp4"
-        clip_len = min(max(float(dur), 5.0), 12.0)
-        print(f"Preparing visual {i + 1}/{len(clips)}...")
-        _run([
-            "ffmpeg", "-y",
-            "-i", src,
-            "-t", str(clip_len),
-            "-vf", (
-                f"scale={VIDEO_W}:{VIDEO_H}:force_original_aspect_ratio=increase,"
-                f"crop={VIDEO_W}:{VIDEO_H},setsar=1,fps={FPS}"
-            ),
-            "-an",
-            "-c:v", "libx264",
-            "-preset", ENCODE_PRESET,
-            "-crf", ENCODE_CRF,
-            "-pix_fmt", "yuv420p",
-            str(out),
-        ], label=f"Visual {i + 1}/{len(clips)}")
-        processed.append(out)
-
-    if not processed:
-        raise RuntimeError("No processed video clips available.")
-
+    print("=== STUDIO 1080P RENDER START ===")
+    started = time.time()
     audio_duration = app.duration(wav)
-    print(f"Audio duration: {audio_duration / 60:.1f} minutes")
-
-    # Repeat the short clips to create enough background footage.  This is a
-    # concat input only; the background is encoded once at ultrafast speed.
-    concat = Path(app.WORK) / "concat_hq.txt"
-    with concat.open("w", encoding="utf-8") as f:
-        for _ in range(30):
-            for p in processed:
-                f.write(f"file '{p.as_posix()}'\n")
-
-    bg = Path(app.WORK) / "bg_hq.mp4"
-    _run([
-        "ffmpeg", "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", str(concat),
-        "-t", str(audio_duration + 0.5),
-        "-an",
-        "-c:v", "libx264",
-        "-preset", ENCODE_PRESET,
-        "-crf", ENCODE_CRF,
-        "-pix_fmt", "yuv420p",
-        str(bg),
-    ], label="Background render")
-
+    studio = _make_studio_png()
     final = Path(app.WORK) / "the_two_takes.mp4"
-    subtitle_path = (
-        str(srt)
-        .replace("\\", "/")
-        .replace(":", "\\:")
-        .replace("'", "\\'")
-    )
 
+    subtitle_path = str(srt).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
     vf = (
-        "drawbox=x=0:y=0:w=iw:h=86:color=black@0.48:t=fill,"
-        "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
-        "text='THE TWO TAKES':x=48:y=27:fontsize=34:fontcolor=white,"
+        f"scale={VIDEO_W}:{VIDEO_H},"
+        "drawbox=x=0:y=0:w=iw:h=1080:color=black@0.04:t=fill,"
         f"subtitles='{subtitle_path}':force_style="
-        "'FontName=DejaVu Sans,FontSize=26,Bold=1,"
-        "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101010,"
-        "BorderStyle=3,BackColour=&H99000000,Outline=3,Shadow=0,"
-        "Alignment=2,MarginL=90,MarginR=90,MarginV=58,WrapStyle=2'"
+        "'FontName=DejaVu Sans,FontSize=30,Bold=1,"
+        "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
+        "BorderStyle=3,BackColour=&HC0101722,Outline=2,Shadow=0,"
+        "Alignment=2,MarginL=170,MarginR=170,MarginV=120,WrapStyle=2'"
     )
 
-    print("Rendering final video with subtitles and audio...")
     _run([
         "ffmpeg", "-y",
-        "-i", str(bg),
+        "-loop", "1", "-i", str(studio),
         "-i", str(wav),
         "-t", str(audio_duration),
         "-vf", vf,
         "-map", "0:v:0",
         "-map", "1:a:0",
+        "-r", str(FPS),
         "-c:v", "libx264",
         "-preset", ENCODE_PRESET,
         "-crf", ENCODE_CRF,
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "160k",
-        "-af", "volume=1.0",
+        "-af", "highpass=f=70,lowpass=f=12000,acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,volume=1.25",
         "-shortest",
         "-movflags", "+faststart",
         str(final),
-    ], label="FINAL VIDEO")
+    ], label="FINAL STUDIO VIDEO")
 
-    total = time.time() - started_total
-    print(f"=== FAST 1080P RENDER COMPLETE in {total / 60:.1f} min ===")
-    print(f"Final video: {final}")
+    print(f"=== STUDIO RENDER COMPLETE in {(time.time() - started) / 60:.1f} min ===")
     return final
 
 
 def _short_thumbnail_title(title, topic):
-    source = title.strip() or topic.strip() or "TODAY'S BIG STORY"
+    source = title.strip() or topic.strip() or "SPEAK ENGLISH NATURALLY"
     source = re.sub(r"[^A-Za-z0-9'?! ]+", " ", source)
-    words = source.split()
-    return " ".join(words[:5]).upper()
+    return " ".join(source.split()[:7]).upper()
 
 
 def make_thumbnail(title, topic):
-    """Original 1280x720 thumbnail with a consistent two-host illustrated identity."""
     headline = _short_thumbnail_title(title, topic)
-    lines = textwrap.wrap(headline, width=17)[:3]
+    lines = textwrap.wrap(headline, width=20)[:3]
     headline_svg = "".join(
-        f'<text x="80" y="{250 + i * 78}" font-family="DejaVu Sans" font-size="66" font-weight="900" fill="#ffffff">{html.escape(line)}</text>'
+        f'<text x="70" y="{265 + i * 82}" font-family="DejaVu Sans" font-size="70" font-weight="900" fill="#ffffff">{html.escape(line)}</text>'
         for i, line in enumerate(lines)
     )
-
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101827"/><stop offset="1" stop-color="#26364f"/></linearGradient>
-        <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".16"/><stop offset="1" stop-color="#ffffff" stop-opacity=".05"/></linearGradient>
-      </defs>
-      <rect width="1280" height="720" fill="url(#bg)"/>
-      <circle cx="1120" cy="120" r="260" fill="#ffffff" opacity=".06"/>
-      <circle cx="930" cy="700" r="330" fill="#ffffff" opacity=".04"/>
-      <rect x="55" y="55" width="1170" height="610" rx="38" fill="url(#card)" stroke="#ffffff" stroke-opacity=".12"/>
-      <text x="80" y="115" font-family="DejaVu Sans" font-size="30" font-weight="700" fill="#ffffff">THE TWO TAKES</text>
-      <rect x="80" y="135" width="150" height="8" rx="4" fill="#ffffff" opacity=".8"/>
+      <rect width="1280" height="720" fill="#182234"/>
+      <circle cx="1090" cy="130" r="250" fill="#ffffff" opacity=".08"/>
+      <rect x="35" y="35" width="1210" height="650" rx="32" fill="#ffffff" opacity=".04" stroke="#ffffff" stroke-opacity=".14"/>
+      <text x="70" y="100" font-family="DejaVu Sans" font-size="31" font-weight="800" fill="#ffffff">THE TWO TAKES</text>
+      <text x="70" y="145" font-family="DejaVu Sans" font-size="22" fill="#cbd5e1">ENGLISH PODCAST • REAL CONVERSATIONS</text>
       {headline_svg}
-      <text x="82" y="560" font-family="DejaVu Sans" font-size="25" font-weight="600" fill="#d9e2f0">HIMEL × NIHA  •  ENGLISH PODCAST</text>
-
-      <g transform="translate(875,125)">
-        <circle cx="145" cy="160" r="126" fill="#d9a77d"/>
-        <path d="M35 145 Q48 28 145 28 Q242 28 255 145 Q225 92 145 95 Q65 92 35 145Z" fill="#20252d"/>
-        <circle cx="105" cy="165" r="10" fill="#17202b"/><circle cx="185" cy="165" r="10" fill="#17202b"/>
-        <path d="M112 215 Q145 235 178 215" fill="none" stroke="#572f2a" stroke-width="8" stroke-linecap="round"/>
-        <path d="M70 295 Q145 245 220 295 L245 475 L45 475Z" fill="#26364f"/>
-        <circle cx="145" cy="130" r="145" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="6"/>
+      <text x="70" y="585" font-family="DejaVu Sans" font-size="25" font-weight="700" fill="#d9e2f0">LISTEN • SPEAK • PRACTICE</text>
+      <g transform="translate(930,185)">
+        <circle cx="105" cy="105" r="82" fill="#c98f6b"/><path d="M28 110 Q35 28 105 28 Q175 28 182 110 Q155 68 105 70 Q55 68 28 110Z" fill="#20242b"/>
+        <circle cx="80" cy="112" r="7"/><circle cx="130" cy="112" r="7"/><path d="M82 145 Q105 158 128 145" fill="none" stroke="#60332e" stroke-width="6"/>
+        <path d="M45 200 Q105 170 165 200 L190 340 L20 340Z" fill="#314b70"/>
+        <ellipse cx="190" cy="140" rx="38" ry="20" fill="#171d26"/>
       </g>
-
-      <g transform="translate(1040,220)">
-        <circle cx="115" cy="125" r="105" fill="#d39a73"/>
-        <path d="M15 150 Q12 5 115 5 Q220 5 215 155 Q185 75 115 72 Q45 75 15 150Z" fill="#3b2630"/>
-        <circle cx="82" cy="135" r="8" fill="#17202b"/><circle cx="148" cy="135" r="8" fill="#17202b"/>
-        <path d="M86 178 Q115 194 144 178" fill="none" stroke="#572f2a" stroke-width="7" stroke-linecap="round"/>
-        <path d="M55 240 Q115 205 175 240 L200 410 L30 410Z" fill="#8b5a68"/>
-        <circle cx="115" cy="112" r="122" fill="none" stroke="#ffffff" stroke-opacity=".18" stroke-width="5"/>
+      <g transform="translate(1080,285)">
+        <circle cx="75" cy="75" r="65" fill="#c99070"/><path d="M10 80 Q5 18 75 18 Q145 18 140 82 Q118 50 75 50 Q32 50 10 80Z" fill="#3a2830"/>
+        <circle cx="55" cy="82" r="6"/><circle cx="95" cy="82" r="6"/><path d="M57 108 Q75 120 93 108" fill="none" stroke="#60332e" stroke-width="5"/>
+        <path d="M25 150 Q75 125 125 150 L145 270 L5 270Z" fill="#865f70"/>
+        <ellipse cx="0" cy="112" rx="30" ry="16" fill="#171d26"/>
       </g>
-
-      <circle cx="1030" cy="535" r="54" fill="#ffffff" opacity=".12"/>
-      <text x="998" y="547" font-family="DejaVu Sans" font-size="34" font-weight="900" fill="#ffffff">▶</text>
     </svg>'''
-
     svgfile = Path(app.WORK) / "thumbnail.svg"
     svgfile.write_text(svg, encoding="utf-8")
     jpg = Path(app.WORK) / "thumbnail.jpg"

@@ -7,8 +7,12 @@ import requests
 import build_podcast as app
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
 GEMINI_TEXT_MODEL = "gemini-3.5-flash-lite"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TEXT_MODEL}:generateContent"
+OPENAI_TEXT_MODEL = "gpt-5-mini"
+OPENAI_URL = "https://api.openai.com/v1/responses"
 
 
 def gemini_generate(prompt, temperature=0.7):
@@ -17,7 +21,6 @@ def gemini_generate(prompt, temperature=0.7):
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": temperature,
             "maxOutputTokens": 7000,
             "responseMimeType": "application/json",
         },
@@ -50,6 +53,76 @@ def gemini_generate(prompt, temperature=0.7):
             return text.strip()
         raise RuntimeError("Gemini returned an empty response.")
     raise RuntimeError("Gemini generation failed.")
+
+
+def openai_generate(prompt):
+    if not OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is not configured.")
+
+    payload = {
+        "model": OPENAI_TEXT_MODEL,
+        "input": prompt,
+        "max_output_tokens": 7000,
+    }
+
+    for attempt in range(1, 3):
+        print(f"OpenAI {OPENAI_TEXT_MODEL} fallback attempt {attempt}/2...")
+        try:
+            r = requests.post(
+                OPENAI_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                },
+                json=payload,
+                timeout=180,
+            )
+        except requests.RequestException as exc:
+            if attempt == 2:
+                raise RuntimeError(f"OpenAI network request failed: {exc}") from exc
+            time.sleep(4 * attempt + random.uniform(0, 2))
+            continue
+
+        if r.status_code in {429, 500, 502, 503, 504} and attempt < 2:
+            print(f"OpenAI temporary HTTP {r.status_code}; retrying...")
+            time.sleep(5 * attempt + random.uniform(0, 2))
+            continue
+        if r.status_code >= 400:
+            raise RuntimeError(f"OpenAI request failed with HTTP {r.status_code}: {r.text[:1200]}")
+
+        data = r.json()
+        text = data.get("output_text", "")
+        if not text:
+            # Defensive fallback for Responses API response shapes.
+            chunks = []
+            for item in data.get("output", []):
+                for content in item.get("content", []):
+                    if content.get("type") == "output_text" and content.get("text"):
+                        chunks.append(content["text"])
+            text = "\n".join(chunks)
+        if text.strip():
+            return text.strip()
+        raise RuntimeError("OpenAI returned an empty response.")
+
+    raise RuntimeError("OpenAI generation failed.")
+
+
+def generate_with_fallback(prompt):
+    gemini_error = None
+    try:
+        return gemini_generate(prompt), "Gemini"
+    except Exception as exc:
+        gemini_error = exc
+        print(f"Gemini failed: {exc}")
+        print("=== SWITCHING TO OPENAI FALLBACK ===")
+
+    try:
+        return openai_generate(prompt), "OpenAI"
+    except Exception as openai_error:
+        raise RuntimeError(
+            "Both script generators failed. "
+            f"Gemini error: {gemini_error}; OpenAI error: {openai_error}"
+        ) from openai_error
 
 
 def clean(text):
@@ -103,7 +176,6 @@ def extract_dialogue(raw):
     if lines:
         return "\n".join(lines)
 
-    # Last-resort extraction for partially truncated JSON.
     pattern = re.compile(r'"speaker"\s*:\s*"(Himel|Niha)"\s*,\s*"text"\s*:\s*"((?:\\.|[^"\\])*)"', re.I)
     found = []
     for m in pattern.finditer(text):
@@ -149,12 +221,12 @@ Use this shape:
 }}
 """
 
-    raw = gemini_generate(prompt)
+    raw, provider = generate_with_fallback(prompt)
+    print(f"Script provider: {provider}")
     obj = parse_json(raw) or {}
     script = extract_dialogue(raw)
     word_count = len(script.split())
 
-    # Metadata is useful but not allowed to kill an otherwise valid script.
     title = str(obj.get("title", "")).strip()
     topic = str(obj.get("topic", "")).strip()
     hook = str(obj.get("description_hook", obj.get("hook", ""))).strip()
@@ -168,7 +240,7 @@ Use this shape:
         debug = app.WORK / "gemini_episode_raw.txt"
         debug.write_text(raw, encoding="utf-8")
         raise RuntimeError(
-            f"Gemini dialogue was too short ({word_count} words). Raw output saved to {debug}"
+            f"{provider} dialogue was too short ({word_count} words). Raw output saved to {debug}"
         )
 
     if not topic:

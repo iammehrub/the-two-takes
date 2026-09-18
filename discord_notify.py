@@ -76,3 +76,22 @@ def notify_error(message: str, component: str) -> bool:
         fields=[("Component", component, True)],
         footer="System Alerts",
     )
+
+
+
+def notify_youtube_analytics(analysis: dict) -> bool:
+    return send_webhook(
+        "DISCORD_YOUTUBE_ANALYTICS_WEBHOOK",
+        "📊 12-Hour YouTube Analysis",
+        analysis.get("summary", "YouTube analytics snapshot completed."),
+        fields=[
+            ("Video", analysis.get("title", "Untitled"), False),
+            ("Type", analysis.get("kind", "YouTube"), True),
+            ("Views", str(analysis.get("views", 0)), True),
+            ("Likes", str(analysis.get("likes", 0)), True),
+            ("Comments", str(analysis.get("comments", 0)), True),
+            ("Like rate", f"{analysis.get('like_rate', 0):.2f}%", True),
+        ],
+        url=analysis.get("link", ""),
+        footer="YouTube • 12-Hour Analytics",
+    )

@@ -92,7 +92,7 @@ def main():
                 print(f"Discord notified: {label} — {video['title']}")
 
     if configured == 0:
-        raise RuntimeError("Configure at least one YouTube channel ID in repository variables.")
+        print("No YouTube channel IDs configured. Automated upload workflows send direct Discord notifications; watcher idle.")
 
     state["seen_video_ids"] = list(seen)[-300:]
     state["initialized"] = True

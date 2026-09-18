@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: two-takes-content-writes
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest

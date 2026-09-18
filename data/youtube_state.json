@@ -1,10 +1,10 @@
 {
   "seen_video_ids": [
+    "vn4Wc-jssDo",
     "2lmL0pw2U9I",
-    "hJpHhoVCHbY",
-    "CfGF3NiriWE",
     "Ngy0ny56H0A",
-    "vn4Wc-jssDo"
+    "CfGF3NiriWE",
+    "hJpHhoVCHbY"
   ],
   "initialized": true,
   "notified_videos": [
@@ -44,5 +44,5 @@
       "notified_at": "2026-09-18T11:47:32Z"
     }
   ],
-  "checked_at": "2026-09-18T19:30:15.177334+00:00"
+  "checked_at": "2026-09-18T19:47:12.804085+00:00"
 }

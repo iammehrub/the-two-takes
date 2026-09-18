@@ -1,7 +1,7 @@
 {
   "seen_video_ids": [
-    "CfGF3NiriWE",
     "Ngy0ny56H0A",
+    "CfGF3NiriWE",
     "2lmL0pw2U9I",
     "hJpHhoVCHbY",
     "vn4Wc-jssDo"
@@ -43,5 +43,6 @@
       "published": "2026-09-18T11:47:32Z",
       "notified_at": "2026-09-18T11:47:32Z"
     }
-  ]
+  ],
+  "checked_at": "2026-09-18T18:03:58.115289+00:00"
 }

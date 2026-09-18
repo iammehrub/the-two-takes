@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import textwrap
+import requests
 import time
 from pathlib import Path
 
@@ -223,50 +224,101 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide"):
 
 
 def render_video(wav, clips, srt, title):
-    print("=== MIXED STUDIO + TOPIC FOOTAGE RENDER START ===")
+    """Render with semantic conversation-aware cuts.
+
+    The TTS timing file carries turn_type/speaker metadata, so visual changes
+    happen on real dialogue beats instead of arbitrary 28/38 second timers.
+    """
+    print("=== SEMANTIC STUDIO + TOPIC FOOTAGE RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
     studio = _make_studio_png()
     segment_dir = Path(app.WORK) / "video_segments"
     segment_dir.mkdir(exist_ok=True)
 
-    # Start in the studio, then periodically cut to topic footage and return to the studio.
-    segments = []
-    cursor = 0.0
-    footage_index = 0
-    scene_index = 0
-    studio_first = True
+    timing_path = Path(app.WORK) / "tts_segments.json"
+    try:
+        timing = json.loads(timing_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Missing or invalid TTS timing metadata: {exc}") from exc
 
-    while cursor < audio_duration - 0.05:
-        studio_len = min(28.0 if studio_first else 38.0, audio_duration - cursor)
-        out = segment_dir / f"scene_{scene_index:03d}.mp4"
-        camera_cycle = ["wide", "himel", "wide", "niha"]
-        camera = camera_cycle[scene_index % len(camera_cycle)]
-        _make_studio_segment(studio, out, studio_len, camera=camera)
-        segments.append(out)
-        cursor += studio_len
-        scene_index += 1
-        studio_first = False
-        if cursor >= audio_duration - 0.05:
-            break
-
-        if clips:
-            clip_path, clip_dur, _, _ = clips[footage_index % len(clips)]
-            # Short B-roll beats keep the pacing active without making the
-            # episode feel like a slideshow.
-            footage_len = min(9.0, audio_duration - cursor, float(clip_dur))
-            out = segment_dir / f"scene_{scene_index:03d}.mp4"
-            _make_clip_segment(clip_path, out, footage_len, start=0)
-            segments.append(out)
-            cursor += footage_len
-            scene_index += 1
-            footage_index += 1
+    # Group sentence-level TTS chunks back into complete conversational turns.
+    groups = []
+    for item in timing:
+        key = (item.get("turn_index"), item.get("speaker"), item.get("turn_type", "reaction"))
+        if groups and groups[-1]["key"] == key:
+            groups[-1]["end"] = float(item["end"])
+            groups[-1]["text"] += " " + str(item.get("text", "")).strip()
         else:
-            break
+            groups.append({
+                "key": key,
+                "start": float(item["start"]),
+                "end": float(item["end"]),
+                "speaker": item.get("speaker", "Himel"),
+                "turn_type": item.get("turn_type", "reaction"),
+                "text": str(item.get("text", "")).strip()
+            })
+
+    if not groups:
+        raise RuntimeError("No timed conversation turns were available for rendering.")
+
+    camera_by_type = {
+        "hook": "wide",
+        "question": "himel",
+        "follow_up": "himel",
+        "story": "wide",
+        "reaction": "niha",
+        "clarification": "wide",
+        "language_tip": "wide",
+        "practice": "wide",
+        "recap": "wide",
+    }
+
+    # Prefer a close-up of whoever is speaking for questions/stories, while
+    # language-learning sections get a clean two-person/wide composition.
+    def camera_for(group):
+        turn_type = group["turn_type"]
+        speaker = str(group["speaker"]).lower()
+        if turn_type in {"question", "follow_up", "story"}:
+            return "himel" if speaker == "himel" else "niha"
+        if turn_type == "reaction":
+            return "himel" if speaker == "himel" else "niha"
+        return camera_by_type.get(turn_type, "wide")
+
+    scenes = []
+    footage_index = 0
+
+    for index, group in enumerate(groups):
+        seconds = max(0.25, min(audio_duration - group["start"], group["end"] - group["start"]))
+        if seconds <= 0.25:
+            continue
+
+        turn_type = group["turn_type"]
+        # Use topic footage as B-roll when the content is naturally visual.
+        # Keep questions/reactions in the studio so the hosts remain the focus.
+        use_broll = bool(clips) and turn_type in {"story", "language_tip"} and seconds >= 3.5
+
+        if use_broll:
+            clip_path, clip_dur, _, _ = clips[footage_index % len(clips)]
+            footage_index += 1
+            out = segment_dir / f"scene_{index:03d}.mp4"
+            footage_seconds = min(seconds, float(clip_dur), 10.0)
+            _make_clip_segment(clip_path, out, footage_seconds, start=0)
+            # If the clip is shorter than the spoken turn, cover the remainder
+            # with a studio shot so scene timing stays exactly aligned.
+            scenes.append(out)
+            if footage_seconds < seconds - 0.05:
+                studio_out = segment_dir / f"scene_{index:03d}_studio.mp4"
+                _make_studio_segment(studio, studio_out, seconds - footage_seconds, camera="wide")
+                scenes.append(studio_out)
+        else:
+            out = segment_dir / f"scene_{index:03d}.mp4"
+            _make_studio_segment(studio, out, seconds, camera=camera_for(group))
+            scenes.append(out)
 
     concat = Path(app.WORK) / "scenes.txt"
     with concat.open("w", encoding="utf-8") as f:
-        for seg in segments:
+        for seg in scenes:
             f.write(f"file '{seg.as_posix()}'\n")
 
     base = Path(app.WORK) / "base_video.mp4"
@@ -274,7 +326,7 @@ def render_video(wav, clips, srt, title):
         "ffmpeg","-y","-f","concat","-safe","0","-i",str(concat),"-t",str(audio_duration),
         "-an","-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
         "-pix_fmt","yuv420p",str(base)
-    ], label="Scene assembly")
+    ], label="Semantic scene assembly")
 
     final = Path(app.WORK) / "the_two_takes.mp4"
     subtitle_path = str(srt).replace("\\","/").replace(":","\\:").replace("'","\\'")
@@ -292,8 +344,8 @@ def render_video(wav, clips, srt, title):
         "-pix_fmt","yuv420p","-c:a","aac","-b:a","160k",
         "-af","highpass=f=70,lowpass=f=12000,acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,volume=1.25",
         "-shortest","-movflags","+faststart",str(final)
-    ], label="FINAL MIXED VIDEO")
-    print(f"=== MIXED RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
+    ], label="FINAL SEMANTIC MIXED VIDEO")
+    print(f"=== SEMANTIC RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
     return final
 
 

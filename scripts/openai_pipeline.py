@@ -244,6 +244,24 @@ RETURN ONLY VALID JSON:
     title = str(obj.get("title", "")).strip() or "How to Speak English More Naturally"
     topic = str(obj.get("topic", "")).strip() or title
     hook = str(obj.get("description_hook", "")).strip() or f"Practice natural English with Himel and Niha as they talk about {topic}."
+    title_options = obj.get("title_options", [])
+    if not isinstance(title_options, list):
+        title_options = []
+    title_options = [str(x).strip()[:100] for x in title_options if str(x).strip()]
+    if title_options:
+        (app.WORK / "title_options.json").write_text(
+            json.dumps(title_options[:3], indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    hashtags = obj.get("hashtags", [])
+    if not isinstance(hashtags, list):
+        hashtags = []
+    hashtags = [str(x).strip() for x in hashtags if str(x).strip().startswith("#")]
+    if hashtags:
+        (app.WORK / "hashtags.json").write_text(
+            json.dumps(hashtags[:8], indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
     keywords_raw = obj.get("visual_keywords", [])
     keywords = [str(x).strip() for x in keywords_raw if str(x).strip()] if isinstance(keywords_raw, list) else [x.strip() for x in str(keywords_raw or "").split(",") if x.strip()]
     if not keywords:

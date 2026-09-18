@@ -80,6 +80,15 @@ def main():
                 continue
             if notify_youtube(video, label, webhook_env):
                 seen.add(video["video_id"])
+                notified_videos.append({
+                    "video_id": video["video_id"],
+                    "title": video["title"],
+                    "published": video.get("published", ""),
+                    "link": video["link"],
+                    "channel": video.get("channel", label),
+                    "kind": label,
+                    "notified_at": datetime.now(timezone.utc).isoformat(),
+                })
                 print(f"Discord notified: {label} — {video['title']}")
 
     if configured == 0:

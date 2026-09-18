@@ -71,15 +71,15 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from discord_notify import notify_error, notify_youtube
+          from discord_notify import notify_youtube
 
           info_path = Path("work/youtube_upload.json")
           if not info_path.exists():
               raise RuntimeError("Podcast upload metadata file was not created.")
           info = json.loads(info_path.read_text(encoding="utf-8"))
 
-          if not notify_youtube(info, "Podcast", "DISCORD_YOUTUBE_PODCAST_WEBHOOK"):
-              raise RuntimeError("Podcast Discord notification failed.")
+          notified = notify_youtube(info, "Podcast", "DISCORD_YOUTUBE_PODCAST_WEBHOOK")
+          print("Podcast Discord notification:", "sent" if notified else "not sent; continuing")
 
           state_path = Path("data/youtube_state.json")
           state = {"seen_video_ids": [], "notified_videos": []}

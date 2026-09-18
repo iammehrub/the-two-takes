@@ -1032,9 +1032,6 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         "Visual credits: Pexels (used via the Pexels API)."
     )
 
-    for _, _, page, creator in credits:
-        if page:
-            description += f"\nPexels clip by {creator}: {page}"
 
     body = {
         "snippet": {
@@ -1135,6 +1132,9 @@ def main():
 
     print("\nCreating thumbnail...")
     thumb = make_thumbnail(title, topic)
+
+    print("\nCreating growth pack...")
+    create_growth_pack(title, topic, script, hook)
 
     print("\nUploading to YouTube...")
     youtube_upload(

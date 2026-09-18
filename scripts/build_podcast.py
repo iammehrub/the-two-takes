@@ -1086,6 +1086,113 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
     print(f"Published: https://youtu.be/{vid}")
 
 
+
+# ============================================================
+# GROWTH PACK
+# ============================================================
+
+def create_growth_pack(title, topic, script, hook):
+    """Create upload/promotion assets without artificial engagement."""
+    title_options = [title]
+    title_file = WORK / "title_options.json"
+    if title_file.exists():
+        try:
+            data = json.loads(title_file.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                title_options = [str(x).strip() for x in data if str(x).strip()][:3] or [title]
+            elif isinstance(data, dict):
+                raw = data.get("titles") or data.get("title_options") or []
+                if isinstance(raw, list):
+                    title_options = [str(x).strip() for x in raw if str(x).strip()][:3] or [title]
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    hashtags = ["#EnglishLearning", "#SpeakEnglish", "#EnglishSpeaking"]
+    hashtag_file = WORK / "hashtags.json"
+    if hashtag_file.exists():
+        try:
+            data = json.loads(hashtag_file.read_text(encoding="utf-8"))
+            raw = data if isinstance(data, list) else (
+                data.get("hashtags") or data.get("items") or []
+            )
+            if isinstance(raw, list):
+                cleaned = []
+                for item in raw:
+                    tag = str(item).strip()
+                    if tag and not tag.startswith("#"):
+                        tag = "#" + re.sub(r"[^A-Za-z0-9_]", "", tag)
+                    if tag and tag not in cleaned:
+                        cleaned.append(tag)
+                if cleaned:
+                    hashtags = cleaned[:5]
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    lines = [line.strip() for line in script.splitlines() if line.strip()]
+    short_candidates = []
+    for line in lines:
+        if len(line) >= 45 and len(line) <= 180:
+            short_candidates.append(line)
+    shorts = short_candidates[:5]
+
+    pack = {
+        "episode_title": title,
+        "title_options": title_options,
+        "topic": topic,
+        "hook": hook,
+        "hashtags": hashtags,
+        "shorts_ideas": [
+            {
+                "hook": item,
+                "source": "episode dialogue",
+                "note": "Use only if this line matches the final rendered episode."
+            }
+            for item in shorts
+        ],
+        "pinned_comment": (
+            "What part of this conversation was most useful for your English? "
+            "Tell us one phrase you want to practice."
+        ),
+        "next_video_cta": (
+            "If this conversation helped you, subscribe for the next "
+            "English-learning episode from The Two Takes."
+        ),
+        "description": (
+            f"{hook}\\n\\n"
+            "A practical English-learning conversation with Himel and Niha.\\n\\n"
+            f"Topic: {topic}\\n\\n"
+            + " ".join(hashtags)
+        ),
+        "discovery_note": (
+            "Keep titles accurate and concise. Use relevant hashtags only; "
+            "do not rely on keyword stuffing or artificial engagement."
+        )
+    }
+
+    (WORK / "growth_pack.json").write_text(
+        json.dumps(pack, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+
+    (WORK / "growth_pack.txt").write_text(
+        "THE TWO TAKES — GROWTH PACK\\n\\n"
+        f"Primary title: {title}\\n\\n"
+        "Title options:\\n" +
+        "\\n".join(f"- {x}" for x in title_options) +
+        "\\n\\nHashtags:\\n" +
+        " ".join(hashtags) +
+        "\\n\\nPinned comment:\\n" +
+        pack["pinned_comment"] +
+        "\\n\\nNext-video CTA:\\n" +
+        pack["next_video_cta"] +
+        "\\n\\nShorts candidates:\\n" +
+        "\\n".join(f"- {x}" for x in shorts),
+        encoding="utf-8"
+    )
+
+    print(f"Growth pack created: {WORK / 'growth_pack.json'}")
+
+
 # ============================================================
 # MAIN
 # ============================================================

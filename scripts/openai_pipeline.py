@@ -155,23 +155,30 @@ STRUCTURE:
 1. Very short hook using a relatable everyday question or situation.
 2. Warm branded introduction to The Two Takes.
 3. Natural conversation about the topic using real-life examples.
-4. Frequent short turns; avoid long monologues.
-5. Include useful everyday phrases naturally in the dialogue.
-6. Add a short "Speaking Practice" section near the end with 5 useful sentence patterns the viewer can repeat.
-7. Add a short "Word Tour" section with 6 useful words/phrases: meaning plus one simple example each.
-8. Finish with a warm recap and outro.
+4. Make it a REAL back-and-forth conversation: frequent short turns, reactions, follow-up questions, clarifications, agreement/disagreement, and natural topic changes. Avoid long monologues.
+5. Himel and Niha should respond to what the other person JUST said. Do not write isolated mini-speeches.
+6. Use natural spoken features: contractions ("I'm", "don't", "it's"), short reactions ("Really?", "Exactly.", "I know what you mean."), and occasional harmless fillers ("well", "actually", "you know") — but never overuse them.
+7. Include useful everyday phrases naturally inside the conversation instead of stopping the conversation every few lines to teach.
+8. Add a short "Speaking Practice" section near the end with 5 useful sentence patterns the viewer can repeat. Make it interactive: one host says a model line, the other gives a variation.
+9. Add a short "Word Tour" section with 6 useful words/phrases: meaning plus one simple example each, delivered as a conversation between the hosts.
+10. Finish with a warm recap and outro.
 
 STYLE:
 - Simple, natural, modern spoken English.
-- Calm and clear, with occasional light humor.
-- Useful for listening, shadowing, speaking practice and vocabulary.
-- Do not sound like a textbook or a formal lecture.
+- Sound like two friends who genuinely know each other, not two presenters reading an essay.
+- Give each host a distinct personality: Himel is calm/curious and Niha is warm/expressive.
+- Include small reactions to each other's ideas and occasional light humor.
+- Use short sentences and varied sentence lengths.
+- Avoid repetitive "That's a good question" / "Exactly" patterns.
+- Do not use narration, stage directions, bracketed emotions, or pronunciation notes in the spoken text.
+- Do not sound like a textbook, formal lecture, interview transcript, or customer-service conversation.
 - Do not use current-news stories.
 - Do not invent research or statistics.
 - Do not copy any existing episode.
 - Do not use the phrase "English Leap Podcast" or another creator's branding.
-- Keep most turns 1–4 sentences.
-- Make the conversation feel like two friends recording in a small studio.
+- Most turns should be 1–3 sentences; only occasionally use a longer turn when it genuinely feels natural.
+- Every reply should clearly connect to the previous reply.
+- Make the conversation feel spontaneous while remaining easy for A2-B1/B1 learners to follow.
 
 RETURN ONLY VALID JSON:
 {{
@@ -208,52 +215,51 @@ RETURN ONLY VALID JSON:
     return title[:100], topic[:300], keywords[:5], hook[:500], script
 
 
-def split_for_kokoro(script, max_chars=1800):
-    chunks = []
-    current_speaker = None
-    current_parts = []
-    current_length = 0
+def split_for_kokoro(script, max_chars=420):
+    """Split dialogue into short sentence-level TTS turns for natural conversational pacing.
 
-    def flush():
-        nonlocal current_parts, current_length
-        if current_speaker and current_parts:
-            text = " ".join(current_parts).strip()
-            if text:
-                chunks.append((current_speaker, text))
-        current_parts = []
-        current_length = 0
+    Keeping each spoken unit short gives Kokoro more realistic pauses between ideas
+    and gives the subtitle system much tighter timing than one long speaker block.
+    """
+    chunks = []
+
+    def split_sentences(text):
+        text = re.sub(r"\\s+", " ", text).strip()
+        if not text:
+            return []
+        # Keep normal punctuation with each sentence; fall back to commas/spaces
+        # when an unusually long sentence would create a long TTS block.
+        sentences = re.split(r"(?<=[.!?])\\s+", text)
+        out = []
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            if len(sentence) <= max_chars:
+                out.append(sentence)
+                continue
+            pieces = re.split(r"(?<=[,;:])\\s+", sentence)
+            current = ""
+            for piece in pieces:
+                if not current:
+                    current = piece
+                elif len(current) + 1 + len(piece) <= max_chars:
+                    current += " " + piece
+                else:
+                    out.append(current.strip())
+                    current = piece
+            if current:
+                out.append(current.strip())
+        return out
 
     for raw_line in script.splitlines():
-        line = raw_line.strip()
-        match = re.match(r"^(Himel|Niha):\s*(.+)$", line, flags=re.I)
+        match = re.match(r"^\\s*(Himel|Niha):\\s*(.+)$", raw_line, flags=re.I)
         if not match:
             continue
         speaker = "Himel" if match.group(1).lower() == "himel" else "Niha"
-        text = match.group(2).strip()
-        if speaker != current_speaker:
-            flush()
-            current_speaker = speaker
-        while text:
-            remaining = max_chars - current_length - 1
-            if remaining <= 0:
-                flush()
-                continue
-            if len(text) <= remaining:
-                current_parts.append(text)
-                current_length += len(text) + 1
-                text = ""
-                continue
-            cut = text.rfind(". ", 0, remaining)
-            if cut < 200:
-                cut = text.rfind(" ", 0, remaining)
-            if cut <= 0:
-                cut = remaining
-            part = text[:cut + (1 if text[cut:cut + 2] == ". " else 0)].strip()
-            text = text[len(part):].strip()
-            current_parts.append(part)
-            current_length += len(part) + 1
-            flush()
-    flush()
+        for sentence in split_sentences(match.group(2)):
+            chunks.append((speaker, sentence))
+
     return chunks
 
 
@@ -276,28 +282,47 @@ def kokoro_segment(speaker, text, index, total):
 
 def tts(script):
     segments = split_for_kokoro(script)
-    print(f"Kokoro TTS: {len(segments)} speaker segments.")
+    print(f"Kokoro TTS: {len(segments)} short conversational segments.")
     audio_parts = []
     timing = []
-    silence = np.zeros(int(KOKORO_SAMPLE_RATE * 0.16), dtype=np.float32)
     cursor = 0.0
+
     for i, (speaker, text) in enumerate(segments, 1):
         audio = kokoro_segment(speaker, text, i, len(segments))
         seg_seconds = len(audio) / KOKORO_SAMPLE_RATE
-        timing.append({"speaker": speaker, "text": text, "start": cursor, "end": cursor + seg_seconds})
+
+        timing.append({
+            "speaker": speaker,
+            "text": text,
+            "start": cursor,
+            "end": cursor + seg_seconds
+        })
         audio_parts.append(audio)
         cursor += seg_seconds
+
         if i < len(segments):
+            # A slightly longer pause when the speaker changes makes the exchange
+            # feel conversational instead of like two continuous readings.
+            next_speaker = segments[i][0]
+            pause = 0.28 if next_speaker != speaker else 0.16
+            silence = np.zeros(int(KOKORO_SAMPLE_RATE * pause), dtype=np.float32)
             audio_parts.append(silence)
-            cursor += 0.16
-    (app.WORK / "tts_segments.json").write_text(json.dumps(timing, indent=2), encoding="utf-8")
+            cursor += pause
+
+    (app.WORK / "tts_segments.json").write_text(
+        json.dumps(timing, indent=2),
+        encoding="utf-8"
+    )
+
     if not audio_parts:
         raise RuntimeError("Kokoro produced no audio segments")
+
     audio = np.concatenate(audio_parts)
     wav = app.WORK / "voice.wav"
     sf.write(str(wav), audio, KOKORO_SAMPLE_RATE)
-    print(f"Combined Kokoro TTS audio: {wav}")
+    print(f"Combined conversational Kokoro TTS audio: {wav}")
     return wav
+
 
 
 app.make_episode = make_episode

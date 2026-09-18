@@ -1,8 +1,6 @@
-name: WHY — Daily Short\n# Uses the credential host repository so the WHY generator does not need duplicate secrets; retry after parser and runtime guard fix.
+name: WHY — Daily Short
 
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: "0 17 * * *"
   workflow_dispatch:

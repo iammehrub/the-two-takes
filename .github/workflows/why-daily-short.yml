@@ -1,0 +1,58 @@
+name: WHY — Daily Short
+
+on:
+  schedule:
+    - cron: "0 17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout credential host repo
+        uses: actions/checkout@v5
+
+      - name: Checkout WHY generator
+        uses: actions/checkout@v5
+        with:
+          repository: iammehrub/Why-
+          path: why-source
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg espeak-ng fonts-dejavu
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
+
+      - name: Generate and publish WHY Short
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          cd why-source
+          python scripts/short.py
+
+      - name: Save WHY artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: why-daily-short
+          path: why-source/work/
+          if-no-files-found: ignore
+          retention-days: 7

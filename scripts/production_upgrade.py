@@ -205,12 +205,21 @@ def _make_clip_segment(input_path, output_path, seconds, start=0):
     ], label=f"Footage segment {output_path.name}")
 
 
-def _make_studio_segment(studio, output_path, seconds):
+def _make_studio_segment(studio, output_path, seconds, camera="wide"):
+    # Use different crops of the same original studio artwork to simulate a
+    # simple multi-camera edit without expensive animation.
+    if camera == "himel":
+        vf = f"crop=1100:1080:80:0,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
+    elif camera == "niha":
+        vf = f"crop=1100:1080:740:0,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
+    else:
+        vf = f"scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
+
     _run([
         "ffmpeg","-y","-loop","1","-i",str(studio),"-t",str(seconds),
-        "-r",str(FPS),"-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
+        "-vf",vf,"-r",str(FPS),"-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
         "-pix_fmt","yuv420p",str(output_path)
-    ], label=f"Studio segment {output_path.name}")
+    ], label=f"Studio {camera} shot {output_path.name}")
 
 
 def render_video(wav, clips, srt, title):
@@ -229,9 +238,11 @@ def render_video(wav, clips, srt, title):
     studio_first = True
 
     while cursor < audio_duration - 0.05:
-        studio_len = min(34.0 if studio_first else 42.0, audio_duration - cursor)
+        studio_len = min(28.0 if studio_first else 38.0, audio_duration - cursor)
         out = segment_dir / f"scene_{scene_index:03d}.mp4"
-        _make_studio_segment(studio, out, studio_len)
+        camera_cycle = ["wide", "himel", "wide", "niha"]
+        camera = camera_cycle[scene_index % len(camera_cycle)]
+        _make_studio_segment(studio, out, studio_len, camera=camera)
         segments.append(out)
         cursor += studio_len
         scene_index += 1
@@ -241,7 +252,9 @@ def render_video(wav, clips, srt, title):
 
         if clips:
             clip_path, clip_dur, _, _ = clips[footage_index % len(clips)]
-            footage_len = min(11.0, audio_duration - cursor, float(clip_dur))
+            # Short B-roll beats keep the pacing active without making the
+            # episode feel like a slideshow.
+            footage_len = min(9.0, audio_duration - cursor, float(clip_dur))
             out = segment_dir / f"scene_{scene_index:03d}.mp4"
             _make_clip_segment(clip_path, out, footage_len, start=0)
             segments.append(out)

@@ -1,8 +1,6 @@
 name: The Two Takes — Daily Episode
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       trigger_source:
@@ -14,7 +12,7 @@ on:
     - cron: '0 2 * * *'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -62,6 +60,47 @@ jobs:
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
           echo "=== PODCAST BUILDER FINISHED ==="
 
+      - name: Notify Discord and record upload
+        env:
+          DISCORD_YOUTUBE_PODCAST_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_PODCAST_WEBHOOK }}
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from discord_notify import notify_error, notify_youtube
+
+          info_path = Path("work/youtube_upload.json")
+          if not info_path.exists():
+              raise RuntimeError("Podcast upload metadata file was not created.")
+          info = json.loads(info_path.read_text(encoding="utf-8"))
+
+          if not notify_youtube(info, "Podcast", "DISCORD_YOUTUBE_PODCAST_WEBHOOK"):
+              raise RuntimeError("Podcast Discord notification failed.")
+
+          state_path = Path("data/youtube_state.json")
+          state = {"seen_video_ids": [], "notified_videos": []}
+          if state_path.exists():
+              try:
+                  state = json.loads(state_path.read_text(encoding="utf-8"))
+              except Exception:
+                  pass
+          state.setdefault("seen_video_ids", [])
+          state.setdefault("notified_videos", [])
+          vid = str(info.get("video_id", "")).strip()
+          if not vid:
+              raise RuntimeError("Podcast upload metadata has no video_id.")
+          if vid not in state["seen_video_ids"]:
+              state["seen_video_ids"].append(vid)
+          state["notified_videos"].append({**info, "notified_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()})
+          state["notified_videos"] = state["notified_videos"][-300:]
+          state["seen_video_ids"] = state["seen_video_ids"][-300:]
+          state["initialized"] = True
+          state_path.parent.mkdir(parents=True, exist_ok=True)
+          state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          print(f"Discord notified and upload recorded: {vid}")
+          PY
+
       - name: Save growth assets
         if: always()
         uses: actions/upload-artifact@v4
@@ -74,3 +113,4 @@ jobs:
             work/script.txt
           if-no-files-found: ignore
           retention-days: 14
+

@@ -14,9 +14,12 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: two-takes-content-writes
+  cancel-in-progress: false
+
 jobs:
   build:
-    if: github.event_name != 'push' || github.event.head_commit.message == 'Run podcast now'
     runs-on: ubuntu-latest
     timeout-minutes: 40
 

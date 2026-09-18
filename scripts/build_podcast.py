@@ -1083,6 +1083,19 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         )
     ).execute()
 
+    upload_info = {
+        "video_id": vid,
+        "title": title[:100],
+        "topic": topic[:300],
+        "link": f"https://youtu.be/{vid}",
+        "kind": "Podcast",
+        "published": datetime.now(timezone.utc).isoformat(),
+    }
+    (WORK / "youtube_upload.json").write_text(
+        json.dumps(upload_info, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
     print(f"Published: https://youtu.be/{vid}")
 
 

@@ -1043,8 +1043,11 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
                 "podcast",
                 "Himel",
                 "Niha",
-                "current events",
-                "discussion"
+                "learn English",
+                "English speaking",
+                "English conversation",
+                "spoken English",
+                "English listening"
             ]
         },
         "status": {

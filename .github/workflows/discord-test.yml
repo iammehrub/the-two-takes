@@ -17,6 +17,7 @@ jobs:
           DISCORD_BD_NEWS_WEBHOOK: ${{ secrets.DISCORD_BD_NEWS_WEBHOOK }}
           DISCORD_YOUTUBE_PODCAST_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_PODCAST_WEBHOOK }}
           DISCORD_YOUTUBE_SHORTS_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_SHORTS_WEBHOOK }}
+          DISCORD_YOUTUBE_ANALYTICS_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_ANALYTICS_WEBHOOK }}
           DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
         run: |
           python - <<'PY'
@@ -27,6 +28,7 @@ jobs:
               ("DISCORD_BD_NEWS_WEBHOOK", "🔴・bangladesh-news"),
               ("DISCORD_YOUTUBE_PODCAST_WEBHOOK", "🎙️・two-takes-podcast"),
               ("DISCORD_YOUTUBE_SHORTS_WEBHOOK", "📱・two-takes-shorts"),
+              ("DISCORD_YOUTUBE_ANALYTICS_WEBHOOK", "📊・youtube-analytics"),
               ("DISCORD_ALERTS_WEBHOOK", "🚨・system-alerts"),
           ]
           failed = 0

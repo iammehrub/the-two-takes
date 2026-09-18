@@ -67,8 +67,8 @@ jobs:
               raise RuntimeError("WHY Short upload metadata file was not created.")
           info = json.loads(info_path.read_text(encoding="utf-8"))
 
-          if not notify_youtube(info, "Shorts", "DISCORD_YOUTUBE_SHORTS_WEBHOOK"):
-              raise RuntimeError("Shorts Discord notification failed.")
+          notified = notify_youtube(info, "Shorts", "DISCORD_YOUTUBE_SHORTS_WEBHOOK")
+          print("Shorts Discord notification:", "sent" if notified else "not sent; continuing")
 
           state_path = Path("data/youtube_state.json")
           state = {"seen_video_ids": [], "notified_videos": []}

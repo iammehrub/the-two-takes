@@ -1,3 +1,47 @@
 {
-  "seen_video_ids": []
+  "seen_video_ids": [
+    "CfGF3NiriWE",
+    "Ngy0ny56H0A",
+    "2lmL0pw2U9I",
+    "hJpHhoVCHbY",
+    "vn4Wc-jssDo"
+  ],
+  "initialized": true,
+  "notified_videos": [
+    {
+      "video_id": "CfGF3NiriWE",
+      "link": "https://youtu.be/CfGF3NiriWE",
+      "kind": "Podcast",
+      "published": "2026-09-18T02:28:08Z",
+      "notified_at": "2026-09-18T02:28:11Z"
+    },
+    {
+      "video_id": "Ngy0ny56H0A",
+      "link": "https://youtu.be/Ngy0ny56H0A",
+      "kind": "Podcast",
+      "published": "2026-09-18T08:51:35Z",
+      "notified_at": "2026-09-18T08:51:40Z"
+    },
+    {
+      "video_id": "2lmL0pw2U9I",
+      "link": "https://youtu.be/2lmL0pw2U9I",
+      "kind": "Shorts",
+      "published": "2026-09-18T17:12:32Z",
+      "notified_at": "2026-09-18T17:12:32Z"
+    },
+    {
+      "video_id": "hJpHhoVCHbY",
+      "link": "https://youtu.be/hJpHhoVCHbY",
+      "kind": "Shorts",
+      "published": "2026-09-18T11:53:06Z",
+      "notified_at": "2026-09-18T11:53:06Z"
+    },
+    {
+      "video_id": "vn4Wc-jssDo",
+      "link": "https://youtu.be/vn4Wc-jssDo",
+      "kind": "Shorts",
+      "published": "2026-09-18T11:47:32Z",
+      "notified_at": "2026-09-18T11:47:32Z"
+    }
+  ]
 }

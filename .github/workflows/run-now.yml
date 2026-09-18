@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   run-now:
-    if: github.event.head_commit.message == 'Run podcast now'
+    if: github.event.head_commit.message == 'Legacy podcast now'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

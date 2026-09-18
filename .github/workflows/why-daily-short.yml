@@ -1,4 +1,4 @@
-name: WHY — Daily Short\n# Uses the credential host repository so the WHY generator does not need duplicate secrets; retry after parser and length fixes.
+name: WHY — Daily Short\n# Uses the credential host repository so the WHY generator does not need duplicate secrets; retry after parser and script-runtime fixes.
 
 on:
   push:

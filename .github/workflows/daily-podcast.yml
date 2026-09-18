@@ -1,6 +1,8 @@
 name: The Two Takes — Daily Episode
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       trigger_source:
@@ -16,6 +18,7 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name != 'push' || github.event.head_commit.message == 'Run podcast now'
     runs-on: ubuntu-latest
     timeout-minutes: 40
 

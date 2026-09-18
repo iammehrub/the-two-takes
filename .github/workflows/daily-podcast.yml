@@ -42,7 +42,6 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
@@ -58,3 +57,16 @@ jobs:
           echo "=== RUNNING OPENAI + KOKORO PODCAST RUNNER ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
           echo "=== PODCAST BUILDER FINISHED ==="
+
+      - name: Save growth assets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-two-takes-growth-pack
+          path: |
+            work/growth_pack.json
+            work/growth_pack.txt
+            work/thumbnail.jpg
+            work/script.txt
+          if-no-files-found: ignore
+          retention-days: 14

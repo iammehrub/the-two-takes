@@ -197,6 +197,26 @@ RETURN ONLY VALID JSON:
     obj = parse_json(raw) or {}
     script = extract_dialogue(raw)
     word_count = len(script.split())
+
+    # Save structured conversation metadata for semantic editing/rendering.
+    dialogue_obj = obj.get("dialogue", []) if isinstance(obj, dict) else []
+    valid_types = {"hook","question","story","reaction","follow_up","clarification","language_tip","practice","recap"}
+    beats = []
+    if isinstance(dialogue_obj, list):
+        for item in dialogue_obj:
+            if not isinstance(item, dict):
+                continue
+            speaker = str(item.get("speaker", "")).strip().title()
+            text_value = str(item.get("text", "")).strip()
+            turn_type = str(item.get("turn_type", "reaction")).strip().lower()
+            if speaker in {"Himel", "Niha"} and text_value:
+                if turn_type not in valid_types:
+                    turn_type = "reaction"
+                beats.append({"turn_index": len(beats), "speaker": speaker, "text": text_value, "turn_type": turn_type})
+    if beats:
+        (app.WORK / "conversation_beats.json").write_text(json.dumps(beats, indent=2, ensure_ascii=False), encoding="utf-8")
+        (app.WORK / "dialogue_metadata.json").write_text(json.dumps(beats, indent=2, ensure_ascii=False), encoding="utf-8")
+
     print("Script provider: OpenAI")
     print(f"Script length: {word_count} words")
 
@@ -204,6 +224,22 @@ RETURN ONLY VALID JSON:
         debug_file = app.WORK / "openai_episode_raw.txt"
         debug_file.write_text(raw, encoding="utf-8")
         raise RuntimeError(f"OpenAI dialogue was too short ({word_count} words). Raw output saved to {debug_file}")
+
+    if beats:
+        same_speaker_run = 0
+        previous_speaker = None
+        max_turn_words = 0
+        for beat in beats:
+            speaker = beat["speaker"]
+            max_turn_words = max(max_turn_words, len(beat["text"].split()))
+            same_speaker_run = same_speaker_run + 1 if speaker == previous_speaker else 1
+            previous_speaker = speaker
+            if same_speaker_run > 3:
+                raise RuntimeError("Conversation quality check failed: too many consecutive turns by one host.")
+        if max_turn_words > 95:
+            raise RuntimeError("Conversation quality check failed: an individual turn is too long.")
+        if len(beats) < 24:
+            raise RuntimeError("Conversation quality check failed: too few dialogue turns.")
 
     title = str(obj.get("title", "")).strip() or "How to Speak English More Naturally"
     topic = str(obj.get("topic", "")).strip() or title
@@ -216,20 +252,22 @@ RETURN ONLY VALID JSON:
 
 
 def split_for_kokoro(script, max_chars=420):
-    """Split dialogue into short sentence-level TTS turns for natural conversational pacing.
-
-    Keeping each spoken unit short gives Kokoro more realistic pauses between ideas
-    and gives the subtitle system much tighter timing than one long speaker block.
-    """
+    """Split dialogue into short TTS units while retaining conversation beat metadata."""
     chunks = []
+    metadata = []
+    metadata_path = app.WORK / "conversation_beats.json"
+    if metadata_path.exists():
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except Exception:
+            metadata = []
+    meta_cursor = 0
 
     def split_sentences(text):
-        text = re.sub(r"\\s+", " ", text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
         if not text:
             return []
-        # Keep normal punctuation with each sentence; fall back to commas/spaces
-        # when an unusually long sentence would create a long TTS block.
-        sentences = re.split(r"(?<=[.!?])\\s+", text)
+        sentences = re.split(r"(?<=[.!?])\s+", text)
         out = []
         for sentence in sentences:
             sentence = sentence.strip()
@@ -238,7 +276,7 @@ def split_for_kokoro(script, max_chars=420):
             if len(sentence) <= max_chars:
                 out.append(sentence)
                 continue
-            pieces = re.split(r"(?<=[,;:])\\s+", sentence)
+            pieces = re.split(r"(?<=[,;:])\s+", sentence)
             current = ""
             for piece in pieces:
                 if not current:
@@ -253,13 +291,19 @@ def split_for_kokoro(script, max_chars=420):
         return out
 
     for raw_line in script.splitlines():
-        match = re.match(r"^\\s*(Himel|Niha):\\s*(.+)$", raw_line, flags=re.I)
+        match = re.match(r"^\s*(Himel|Niha):\s*(.+)$", raw_line, flags=re.I)
         if not match:
             continue
         speaker = "Himel" if match.group(1).lower() == "himel" else "Niha"
-        for sentence in split_sentences(match.group(2)):
-            chunks.append((speaker, sentence))
-
+        source_text = match.group(2).strip()
+        turn_type = "reaction"
+        turn_index = meta_cursor
+        if meta_cursor < len(metadata) and metadata[meta_cursor].get("speaker") == speaker:
+            turn_type = metadata[meta_cursor].get("turn_type", "reaction")
+            turn_index = metadata[meta_cursor].get("turn_index", meta_cursor)
+            meta_cursor += 1
+        for sentence in split_sentences(source_text):
+            chunks.append((speaker, sentence, turn_index, turn_type))
     return chunks
 
 
@@ -287,7 +331,7 @@ def tts(script):
     timing = []
     cursor = 0.0
 
-    for i, (speaker, text) in enumerate(segments, 1):
+    for i, (speaker, text, turn_index, turn_type) in enumerate(segments, 1):
         audio = kokoro_segment(speaker, text, i, len(segments))
         seg_seconds = len(audio) / KOKORO_SAMPLE_RATE
 
@@ -295,7 +339,9 @@ def tts(script):
             "speaker": speaker,
             "text": text,
             "start": cursor,
-            "end": cursor + seg_seconds
+            "end": cursor + seg_seconds,
+            "turn_index": turn_index,
+            "turn_type": turn_type
         })
         audio_parts.append(audio)
         cursor += seg_seconds

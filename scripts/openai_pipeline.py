@@ -278,11 +278,19 @@ def tts(script):
     segments = split_for_kokoro(script)
     print(f"Kokoro TTS: {len(segments)} speaker segments.")
     audio_parts = []
+    timing = []
     silence = np.zeros(int(KOKORO_SAMPLE_RATE * 0.16), dtype=np.float32)
+    cursor = 0.0
     for i, (speaker, text) in enumerate(segments, 1):
-        audio_parts.append(kokoro_segment(speaker, text, i, len(segments)))
+        audio = kokoro_segment(speaker, text, i, len(segments))
+        seg_seconds = len(audio) / KOKORO_SAMPLE_RATE
+        timing.append({"speaker": speaker, "text": text, "start": cursor, "end": cursor + seg_seconds})
+        audio_parts.append(audio)
+        cursor += seg_seconds
         if i < len(segments):
             audio_parts.append(silence)
+            cursor += 0.16
+    (app.WORK / "tts_segments.json").write_text(json.dumps(timing, indent=2), encoding="utf-8")
     if not audio_parts:
         raise RuntimeError("Kokoro produced no audio segments")
     audio = np.concatenate(audio_parts)
@@ -305,6 +313,6 @@ print("=== ENGLISH-LEARNING STUDIO PRODUCTION ENABLED ===")
 print(f"Script model: {OPENAI_TEXT_MODEL}")
 print(f"Kokoro Himel: {KOKORO_HIMEL_VOICE}")
 print(f"Kokoro Niha: {KOKORO_NIHA_VOICE}")
-print("Output: 1920x1080 H.264, studio visual, paced captions, practical English topics.")
+print("Output: 1920x1080 H.264, mixed studio + topic footage, exact TTS-timed captions, practical English topics.")
 
 app.main()

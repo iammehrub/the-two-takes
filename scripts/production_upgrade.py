@@ -37,102 +37,109 @@ def _ts(seconds):
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 
-def _caption_chunks(script, max_words=5):
-    chunks = []
-    for raw in script.splitlines():
-        m = re.match(r"^(Himel|Niha):\s*(.+)$", raw.strip(), re.I)
-        if not m:
-            continue
-        speaker = "Himel" if m.group(1).lower() == "himel" else "Niha"
-        words = re.findall(r"\S+", m.group(2).strip())
-        for i in range(0, len(words), max_words):
-            part = " ".join(words[i:i + max_words]).strip()
-            if part:
-                chunks.append((speaker, part))
-    return chunks
-
-
-def _speech_intervals(wav, total_duration):
-    """Find major pauses so caption timing does not drift through silence."""
-    cmd = [
-        "ffmpeg", "-hide_banner", "-i", str(wav), "-af",
-        "silencedetect=noise=-34dB:d=0.22", "-f", "null", "-"
-    ]
-    p = subprocess.run(cmd, capture_output=True, text=True)
-    silence_starts = []
-    silence_ends = []
-    for line in (p.stderr or "").splitlines():
-        m = re.search(r"silence_start:\s*([0-9.]+)", line)
-        if m:
-            silence_starts.append(float(m.group(1)))
-        m = re.search(r"silence_end:\s*([0-9.]+)", line)
-        if m:
-            silence_ends.append(float(m.group(1)))
-
-    intervals = []
-    cursor = 0.0
-    for start, end in zip(silence_starts, silence_ends):
-        if start - cursor >= 0.35:
-            intervals.append((cursor, min(start, total_duration)))
-        cursor = max(cursor, end)
-    if total_duration - cursor >= 0.35:
-        intervals.append((cursor, total_duration))
-    return intervals or [(0.15, total_duration)]
+def _caption_chunks(text, max_words=5):
+    words = re.findall(r"\S+", text.strip())
+    return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words) if words[i:i + max_words]]
 
 
 def make_srt(script, audio_seconds):
-    """Create short captions anchored to detected speech windows."""
-    chunks = _caption_chunks(script, max_words=5)
-    if not chunks:
-        raise RuntimeError("Could not create subtitle chunks from dialogue")
+    """Use exact TTS segment durations, then split each segment into short captions."""
+    timing_path = Path(app.WORK) / "tts_segments.json"
+    segments = []
+    if timing_path.exists():
+        try:
+            segments = json.loads(timing_path.read_text(encoding="utf-8"))
+        except Exception:
+            segments = []
 
-    intervals = _speech_intervals(app.WORK / "voice.wav", audio_seconds)
-    total_words = sum(len(text.split()) for _, text in chunks) or 1
-    total_speech = sum(max(0.2, b - a) for a, b in intervals)
+    if not segments:
+        raise RuntimeError("Missing exact TTS timing data; refusing to create drifting subtitles.")
+
     rows = []
-    interval_index = 0
-    interval_pos = intervals[0][0]
-
-    for speaker, text in chunks:
-        need = max(0.55, total_speech * len(text.split()) / total_words)
-        remaining = need
-        while remaining > 0 and interval_index < len(intervals):
-            a, b = intervals[interval_index]
-            start = max(interval_pos, a)
-            available = max(0.05, b - start)
-            take = min(remaining, available)
-            if take >= 0.35:
-                rows.append((start, start + take, speaker, text if not rows or rows[-1][3] != text else text))
-            remaining -= take
-            interval_pos = start + take
-            if interval_pos >= b - 0.03:
-                interval_index += 1
-                if interval_index < len(intervals):
-                    interval_pos = intervals[interval_index][0]
-        if interval_index >= len(intervals):
-            break
-
-    # If a chunk crossed a pause, merge its pieces into one readable caption.
-    merged = []
-    for a, b, speaker, text in rows:
-        if merged and merged[-1][2] == speaker and merged[-1][3] == text and a - merged[-1][1] < 0.5:
-            merged[-1] = (merged[-1][0], b, speaker, text)
-        else:
-            merged.append((a, b, speaker, text))
+    for seg in segments:
+        start = float(seg["start"])
+        end = float(seg["end"])
+        text = str(seg["text"]).strip()
+        if end <= start or not text:
+            continue
+        chunks = _caption_chunks(text, max_words=5)
+        total_words = sum(len(x.split()) for x in chunks) or 1
+        cursor = start
+        for idx, chunk in enumerate(chunks):
+            share = len(chunk.split()) / total_words
+            dur = (end - start) * share
+            a = cursor
+            b = end if idx == len(chunks) - 1 else cursor + dur
+            rows.append((a, b, chunk))
+            cursor = b
 
     path = Path(app.WORK) / "captions.srt"
     with path.open("w", encoding="utf-8") as f:
-        for i, (start, end, speaker, text) in enumerate(merged, 1):
-            f.write(f"{i}\n{_ts(start)} --> {_ts(end)}\n{speaker}\n{text}\n\n")
+        for i, (a, b, text) in enumerate(rows, 1):
+            # Tiny padding prevents flicker while keeping speech alignment tight.
+            a = max(0.0, a - 0.03)
+            b = min(audio_seconds, b + 0.03)
+            f.write(f"{i}\n{_ts(a)} --> {_ts(b)}\n{text}\n\n")
+    print(f"Created {len(rows)} tightly timed subtitle cues.")
     return path
 
 
 def pexels_videos(keywords):
-    """Keep the existing pipeline contract but stop downloading stock footage."""
-    print("Studio mode: skipping Pexels and all external background footage.")
-    # render_video ignores the placeholder path. The tuple keeps the old main()
-    # interface compatible and avoids changing the upload workflow.
-    return [("__ORIGINAL_STUDIO__", 600, "", "")]
+    """Download a small pool of topic footage for alternating studio/real-world scenes."""
+    api_key = app.PEXELS
+    if not api_key:
+        print("Pexels API key missing; using studio-only fallback.")
+        return []
+
+    queries = [x for x in keywords if x][:4]
+    clips = []
+    seen = set()
+
+    for kw in queries:
+        print(f"Searching topic footage: {kw}")
+        try:
+            r = requests.get(
+                "https://api.pexels.com/videos/search",
+                headers={"Authorization": api_key},
+                params={"query": kw, "per_page": 5, "orientation": "landscape", "size": "medium"},
+                timeout=30,
+            )
+            r.raise_for_status()
+            for v in r.json().get("videos", []):
+                files = [f for f in v.get("video_files", [])
+                         if f.get("width", 0) >= 1000 and f.get("height", 0) >= 500]
+                if not files:
+                    continue
+                files.sort(key=lambda x: abs((x.get("width",1920)/max(x.get("height",1080),1))-16/9))
+                link = files[0].get("link")
+                if not link or link in seen:
+                    continue
+                seen.add(link)
+                clips.append((link, float(v.get("duration", 8)), v.get("url",""), v.get("user",{}).get("name","Pexels creator")))
+                if len(clips) >= 6:
+                    break
+        except Exception as exc:
+            print(f"Footage search failed for '{kw}': {exc}")
+        if len(clips) >= 6:
+            break
+
+    out = []
+    for i, (url, dur, page, creator) in enumerate(clips):
+        path = Path(app.WORK) / f"topic_clip_{i}.mp4"
+        print(f"Downloading topic footage {i+1}/{len(clips)}...")
+        try:
+            with requests.get(url, stream=True, timeout=60, headers={"User-Agent":"Mozilla/5.0"}) as rr:
+                rr.raise_for_status()
+                with path.open("wb") as f:
+                    for chunk in rr.iter_content(1024*1024):
+                        if chunk:
+                            f.write(chunk)
+            out.append((str(path), min(max(dur, 5), 12), page, creator))
+        except Exception as exc:
+            print(f"Download failed: {exc}")
+    print(f"Downloaded {len(out)} topic clips.")
+    return out
+
 
 
 def _studio_svg():
@@ -189,47 +196,93 @@ def _make_studio_png():
     return pngfile
 
 
+def _make_clip_segment(input_path, output_path, seconds, start=0):
+    _run([
+        "ffmpeg","-y","-ss",str(start),"-i",str(input_path),"-t",str(seconds),
+        "-vf",f"scale={VIDEO_W}:{VIDEO_H}:force_original_aspect_ratio=increase,crop={VIDEO_W}:{VIDEO_H},fps={FPS},setsar=1",
+        "-an","-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
+        "-pix_fmt","yuv420p",str(output_path)
+    ], label=f"Footage segment {output_path.name}")
+
+
+def _make_studio_segment(studio, output_path, seconds):
+    _run([
+        "ffmpeg","-y","-loop","1","-i",str(studio),"-t",str(seconds),
+        "-r",str(FPS),"-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
+        "-pix_fmt","yuv420p",str(output_path)
+    ], label=f"Studio segment {output_path.name}")
+
+
 def render_video(wav, clips, srt, title):
-    print("=== STUDIO 1080P RENDER START ===")
+    print("=== MIXED STUDIO + TOPIC FOOTAGE RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
     studio = _make_studio_png()
-    final = Path(app.WORK) / "the_two_takes.mp4"
+    segment_dir = Path(app.WORK) / "video_segments"
+    segment_dir.mkdir(exist_ok=True)
 
-    subtitle_path = str(srt).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+    # Start in the studio, then periodically cut to topic footage and return to the studio.
+    segments = []
+    cursor = 0.0
+    footage_index = 0
+    scene_index = 0
+    studio_first = True
+
+    while cursor < audio_duration - 0.05:
+        studio_len = min(34.0 if studio_first else 42.0, audio_duration - cursor)
+        out = segment_dir / f"scene_{scene_index:03d}.mp4"
+        _make_studio_segment(studio, out, studio_len)
+        segments.append(out)
+        cursor += studio_len
+        scene_index += 1
+        studio_first = False
+        if cursor >= audio_duration - 0.05:
+            break
+
+        if clips:
+            clip_path, clip_dur, _, _ = clips[footage_index % len(clips)]
+            footage_len = min(11.0, audio_duration - cursor, float(clip_dur))
+            out = segment_dir / f"scene_{scene_index:03d}.mp4"
+            _make_clip_segment(clip_path, out, footage_len, start=0)
+            segments.append(out)
+            cursor += footage_len
+            scene_index += 1
+            footage_index += 1
+        else:
+            break
+
+    concat = Path(app.WORK) / "scenes.txt"
+    with concat.open("w", encoding="utf-8") as f:
+        for seg in segments:
+            f.write(f"file '{seg.as_posix()}'\n")
+
+    base = Path(app.WORK) / "base_video.mp4"
+    _run([
+        "ffmpeg","-y","-f","concat","-safe","0","-i",str(concat),"-t",str(audio_duration),
+        "-an","-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
+        "-pix_fmt","yuv420p",str(base)
+    ], label="Scene assembly")
+
+    final = Path(app.WORK) / "the_two_takes.mp4"
+    subtitle_path = str(srt).replace("\\","/").replace(":","\\:").replace("'","\\'")
     vf = (
-        f"scale={VIDEO_W}:{VIDEO_H},"
-        "drawbox=x=0:y=0:w=iw:h=1080:color=black@0.04:t=fill,"
         f"subtitles='{subtitle_path}':force_style="
         "'FontName=DejaVu Sans,FontSize=30,Bold=1,"
         "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
-        "BorderStyle=3,BackColour=&HC0101722,Outline=2,Shadow=0,"
-        "Alignment=2,MarginL=170,MarginR=170,MarginV=120,WrapStyle=2'"
+        "BorderStyle=1,Outline=3,Shadow=0,"
+        "Alignment=2,MarginL=190,MarginR=190,MarginV=105,WrapStyle=2'"
     )
-
     _run([
-        "ffmpeg", "-y",
-        "-loop", "1", "-i", str(studio),
-        "-i", str(wav),
-        "-t", str(audio_duration),
-        "-vf", vf,
-        "-map", "0:v:0",
-        "-map", "1:a:0",
-        "-r", str(FPS),
-        "-c:v", "libx264",
-        "-preset", ENCODE_PRESET,
-        "-crf", ENCODE_CRF,
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", "160k",
-        "-af", "highpass=f=70,lowpass=f=12000,acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,volume=1.25",
-        "-shortest",
-        "-movflags", "+faststart",
-        str(final),
-    ], label="FINAL STUDIO VIDEO")
-
-    print(f"=== STUDIO RENDER COMPLETE in {(time.time() - started) / 60:.1f} min ===")
+        "ffmpeg","-y","-i",str(base),"-i",str(wav),"-t",str(audio_duration),
+        "-vf",vf,"-map","0:v:0","-map","1:a:0","-r",str(FPS),
+        "-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
+        "-pix_fmt","yuv420p","-c:a","aac","-b:a","160k",
+        "-af","highpass=f=70,lowpass=f=12000,acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,volume=1.25",
+        "-shortest","-movflags","+faststart",str(final)
+    ], label="FINAL MIXED VIDEO")
+    print(f"=== MIXED RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
     return final
+
 
 
 def _short_thumbnail_title(title, topic):
@@ -240,36 +293,44 @@ def _short_thumbnail_title(title, topic):
 
 def make_thumbnail(title, topic):
     headline = _short_thumbnail_title(title, topic)
-    lines = textwrap.wrap(headline, width=20)[:3]
+    lines = textwrap.wrap(headline, width=17)[:3]
     headline_svg = "".join(
-        f'<text x="70" y="{265 + i * 82}" font-family="DejaVu Sans" font-size="70" font-weight="900" fill="#ffffff">{html.escape(line)}</text>'
-        for i, line in enumerate(lines)
+        f'<text x="70" y="{265+i*82}" font-family="DejaVu Sans" font-size="68" font-weight="900" fill="#ffffff">{html.escape(line)}</text>'
+        for i,line in enumerate(lines)
     )
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
-      <rect width="1280" height="720" fill="#182234"/>
-      <circle cx="1090" cy="130" r="250" fill="#ffffff" opacity=".08"/>
-      <rect x="35" y="35" width="1210" height="650" rx="32" fill="#ffffff" opacity=".04" stroke="#ffffff" stroke-opacity=".14"/>
-      <text x="70" y="100" font-family="DejaVu Sans" font-size="31" font-weight="800" fill="#ffffff">THE TWO TAKES</text>
-      <text x="70" y="145" font-family="DejaVu Sans" font-size="22" fill="#cbd5e1">ENGLISH PODCAST • REAL CONVERSATIONS</text>
+    svg=f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset=".58" stop-color="#243b63"/><stop offset="1" stop-color="#111827"/></linearGradient>
+        <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".12"/><stop offset="1" stop-color="#ffffff" stop-opacity=".03"/></linearGradient>
+      </defs>
+      <rect width="1280" height="720" fill="url(#bg)"/>
+      <circle cx="1040" cy="130" r="290" fill="#ffffff" opacity=".07"/>
+      <circle cx="1180" cy="650" r="260" fill="#ffffff" opacity=".05"/>
+      <rect x="34" y="34" width="1212" height="652" rx="34" fill="url(#card)" stroke="#ffffff" stroke-opacity=".18" stroke-width="3"/>
+      <rect x="70" y="66" width="270" height="48" rx="24" fill="#ffffff" opacity=".12"/>
+      <text x="205" y="99" text-anchor="middle" font-family="DejaVu Sans" font-size="23" font-weight="800" fill="#fff">THE TWO TAKES</text>
+      <rect x="70" y="175" width="510" height="410" rx="28" fill="#000000" opacity=".16"/>
       {headline_svg}
-      <text x="70" y="585" font-family="DejaVu Sans" font-size="25" font-weight="700" fill="#d9e2f0">LISTEN • SPEAK • PRACTICE</text>
-      <g transform="translate(930,185)">
-        <circle cx="105" cy="105" r="82" fill="#c98f6b"/><path d="M28 110 Q35 28 105 28 Q175 28 182 110 Q155 68 105 70 Q55 68 28 110Z" fill="#20242b"/>
-        <circle cx="80" cy="112" r="7"/><circle cx="130" cy="112" r="7"/><path d="M82 145 Q105 158 128 145" fill="none" stroke="#60332e" stroke-width="6"/>
-        <path d="M45 200 Q105 170 165 200 L190 340 L20 340Z" fill="#314b70"/>
-        <ellipse cx="190" cy="140" rx="38" ry="20" fill="#171d26"/>
-      </g>
-      <g transform="translate(1080,285)">
-        <circle cx="75" cy="75" r="65" fill="#c99070"/><path d="M10 80 Q5 18 75 18 Q145 18 140 82 Q118 50 75 50 Q32 50 10 80Z" fill="#3a2830"/>
-        <circle cx="55" cy="82" r="6"/><circle cx="95" cy="82" r="6"/><path d="M57 108 Q75 120 93 108" fill="none" stroke="#60332e" stroke-width="5"/>
-        <path d="M25 150 Q75 125 125 150 L145 270 L5 270Z" fill="#865f70"/>
-        <ellipse cx="0" cy="112" rx="30" ry="16" fill="#171d26"/>
+      <rect x="70" y="585" width="360" height="48" rx="24" fill="#ffffff" opacity=".13"/>
+      <text x="250" y="617" text-anchor="middle" font-family="DejaVu Sans" font-size="22" font-weight="800" fill="#fff">LEARN • SPEAK • PRACTICE</text>
+      <g transform="translate(760,155)">
+        <ellipse cx="210" cy="450" rx="280" ry="42" fill="#000" opacity=".25"/>
+        <circle cx="125" cy="125" r="110" fill="#c98f6b"/><path d="M20 130 Q28 15 125 15 Q222 15 230 130 Q190 72 125 75 Q60 72 20 130Z" fill="#20242b"/>
+        <circle cx="92" cy="135" r="9"/><circle cx="158" cy="135" r="9"/><path d="M95 180 Q125 198 155 180" fill="none" stroke="#60332e" stroke-width="8"/>
+        <path d="M55 265 Q125 225 195 265 L225 430 L25 430Z" fill="#314b70"/>
+        <rect x="220" y="170" width="24" height="155" rx="12" fill="#171d26"/><ellipse cx="232" cy="155" rx="48" ry="24" fill="#10151d"/>
+        <circle cx="370" cy="165" r="100" fill="#c99070"/><path d="M275 165 Q270 55 370 55 Q470 55 465 165 Q430 105 370 108 Q310 105 275 165Z" fill="#3a2830"/>
+        <circle cx="342" cy="175" r="8"/><circle cx="398" cy="175" r="8"/><path d="M344 215 Q370 230 396 215" fill="none" stroke="#60332e" stroke-width="7"/>
+        <path d="M305 300 Q370 265 435 300 L460 430 L280 430Z" fill="#865f70"/>
+        <rect x="255" y="190" width="22" height="145" rx="11" fill="#171d26"/><ellipse cx="266" cy="175" rx="44" ry="22" fill="#10151d"/>
+        <rect x="95" y="445" width="390" height="48" rx="20" fill="#0b1220" stroke="#ffffff" stroke-opacity=".15"/>
+        <text x="290" y="477" text-anchor="middle" font-family="DejaVu Sans" font-size="22" font-weight="800" fill="#fff">HIMEL × NIHA</text>
       </g>
     </svg>'''
-    svgfile = Path(app.WORK) / "thumbnail.svg"
-    svgfile.write_text(svg, encoding="utf-8")
-    jpg = Path(app.WORK) / "thumbnail.jpg"
-    _run(["convert", "-background", "none", str(svgfile), "-quality", "96", str(jpg)], label="Thumbnail")
+    svgfile=Path(app.WORK)/"thumbnail.svg"
+    svgfile.write_text(svg,encoding="utf-8")
+    jpg=Path(app.WORK)/"thumbnail.jpg"
+    _run(["convert","-background","none",str(svgfile),"-quality","96",str(jpg)],label="Professional thumbnail")
     return jpg
 
 

@@ -22,7 +22,10 @@ def load(path: Path, default):
 
 def save(path: Path, value) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def refresh_access_token() -> str:
@@ -30,7 +33,10 @@ def refresh_access_token() -> str:
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "").strip()
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "").strip()
     if not client_id or not client_secret or not refresh_token:
-        raise RuntimeError("Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN.")
+        raise RuntimeError(
+            "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN."
+        )
+
     response = requests.post(
         "https://oauth2.googleapis.com/token",
         data={
@@ -42,35 +48,61 @@ def refresh_access_token() -> str:
         timeout=(10, 30),
     )
     if not response.ok:
-        raise RuntimeError(f"YouTube OAuth refresh failed: HTTP {response.status_code}: {response.text[:700]}")
+        raise RuntimeError(
+            f"YouTube OAuth refresh failed: HTTP {response.status_code}: "
+            f"{response.text[:700]}"
+        )
+
     token = response.json().get("access_token", "")
     if not token:
         raise RuntimeError("YouTube OAuth response did not include an access token.")
     return token
 
 
-def fetch_video(video_id: str, token: str) -> dict:
+def fetch_video(video_id: str, *, api_key: str = "", oauth_token: str = "") -> dict:
+    params = {
+        "part": "snippet,statistics",
+        "id": video_id,
+    }
+
+    # Public video statistics can be requested with an API key. This avoids
+    # requiring a youtube.readonly OAuth scope just to read public metrics.
+    if api_key:
+        params["key"] = api_key
+    elif oauth_token:
+        params["access_token"] = oauth_token
+    else:
+        raise RuntimeError(
+            "Configure YOUTUBE_API_KEY or a YouTube OAuth token with the "
+            "youtube.readonly scope."
+        )
+
     response = requests.get(
         "https://www.googleapis.com/youtube/v3/videos",
-        params={
-            "part": "snippet,statistics",
-            "id": video_id,
-            "access_token": token,
-        },
+        params=params,
         timeout=(10, 30),
     )
+
     if not response.ok:
-        raise RuntimeError(f"YouTube Data API failed for {video_id}: HTTP {response.status_code}: {response.text[:700]}")
+        body = response.text[:700]
+        raise RuntimeError(
+            f"YouTube Data API failed for {video_id}: "
+            f"HTTP {response.status_code}: {body}"
+        )
+
     items = response.json().get("items", [])
     if not items:
         raise RuntimeError(f"YouTube video {video_id} was not returned by the Data API.")
+
     item = items[0]
     stats = item.get("statistics", {})
     snippet = item.get("snippet", {})
+
     views = int(stats.get("viewCount", 0) or 0)
     likes = int(stats.get("likeCount", 0) or 0)
     comments = int(stats.get("commentCount", 0) or 0)
     like_rate = (likes / views * 100) if views else 0.0
+
     return {
         "views": views,
         "likes": likes,
@@ -94,7 +126,14 @@ def main() -> None:
     processed = set(str(x) for x in state.get("processed", []))
     history = list(state.get("history", []))
 
-    token = refresh_access_token()
+    api_key = os.environ.get("YOUTUBE_API_KEY", "").strip()
+    oauth_token = ""
+    if not api_key:
+        # Backward-compatible fallback for installations that already have
+        # OAuth credentials. A token lacking youtube.readonly may still fail;
+        # in that case the error explicitly tells the user what to change.
+        oauth_token = refresh_access_token()
+
     now = datetime.now(timezone.utc)
     ready = []
 
@@ -103,6 +142,7 @@ def main() -> None:
         published = parse_dt(video.get("published", ""))
         if not video_id or not published or video_id in processed:
             continue
+
         age_hours = (now - published).total_seconds() / 3600
         if age_hours >= 12:
             ready.append((published, video, age_hours))
@@ -113,8 +153,14 @@ def main() -> None:
 
     for published, video, age_hours in sorted(ready, key=lambda x: x[0]):
         video_id = video["video_id"]
+
         try:
-            metrics = fetch_video(video_id, token)
+            metrics = fetch_video(
+                video_id,
+                api_key=api_key,
+                oauth_token=oauth_token,
+            )
+
             analysis = {
                 "analyzed_at": now.isoformat(),
                 "age_hours": round(age_hours, 2),
@@ -125,13 +171,19 @@ def main() -> None:
                 "likes": metrics["likes"],
                 "comments": metrics["comments"],
                 "like_rate": metrics["like_rate"],
-                "link": video.get("link", f"https://www.youtube.com/watch?v={video_id}"),
+                "link": video.get(
+                    "link",
+                    f"https://www.youtube.com/watch?v={video_id}",
+                ),
             }
+
             analysis["summary"] = (
                 f"At about {age_hours:.1f} hours, this video has "
                 f"{analysis['views']} views, {analysis['likes']} likes, and "
-                f"{analysis['comments']} comments. Like rate: {analysis['like_rate']:.2f}%. "
-                "This is a YouTube API snapshot; it does not include watch time or retention."
+                f"{analysis['comments']} comments. "
+                f"Like rate: {analysis['like_rate']:.2f}%. "
+                "This is a YouTube API snapshot; it does not include "
+                "watch time or retention."
             )
 
             if notify_youtube_analytics(analysis):
@@ -139,7 +191,11 @@ def main() -> None:
                 history.append(analysis)
                 print(f"YouTube 12-hour analysis sent for {video_id}.")
             else:
-                print(f"Discord analytics notification failed for {video_id}; will retry.")
+                print(
+                    f"Discord analytics notification failed for {video_id}; "
+                    "will retry."
+                )
+
         except Exception as exc:
             notify_error(str(exc), "YouTube 12-hour analytics")
 

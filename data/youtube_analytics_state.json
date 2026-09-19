@@ -1,4 +1,34 @@
 {
-  "processed": [],
-  "history": []
+  "processed": [
+    "Ngy0ny56H0A",
+    "CfGF3NiriWE"
+  ],
+  "history": [
+    {
+      "analyzed_at": "2026-09-19T05:51:33.447805+00:00",
+      "age_hours": 27.39,
+      "video_id": "CfGF3NiriWE",
+      "title": "How to Talk About Money and Saving in Everyday English",
+      "kind": "Podcast",
+      "views": 3,
+      "likes": 2,
+      "comments": 0,
+      "like_rate": 66.66666666666666,
+      "link": "https://youtu.be/CfGF3NiriWE",
+      "summary": "At about 27.4 hours, this video has 3 views, 2 likes, and 0 comments. Like rate: 66.67%. This is a YouTube API snapshot; it does not include watch time or retention."
+    },
+    {
+      "analyzed_at": "2026-09-19T05:51:33.447805+00:00",
+      "age_hours": 21.0,
+      "video_id": "Ngy0ny56H0A",
+      "title": "How to Talk About Money and Saving in Everyday English",
+      "kind": "Podcast",
+      "views": 4,
+      "likes": 2,
+      "comments": 0,
+      "like_rate": 50.0,
+      "link": "https://youtu.be/Ngy0ny56H0A",
+      "summary": "At about 21.0 hours, this video has 4 views, 2 likes, and 0 comments. Like rate: 50.00%. This is a YouTube API snapshot; it does not include watch time or retention."
+    }
+  ]
 }

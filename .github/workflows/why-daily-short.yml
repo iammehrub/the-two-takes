@@ -1,6 +1,9 @@
 name: WHY — Daily Short
 
 on:
+  push:
+    branches:
+      - automation-live-test-short
   schedule:
     - cron: "0 17 * * *"
   workflow_dispatch:

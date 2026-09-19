@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -29,6 +29,7 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           DISCORD_YOUTUBE_ANALYTICS_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_ANALYTICS_WEBHOOK }}
           DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
         run: python youtube_analytics.py
@@ -39,4 +40,12 @@ jobs:
           git add data/youtube_analytics_state.json
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "Update YouTube analytics state"
-          git push
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; rebasing onto latest main..."
+            git pull --rebase origin main
+          done
+          echo "Analytics state push could not be completed after 3 attempts."
+          exit 0

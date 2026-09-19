@@ -1,6 +1,11 @@
 name: The Two Takes — Daily Episode
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/daily-podcast.yml"
   workflow_dispatch:
     inputs:
       trigger_source:

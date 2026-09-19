@@ -1,6 +1,11 @@
 name: YouTube 12-Hour Analytics
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/youtube-analytics.yml"
   workflow_dispatch:
   schedule:
     - cron: "45 * * * *"

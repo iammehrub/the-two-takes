@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: two-takes-content-writes
+  group: two-takes-short-test
   cancel-in-progress: false
 
 jobs:

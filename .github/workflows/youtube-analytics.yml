@@ -1,6 +1,9 @@
 name: YouTube 12-Hour Analytics
 
 on:
+  push:
+    branches:
+      - automation-live-test-yt-analytics
   workflow_dispatch:
   schedule:
     - cron: "45 * * * *"

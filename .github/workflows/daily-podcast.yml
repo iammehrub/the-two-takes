@@ -1,6 +1,9 @@
 name: The Two Takes — Daily Episode
 
 on:
+  push:
+    branches:
+      - automation-live-test-podcast
   workflow_dispatch:
     inputs:
       trigger_source:

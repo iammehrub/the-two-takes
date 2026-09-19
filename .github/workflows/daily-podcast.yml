@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: two-takes-content-writes
+  group: two-takes-podcast-publish
   cancel-in-progress: false
 
 jobs:
@@ -81,27 +81,39 @@ jobs:
           notified = notify_youtube(info, "Podcast", "DISCORD_YOUTUBE_PODCAST_WEBHOOK")
           print("Podcast Discord notification:", "sent" if notified else "not sent; continuing")
 
-          state_path = Path("data/youtube_state.json")
-          state = {"seen_video_ids": [], "notified_videos": []}
-          if state_path.exists():
-              try:
-                  state = json.loads(state_path.read_text(encoding="utf-8"))
-              except Exception:
-                  pass
-          state.setdefault("seen_video_ids", [])
-          state.setdefault("notified_videos", [])
           vid = str(info.get("video_id", "")).strip()
           if not vid:
               raise RuntimeError("Podcast upload metadata has no video_id.")
-          if vid not in state["seen_video_ids"]:
-              state["seen_video_ids"].append(vid)
-          state["notified_videos"].append({**info, "notified_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()})
-          state["notified_videos"] = state["notified_videos"][-300:]
-          state["seen_video_ids"] = state["seen_video_ids"][-300:]
-          state["initialized"] = True
-          state_path.parent.mkdir(parents=True, exist_ok=True)
-          state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          from datetime import datetime, timezone
+          record = {**info, "notified_at": datetime.now(timezone.utc).isoformat()}
+          upload_dir = Path("data/youtube_uploads")
+          upload_dir.mkdir(parents=True, exist_ok=True)
+          record_path = upload_dir / f"{vid}.json"
+          record_path.write_text(
+              json.dumps(record, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
           print(f"Discord notified and upload recorded: {vid}")
+
+      - name: Persist upload record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/youtube_uploads/*.json
+          git commit -m "Record podcast upload"
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; rebasing onto latest main..."
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "Could not persist podcast upload record after 3 attempts."
+          exit 1
+
           PY
 
       - name: Save growth assets

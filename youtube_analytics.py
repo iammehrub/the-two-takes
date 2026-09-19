@@ -111,6 +111,21 @@ def parse_dt(value: str):
 
 def main() -> None:
     watcher = load(WATCHER_STATE, {})
+    upload_records = {}
+    upload_dir = ROOT / "data" / "youtube_uploads"
+    if upload_dir.exists():
+        for record_path in upload_dir.glob("*.json"):
+            try:
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if isinstance(record, dict) and record.get("video_id"):
+                upload_records[str(record["video_id"]).strip()] = record
+
+    # Keep legacy watcher history as a backwards-compatible source.
+    for record in watcher.get("notified_videos", []):
+        if isinstance(record, dict) and record.get("video_id"):
+            upload_records.setdefault(str(record["video_id"]).strip(), record)
     state = load(ANALYTICS_STATE, {"processed": [], "history": []})
     processed = set(str(x) for x in state.get("processed", []))
     history = list(state.get("history", []))
@@ -122,7 +137,7 @@ def main() -> None:
     now = datetime.now(timezone.utc)
     ready = []
 
-    for video in watcher.get("notified_videos", []):
+    for video in upload_records.values():
         video_id = str(video.get("video_id", "")).strip()
         published = parse_dt(video.get("published", ""))
         if not video_id or not published or video_id in processed:

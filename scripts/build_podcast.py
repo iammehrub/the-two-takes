@@ -1015,7 +1015,7 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         client_id=YT_CLIENT_ID,
         client_secret=YT_CLIENT_SECRET,
         scopes=[
-            "https://www.googleapis.com/auth/youtube.upload"
+            "https://www.googleapis.com/auth/youtube"
         ]
     )
 

@@ -59,23 +59,12 @@ def refresh_access_token() -> str:
     return token
 
 
-def fetch_video(video_id: str, *, api_key: str = "", oauth_token: str = "") -> dict:
+def fetch_video(video_id: str, oauth_token: str) -> dict:
     params = {
         "part": "snippet,statistics",
         "id": video_id,
+        "access_token": oauth_token,
     }
-
-    # Public video statistics can be requested with an API key. This avoids
-    # requiring a youtube.readonly OAuth scope just to read public metrics.
-    if api_key:
-        params["key"] = api_key
-    elif oauth_token:
-        params["access_token"] = oauth_token
-    else:
-        raise RuntimeError(
-            "Configure YOUTUBE_API_KEY or a YouTube OAuth token with the "
-            "youtube.readonly scope."
-        )
 
     response = requests.get(
         "https://www.googleapis.com/youtube/v3/videos",
@@ -126,13 +115,9 @@ def main() -> None:
     processed = set(str(x) for x in state.get("processed", []))
     history = list(state.get("history", []))
 
-    api_key = os.environ.get("YOUTUBE_API_KEY", "").strip()
-    oauth_token = ""
-    if not api_key:
-        # Backward-compatible fallback for installations that already have
-        # OAuth credentials. A token lacking youtube.readonly may still fail;
-        # in that case the error explicitly tells the user what to change.
-        oauth_token = refresh_access_token()
+    # Use the same YouTube OAuth refresh token as both upload workflows.
+    # The token must have the broad YouTube account scope.
+    oauth_token = refresh_access_token()
 
     now = datetime.now(timezone.utc)
     ready = []
@@ -155,11 +140,7 @@ def main() -> None:
         video_id = video["video_id"]
 
         try:
-            metrics = fetch_video(
-                video_id,
-                api_key=api_key,
-                oauth_token=oauth_token,
-            )
+            metrics = fetch_video(video_id, oauth_token)
 
             analysis = {
                 "analyzed_at": now.isoformat(),

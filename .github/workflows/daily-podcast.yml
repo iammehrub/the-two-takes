@@ -59,6 +59,9 @@ jobs:
           python --version
           echo "=== KOKORO CHECK ==="
           python -c "from kokoro import KPipeline; print('Kokoro import OK')"
+          echo "=== RUNNING PIPELINE PREFLIGHT ==="
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py
+          echo "=== PIPELINE PREFLIGHT PASSED ==="
           echo "=== RUNNING OPENAI + KOKORO PODCAST RUNNER ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
           echo "=== PODCAST BUILDER FINISHED ==="
@@ -101,8 +104,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/youtube_uploads/*.json
-          git commit -m "Record podcast upload"
+          git add data/content_history.json data/youtube_uploads/*.json
+          git commit -m "Record podcast upload and content history"
           for attempt in 1 2 3; do
             if git push; then
               exit 0

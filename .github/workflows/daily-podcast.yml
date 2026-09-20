@@ -69,6 +69,7 @@ jobs:
       - name: Notify Discord and record upload
         env:
           DISCORD_YOUTUBE_PODCAST_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_PODCAST_WEBHOOK }}
+          DISCORD_YOUTUBE_MENTION_ROLE_ID: ${{ secrets.DISCORD_YOUTUBE_MENTION_ROLE_ID }}
           DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
         run: |
           python - <<'PY'

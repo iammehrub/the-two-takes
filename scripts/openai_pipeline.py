@@ -372,7 +372,7 @@ Do not use these rejected candidates:
 """
 
         raw = openai_generate(attempt_prompt)
-        obj = parse_json(raw) or {{}}
+        obj = parse_json(raw) or {}
         script = extract_dialogue(raw)
         word_count = len(script.split())
 
@@ -382,10 +382,10 @@ Do not use these rejected candidates:
             continue
 
         dialogue_obj = obj.get("dialogue", []) if isinstance(obj, dict) else []
-        valid_types = {{
+        valid_types = {
             "hook", "question", "story", "reaction", "follow_up",
             "clarification", "language_tip", "practice", "recap"
-        }}
+        }
 
         beats = []
         if isinstance(dialogue_obj, list):
@@ -398,15 +398,15 @@ Do not use these rejected candidates:
                     item.get("turn_type", "reaction")
                 ).strip().lower()
 
-                if speaker in {{"Himel", "Niha"}} and text_value:
+                if speaker in {"Himel", "Niha"} and text_value:
                     if turn_type not in valid_types:
                         turn_type = "reaction"
-                    beats.append({{
+                    beats.append({
                         "turn_index": len(beats),
                         "speaker": speaker,
                         "text": text_value,
                         "turn_type": turn_type,
-                    }})
+                    })
 
         if len(beats) < 24:
             last_problem = f"too few dialogue turns ({len(beats)})"

@@ -124,3 +124,37 @@ def notify_youtube_analytics(analysis: dict) -> bool:
         footer="YouTube • 12-Hour Analytics • Bangladesh time",
         mention_role_id=mention_role_id,
     )
+
+
+
+def notify_youtube_audience(audience: dict, analyzed_at: str) -> bool:
+    mention_role_id = os.environ.get("DISCORD_YOUTUBE_MENTION_ROLE_ID", "").strip()
+    countries = audience.get("countries", [])
+    traffic = audience.get("traffic_sources", [])
+    age_gender = audience.get("age_gender", [])
+
+    country_text = ", ".join(
+        f"{x['country']} ({x['views']:,})" for x in countries[:5]
+    ) or "Not enough processed data yet"
+    traffic_text = ", ".join(
+        f"{x['source']} ({x['views']:,})" for x in traffic[:5]
+    ) or "Not enough processed data yet"
+    age_text = ", ".join(
+        f"{x['age_group']} {x['gender']} ({x['viewer_percentage']:.1f}%)"
+        for x in age_gender[:5]
+    ) or "Not enough data"
+
+    return send_webhook(
+        "DISCORD_YOUTUBE_ANALYTICS_WEBHOOK",
+        "🎯 YouTube Audience Intelligence",
+        "Processed audience data for the latest available analytics window. Use this to improve topic selection, packaging, and audience fit.",
+        fields=[
+            ("Top countries", country_text, False),
+            ("Traffic sources", traffic_text, False),
+            ("Age / gender", age_text, False),
+            ("Analytics window", audience.get("window", "Unknown"), True),
+            ("Analyzed", bd_time(analyzed_at), True),
+        ],
+        footer="YouTube • Audience Intelligence • Bangladesh time",
+        mention_role_id=mention_role_id,
+    )

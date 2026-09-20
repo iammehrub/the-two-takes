@@ -30,6 +30,7 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           DISCORD_YOUTUBE_ANALYTICS_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_ANALYTICS_WEBHOOK }}
+          DISCORD_YOUTUBE_MENTION_ROLE_ID: ${{ secrets.DISCORD_YOUTUBE_MENTION_ROLE_ID }}
           DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
         run: python youtube_analytics.py
       - name: Save analytics state

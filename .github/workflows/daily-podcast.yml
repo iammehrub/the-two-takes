@@ -128,6 +128,9 @@ jobs:
             work/growth_pack.txt
             work/thumbnail.jpg
             work/script.txt
+            work/youtube_metadata.json
+            work/title_options.json
+            work/thumbnail_text.txt
           if-no-files-found: ignore
           retention-days: 14
 

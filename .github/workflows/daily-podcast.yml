@@ -114,7 +114,6 @@ jobs:
           echo "Could not persist podcast upload record after 3 attempts."
           exit 1
 
-          PY
 
       - name: Save growth assets
         if: always()

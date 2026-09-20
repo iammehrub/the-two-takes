@@ -274,6 +274,17 @@ def make_episode(news):
     prompt = f"""
 You are the lead writer for THE TWO TAKES, an original English-learning YouTube conversation show.
 
+REFERENCE STYLE: SPEAK ENGLISH WITH CLASS — ADAPT, DO NOT COPY
+- Match the overall learning experience: calm podcast conversation, friendly teacher-like delivery, practical everyday English, clear B1-B2 language, and a clean educational presentation.
+- Do NOT copy their scripts, exact phrases, episode titles, thumbnails, artwork, characters, branding, or distinctive wording.
+- INTRO: start with a natural 5-15 second hook about the learner's problem. Then a short friendly greeting and tell the viewer what they will learn. Never spend the opening on a long branded intro.
+- VOICE/DIALOGUE: sound like two real people teaching through conversation, not two actors reading an essay. Use warm, relaxed, clear delivery. Himel is calm/curious; Niha is warm/thoughtful. Alternate naturally, with short turns and real reactions.
+- ENGLISH LEVEL: mainly B1-B2. Prefer common words and explain harder phrases in simple English. Avoid academic wording unless it is the teaching point.
+- TOPIC SELECTION: choose practical, relatable speaking situations and questions learners actually face: confidence, habits, work/study, travel, friendships, daily problems, opinions, small talk, stories, and useful conversation situations. Give each episode one clear learning outcome.
+- LESSON FEEL: the conversation should teach naturally. Highlight useful phrases after they appear, then give examples and a short speaking/shadowing practice section.
+- PACING: calm but never flat. Use examples, reactions, mini-stories, questions and small changes of angle every 45-90 seconds.
+- ENDING: brief recap of useful phrases/ideas, then a natural invitation to practice and return. Avoid repetitive YouTube filler.
+
 PRIMARY GOAL:
 Create a video concept that a new viewer can understand instantly and has a clear reason to click and keep watching.
 

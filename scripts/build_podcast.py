@@ -1023,32 +1023,77 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 
     yt = build("youtube", "v3", credentials=creds)
 
-    description = (
-        f"{hook}\n\n"
-        "A fresh conversation with Himel and Niha "
-        "from The Two Takes.\n\n"
-        f"Topic: {topic}\n\n"
-        "#TheTwoTakes #Podcast #News #Discussion\n\n"
+    metadata_path = WORK / "youtube_metadata.json"
+    metadata = {}
+    if metadata_path.exists():
+        try:
+            metadata = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+        except Exception:
+            metadata = {}
+
+    search_phrases = metadata.get("search_phrases", [])
+    if not isinstance(search_phrases, list):
+        search_phrases = []
+    search_phrases = [
+        str(x).strip() for x in search_phrases if str(x).strip()
+    ][:8]
+
+    hashtags = metadata.get("hashtags", [])
+    if not isinstance(hashtags, list):
+        hashtags = []
+    hashtags = [
+        str(x).strip()
+        for x in hashtags
+        if str(x).strip().startswith("#")
+    ][:5]
+
+    description_parts = [
+        hook.strip(),
+        "Practice real-world English with Himel and Niha "
+        "through a natural conversation.",
+        f"Topic: {topic.strip()}",
+        "Useful for English listening, speaking practice, "
+        "everyday English, and natural conversation.",
+    ]
+    if search_phrases:
+        description_parts.append(
+            "This episode explores: " + ", ".join(search_phrases[:5]) + "."
+        )
+    if hashtags:
+        description_parts.append(" ".join(hashtags))
+    description_parts.append(
         "Visual credits: Pexels (used via the Pexels API)."
     )
+    description = "\n\n".join(
+        part for part in description_parts if part
+    )
 
+    tags = [
+        "The Two Takes",
+        "English learning",
+        "English speaking",
+        "English conversation",
+        "spoken English",
+        "English listening",
+    ] + search_phrases[:6]
+
+    # Keep tags unique and bounded.
+    cleaned_tags = []
+    for tag in tags:
+        tag = str(tag).strip()
+        if tag and tag.lower() not in {
+            x.lower() for x in cleaned_tags
+        }:
+            cleaned_tags.append(tag)
 
     body = {
         "snippet": {
             "title": title,
             "description": description[:4900],
-            "categoryId": "22",
-            "tags": [
-                "The Two Takes",
-                "podcast",
-                "Himel",
-                "Niha",
-                "learn English",
-                "English speaking",
-                "English conversation",
-                "spoken English",
-                "English listening"
-            ]
+            "categoryId": "27",
+            "tags": cleaned_tags[:15]
         },
         "status": {
             "privacyStatus": "public",
@@ -1095,6 +1140,25 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         json.dumps(upload_info, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+    # Record the published episode only after YouTube has accepted the upload.
+    # This makes future runs reject the same title/topic/script.
+    try:
+        from content_guard import record_content
+        record_content(
+            ROOT,
+            vid,
+            title,
+            topic,
+            script,
+            "Podcast",
+            upload_info["published"],
+        )
+        print("Content history updated.")
+    except Exception as exc:
+        raise RuntimeError(
+            f"YouTube upload succeeded but content history could not be updated: {exc}"
+        ) from exc
 
     print(f"Published: https://youtu.be/{vid}")
 

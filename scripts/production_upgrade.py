@@ -350,6 +350,15 @@ def render_video(wav, clips, srt, title):
 
 
 
+# VISUAL REFERENCE STYLE
+# Clean English-learning podcast presentation inspired by the category, while keeping
+# The Two Takes original branding, characters and artwork.
+VISUAL_STYLE = {
+    "thumbnail": "clean educational podcast thumbnail; 2-4 bold words; two-host focus; simple background; high readability; minimal clutter",
+    "video": "calm modern learning-podcast studio; two hosts; readable subtitles; occasional relevant B-roll; restrained transitions",
+    "branding": "THE TWO TAKES original branding; no copied logos, characters, artwork, or distinctive visual assets",
+}
+
 def _short_thumbnail_title(title, topic):
     concept_path = Path(app.WORK) / "thumbnail_text.txt"
     concept = ""

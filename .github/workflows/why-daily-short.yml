@@ -103,7 +103,6 @@ jobs:
           echo "Could not persist Shorts upload record after 3 attempts."
           exit 1
 
-          PY
 
       - name: Save WHY artifact
         if: always()

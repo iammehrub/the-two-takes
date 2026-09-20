@@ -1,10 +1,27 @@
 import os
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import requests
 
 USER_AGENT = "TwoTakesAutomation/1.0 (+GitHub Actions)"
 
 
-def send_webhook(env_name: str, title: str, description: str, *, fields=None, url: str = "", footer: str = "Two Takes Automation") -> bool:
+def bd_time(value=None) -> str:
+    """Return a readable Bangladesh timestamp."""
+    if value:
+        try:
+            dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except ValueError:
+            dt = datetime.now(timezone.utc)
+    else:
+        dt = datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(ZoneInfo("Asia/Dhaka"))
+    return dt.strftime("%d %b %Y • %I:%M %p BST")
+
+
+def send_webhook(env_name: str, title: str, description: str, *, fields=None, url: str = "", footer: str = "Two Takes Automation", mention_role_id: str = "") -> bool:
     webhook = os.environ.get(env_name, "").strip()
     if not webhook:
         print(f"Discord webhook {env_name} is not configured; skipping.")
@@ -22,8 +39,13 @@ def send_webhook(env_name: str, title: str, description: str, *, fields=None, ur
         embed["url"] = url
     payload = {
         "username": "Two Takes Automation",
+        "content": f"<@&{mention_role_id}>" if mention_role_id else "",
         "embeds": [embed],
-        "allowed_mentions": {"parse": []},
+        "allowed_mentions": (
+            {"parse": [], "roles": [mention_role_id]}
+            if mention_role_id
+            else {"parse": []}
+        ),
     }
     try:
         response = requests.post(webhook, json=payload, headers={"User-Agent": USER_AGENT}, timeout=(10, 20))
@@ -54,17 +76,20 @@ def notify_bangladesh_news(items: list[dict], generated_at: str) -> bool:
 
 
 def notify_youtube(video: dict, kind: str, webhook_env: str) -> bool:
+    published_bd = bd_time(video.get("published"))
+    mention_role_id = os.environ.get("DISCORD_YOUTUBE_MENTION_ROLE_ID", "").strip()
     return send_webhook(
         webhook_env,
         f"🎬 YouTube {kind} Published",
         f"A new {kind.lower()} video was detected.",
         fields=[
             ("Title", video.get("title", "Untitled"), False),
-            ("Published", video.get("published", "Unknown"), True),
+            ("Published", published_bd, True),
             ("Channel", video.get("channel", "Unknown"), True),
         ],
         url=video.get("link", ""),
-        footer=f"YouTube • {kind}",
+        footer=f"YouTube • {kind} • Bangladesh time",
+        mention_role_id=mention_role_id,
     )
 
 
@@ -80,6 +105,8 @@ def notify_error(message: str, component: str) -> bool:
 
 
 def notify_youtube_analytics(analysis: dict) -> bool:
+    analyzed_bd = bd_time(analysis.get("analyzed_at"))
+    mention_role_id = os.environ.get("DISCORD_YOUTUBE_MENTION_ROLE_ID", "").strip()
     return send_webhook(
         "DISCORD_YOUTUBE_ANALYTICS_WEBHOOK",
         "📊 12-Hour YouTube Analysis",
@@ -91,7 +118,9 @@ def notify_youtube_analytics(analysis: dict) -> bool:
             ("Likes", str(analysis.get("likes", 0)), True),
             ("Comments", str(analysis.get("comments", 0)), True),
             ("Like rate", f"{analysis.get('like_rate', 0):.2f}%", True),
+            ("Analyzed", analyzed_bd, True),
         ],
         url=analysis.get("link", ""),
-        footer="YouTube • 12-Hour Analytics",
+        footer="YouTube • 12-Hour Analytics • Bangladesh time",
+        mention_role_id=mention_role_id,
     )

@@ -223,6 +223,35 @@ def format_demand(rows):
     )
 
 
+
+def audience_profile_context():
+    path = app.ROOT / "data" / "youtube_audience_insights.json"
+    if not path.exists():
+        return "(No processed YouTube audience profile is available yet.)"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        parts = [f"Analytics window: {data.get('window', 'unknown')}"]
+        countries = data.get("countries", [])
+        if countries:
+            parts.append("Top countries by views: " + ", ".join(
+                f"{x.get('country')} ({x.get('views', 0):,})" for x in countries[:7]
+            ))
+        traffic = data.get("traffic_sources", [])
+        if traffic:
+            parts.append("Top traffic sources: " + ", ".join(
+                f"{x.get('source')} ({x.get('views', 0):,})" for x in traffic[:7]
+            ))
+        age_gender = data.get("age_gender", [])
+        if age_gender:
+            parts.append("Largest reported audience groups: " + ", ".join(
+                f"{x.get('age_group')} {x.get('gender')} ({x.get('viewer_percentage', 0):.1f}%)"
+                for x in age_gender[:7]
+            ))
+        return "\n".join(parts)
+    except Exception as exc:
+        return f"(Audience profile could not be read: {exc})"
+
+
 def make_episode(news):
     topic_bank = [
         "Stop Translating in Your Head: Speak English More Naturally",
@@ -270,6 +299,7 @@ def make_episode(news):
     recent_context = recent_content_context(20)
     demand_rows = youtube_demand_snapshot()
     demand_context = format_demand(demand_rows)
+    audience_context = audience_profile_context()
 
     prompt = f"""
 You are the lead writer for THE TWO TAKES, an original English-learning YouTube conversation show.
@@ -305,7 +335,7 @@ DIRECTIONAL YOUTUBE DEMAND SNAPSHOT:
 AVAILABLE TOPIC BANK:
 {chr(10).join('- ' + x for x in topic_bank)}
 
-Choose ONE fresh topic. You may create a new angle around a topic-bank idea, but it must be meaningfully different from recent content.
+Use the channel audience profile as a signal, not a rule. Prioritize topics that fit the actual audience while still attracting English learners worldwide.\n\nChoose ONE fresh topic. You may create a new angle around a topic-bank idea, but it must be meaningfully different from recent content.
 
 TITLE/PACKAGING RULES:
 - Produce 3 distinct title options.

@@ -351,9 +351,18 @@ def render_video(wav, clips, srt, title):
 
 
 def _short_thumbnail_title(title, topic):
-    source = title.strip() or topic.strip() or "SPEAK ENGLISH NATURALLY"
+    concept_path = Path(app.WORK) / "thumbnail_text.txt"
+    concept = ""
+    if concept_path.exists():
+        try:
+            concept = concept_path.read_text(encoding="utf-8").strip()
+        except Exception:
+            concept = ""
+
+    source = concept or title.strip() or topic.strip() or "SPEAK ENGLISH NATURALLY"
     source = re.sub(r"[^A-Za-z0-9'?! ]+", " ", source)
-    return " ".join(source.split()[:7]).upper()
+    words = source.split()
+    return " ".join(words[:4]).upper()
 
 
 def make_thumbnail(title, topic):

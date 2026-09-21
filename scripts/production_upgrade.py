@@ -144,50 +144,85 @@ def pexels_videos(keywords):
 
 
 def _studio_svg():
+    """Warm, illustrated English-learning studio artwork with original Two Takes branding."""
     return '''<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080">
       <defs>
-        <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#26354a"/></linearGradient>
-        <radialGradient id="light1"><stop offset="0" stop-color="#f3d6a0" stop-opacity=".42"/><stop offset="1" stop-color="#f3d6a0" stop-opacity="0"/></radialGradient>
-        <radialGradient id="light2"><stop offset="0" stop-color="#9ec5ff" stop-opacity=".28"/><stop offset="1" stop-color="#9ec5ff" stop-opacity="0"/></radialGradient>
+        <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff7e8"/>
+          <stop offset="1" stop-color="#f4dfc2"/>
+        </linearGradient>
+        <linearGradient id="desk" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3a2b24"/>
+          <stop offset="1" stop-color="#1f1815"/>
+        </linearGradient>
       </defs>
-      <rect width="1920" height="1080" fill="url(#wall)"/>
-      <rect y="0" width="1920" height="180" fill="#0b1220" opacity=".5"/>
-      <circle cx="350" cy="250" r="390" fill="url(#light1)"/>
-      <circle cx="1570" cy="240" r="430" fill="url(#light2)"/>
-      <rect x="85" y="90" width="1750" height="760" rx="36" fill="#ffffff" opacity=".035" stroke="#ffffff" stroke-opacity=".11" stroke-width="3"/>
-      <text x="960" y="150" text-anchor="middle" font-family="DejaVu Sans" font-size="42" font-weight="700" fill="#ffffff" opacity=".95">THE TWO TAKES</text>
-      <text x="960" y="205" text-anchor="middle" font-family="DejaVu Sans" font-size="24" fill="#d9e2f0">English conversations • listening • speaking practice</text>
 
-      <g transform="translate(410,300)">
-        <circle cx="250" cy="170" r="132" fill="#c98f6b"/>
-        <path d="M125 165 Q135 35 250 35 Q365 35 375 165 Q335 100 250 105 Q165 100 125 165Z" fill="#20242b"/>
-        <circle cx="210" cy="180" r="11" fill="#18212c"/><circle cx="290" cy="180" r="11" fill="#18212c"/>
-        <path d="M215 232 Q250 250 285 232" fill="none" stroke="#60332e" stroke-width="8" stroke-linecap="round"/>
-        <path d="M145 330 Q250 285 355 330 L400 585 L100 585Z" fill="#314b70"/>
-        <rect x="365" y="210" width="28" height="160" rx="14" fill="#222b38"/>
-        <ellipse cx="379" cy="195" rx="54" ry="30" fill="#171d26"/>
-        <circle cx="250" cy="145" r="150" fill="none" stroke="#ffffff" stroke-opacity=".13" stroke-width="6"/>
-        <text x="250" y="635" text-anchor="middle" font-family="DejaVu Sans" font-size="30" font-weight="700" fill="#ffffff">HIMEL</text>
+      <rect width="1920" height="1080" fill="url(#paper)"/>
+      <rect width="1920" height="16" fill="#c94d1a"/>
+      <circle cx="1640" cy="170" r="300" fill="#d96a2a" opacity=".08"/>
+      <circle cx="250" cy="930" r="260" fill="#d96a2a" opacity=".06"/>
+
+      <rect x="80" y="60" width="1760" height="920" rx="36"
+            fill="#fffaf1" stroke="#d9b98e" stroke-width="3"/>
+      <text x="130" y="125" font-family="DejaVu Sans" font-size="34"
+            font-weight="800" fill="#1f1b18">THE TWO TAKES</text>
+      <rect x="130" y="150" width="270" height="42" rx="21" fill="#c94d1a"/>
+      <text x="265" y="179" text-anchor="middle" font-family="DejaVu Sans"
+            font-size="20" font-weight="800" fill="#ffffff">ENGLISH PODCAST</text>
+
+      <text x="960" y="232" text-anchor="middle" font-family="DejaVu Sans"
+            font-size="25" fill="#6b5444">Real conversations • useful phrases • speaking practice</text>
+
+      <!-- Himel -->
+      <g transform="translate(330,285)">
+        <ellipse cx="285" cy="610" rx="270" ry="40" fill="#1d1613" opacity=".14"/>
+        <circle cx="250" cy="170" r="128" fill="#c99170"/>
+        <path d="M126 168 Q134 36 250 36 Q366 36 374 168 Q330 98 250 102 Q170 98 126 168Z" fill="#22252b"/>
+        <circle cx="210" cy="182" r="10" fill="#1e252a"/>
+        <circle cx="290" cy="182" r="10" fill="#1e252a"/>
+        <path d="M213 233 Q250 255 287 233" fill="none" stroke="#6c3830" stroke-width="8" stroke-linecap="round"/>
+        <path d="M145 342 Q250 300 355 342 L392 575 L108 575Z" fill="#385a7f"/>
+        <rect x="355" y="238" width="26" height="148" rx="13" fill="#242322"/>
+        <ellipse cx="368" cy="223" rx="48" ry="25" fill="#11100f"/>
+        <rect x="80" y="540" width="340" height="18" rx="9" fill="#c94d1a"/>
+        <text x="250" y="635" text-anchor="middle" font-family="DejaVu Sans"
+              font-size="30" font-weight="800" fill="#2b211c">HIMEL</text>
       </g>
 
-      <g transform="translate(1100,315)">
-        <circle cx="250" cy="155" r="125" fill="#c99070"/>
-        <path d="M120 155 Q112 28 250 28 Q388 28 380 160 Q335 85 250 88 Q165 85 120 155Z" fill="#3a2830"/>
-        <circle cx="212" cy="168" r="10" fill="#18212c"/><circle cx="288" cy="168" r="10" fill="#18212c"/>
-        <path d="M218 220 Q250 238 282 220" fill="none" stroke="#60332e" stroke-width="8" stroke-linecap="round"/>
-        <path d="M150 315 Q250 275 350 315 L390 580 L110 580Z" fill="#865f70"/>
-        <rect x="100" y="210" width="28" height="150" rx="14" fill="#222b38"/>
-        <ellipse cx="114" cy="195" rx="52" ry="29" fill="#171d26"/>
-        <circle cx="250" cy="140" r="143" fill="none" stroke="#ffffff" stroke-opacity=".11" stroke-width="6"/>
-        <text x="250" y="630" text-anchor="middle" font-family="DejaVu Sans" font-size="30" font-weight="700" fill="#ffffff">NIHA</text>
+      <!-- Niha -->
+      <g transform="translate(1050,300)">
+        <ellipse cx="285" cy="595" rx="270" ry="40" fill="#1d1613" opacity=".14"/>
+        <circle cx="250" cy="160" r="122" fill="#cc9574"/>
+        <path d="M120 164 Q113 34 250 34 Q387 34 380 165 Q334 86 250 91 Q166 86 120 164Z" fill="#3c2a31"/>
+        <path d="M114 160 Q98 355 125 400 L158 374 L144 205Z" fill="#3c2a31" opacity=".95"/>
+        <path d="M386 160 Q402 355 375 400 L342 374 L356 205Z" fill="#3c2a31" opacity=".95"/>
+        <circle cx="212" cy="172" r="9" fill="#1e252a"/>
+        <circle cx="288" cy="172" r="9" fill="#1e252a"/>
+        <path d="M218 220 Q250 240 282 220" fill="none" stroke="#6c3830" stroke-width="7" stroke-linecap="round"/>
+        <path d="M150 330 Q250 288 350 330 L385 565 L115 565Z" fill="#a86779"/>
+        <rect x="126" y="238" width="26" height="142" rx="13" fill="#242322"/>
+        <ellipse cx="139" cy="223" rx="47" ry="24" fill="#11100f"/>
+        <rect x="80" y="530" width="340" height="18" rx="9" fill="#c94d1a"/>
+        <text x="250" y="620" text-anchor="middle" font-family="DejaVu Sans"
+              font-size="30" font-weight="800" fill="#2b211c">NIHA</text>
       </g>
 
-      <rect x="245" y="840" width="1430" height="125" rx="35" fill="#101722" stroke="#ffffff" stroke-opacity=".12" stroke-width="3"/>
-      <rect x="390" y="875" width="1140" height="8" rx="4" fill="#ffffff" opacity=".1"/>
-      <circle cx="960" cy="920" r="25" fill="#ffffff" opacity=".12"/>
-      <text x="960" y="925" text-anchor="middle" font-family="DejaVu Sans" font-size="22" fill="#cbd5e1">A calm place to practice real English.</text>
+      <!-- Shared desk and small original icon -->
+      <rect x="330" y="860" width="1260" height="82" rx="30" fill="url(#desk)"/>
+      <rect x="430" y="895" width="1060" height="7" rx="3.5" fill="#c94d1a"/>
+      <g transform="translate(890,365)">
+        <circle cx="70" cy="70" r="54" fill="#c94d1a"/>
+        <path d="M48 58 Q70 34 92 58 L92 79 Q70 101 48 79Z" fill="#fff7e8"/>
+        <path d="M31 75 Q42 103 70 107 Q98 103 109 75" fill="none"
+              stroke="#fff7e8" stroke-width="7" stroke-linecap="round"/>
+      </g>
+
+      <rect x="505" y="980" width="910" height="50" rx="25" fill="#f0d2af"/>
+      <text x="960" y="1012" text-anchor="middle" font-family="DejaVu Sans"
+            font-size="22" font-weight="800" fill="#7b3b1d">
+        LISTEN • REPEAT • USE IT
+      </text>
     </svg>'''
-
 
 def _make_studio_png():
     svgfile = Path(app.WORK) / "studio.svg"
@@ -206,9 +241,13 @@ def _make_clip_segment(input_path, output_path, seconds, start=0):
     ], label=f"Footage segment {output_path.name}")
 
 
-def _make_studio_segment(studio, output_path, seconds, camera="wide"):
-    # Use different crops of the same original studio artwork to simulate a
-    # simple multi-camera edit without expensive animation.
+def _drawtext_escape(value):
+    value = str(value or "")
+    return value.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'").replace(",", "\\,")
+
+
+def _make_studio_segment(studio, output_path, seconds, camera="wide", section="", speaker=""):
+    """Create an illustrated studio shot with simple section and speaker labels."""
     if camera == "himel":
         vf = f"crop=1100:1080:80:0,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
     elif camera == "niha":
@@ -216,12 +255,42 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide"):
     else:
         vf = f"scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
 
+    # Keep labels short and consistent so every scene feels like one learning show.
+    section = str(section or "").strip().upper()[:26]
+    speaker = str(speaker or "").strip().upper()[:12]
+    overlays = [
+        "drawbox=x=0:y=0:w=iw:h=8:color=0xc94d1a@1:t=fill"
+    ]
+
+    if section:
+        section_safe = _drawtext_escape(section)
+        overlays += [
+            "drawbox=x=70:y=54:w=330:h=52:color=0x2b211c@0.90:t=fill",
+            "drawtext="
+            "fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
+            f"text='{section_safe}':"
+            "x=92:y=69:fontsize=22:fontcolor=0xfffff7:"
+            "borderw=0"
+        ]
+
+    if speaker in {"HIMEL", "NIHA"}:
+        speaker_safe = _drawtext_escape(speaker)
+        overlays += [
+            "drawbox=x=70:y=h-128:w=190:h=54:color=0xc94d1a@0.95:t=fill",
+            "drawtext="
+            "fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
+            f"text='{speaker_safe}':"
+            "x=92:y=h-111:fontsize=24:fontcolor=0xfffff7:"
+            "borderw=0"
+        ]
+
+    vf = ",".join([vf] + overlays)
+
     _run([
         "ffmpeg","-y","-loop","1","-i",str(studio),"-t",str(seconds),
         "-vf",vf,"-r",str(FPS),"-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
         "-pix_fmt","yuv420p",str(output_path)
     ], label=f"Studio {camera} shot {output_path.name}")
-
 
 def render_video(wav, clips, srt, title):
     """Render with semantic conversation-aware cuts.
@@ -294,9 +363,9 @@ def render_video(wav, clips, srt, title):
             continue
 
         turn_type = group["turn_type"]
-        # Use topic footage as B-roll when the content is naturally visual.
-        # Keep questions/reactions in the studio so the hosts remain the focus.
-        use_broll = bool(clips) and turn_type in {"story", "language_tip"} and seconds >= 3.5
+        # Keep teaching sections in the illustrated studio; use B-roll only for
+        # personal stories/examples so the show retains a calm learning-podcast identity.
+        use_broll = bool(clips) and turn_type == "story" and seconds >= 4.0
 
         if use_broll:
             clip_path, clip_dur, _, _ = clips[footage_index % len(clips)]
@@ -309,11 +378,36 @@ def render_video(wav, clips, srt, title):
             scenes.append(out)
             if footage_seconds < seconds - 0.05:
                 studio_out = segment_dir / f"scene_{index:03d}_studio.mp4"
-                _make_studio_segment(studio, studio_out, seconds - footage_seconds, camera="wide")
+                _make_studio_segment(
+                studio,
+                studio_out,
+                seconds - footage_seconds,
+                camera="wide",
+                section="STORY",
+                speaker=group["speaker"],
+            )
                 scenes.append(studio_out)
         else:
             out = segment_dir / f"scene_{index:03d}.mp4"
-            _make_studio_segment(studio, out, seconds, camera=camera_for(group))
+            section_label = {
+                "hook": "ENGLISH PODCAST",
+                "question": "CONVERSATION",
+                "follow_up": "CONVERSATION",
+                "story": "STORY",
+                "reaction": "CONVERSATION",
+                "clarification": "CONVERSATION",
+                "language_tip": "PHRASE TOUR",
+                "practice": "SHADOWING PRACTICE",
+                "recap": "RECAP",
+            }.get(turn_type, "CONVERSATION")
+            _make_studio_segment(
+                studio,
+                out,
+                seconds,
+                camera=camera_for(group),
+                section=section_label,
+                speaker=group["speaker"],
+            )
             scenes.append(out)
 
     concat = Path(app.WORK) / "scenes.txt"
@@ -351,11 +445,11 @@ def render_video(wav, clips, srt, title):
 
 
 # VISUAL REFERENCE STYLE
-# Clean English-learning podcast presentation inspired by the category, while keeping
+# Warm English-learning podcast presentation inspired by the genre, while keeping
 # The Two Takes original branding, characters and artwork.
 VISUAL_STYLE = {
-    "thumbnail": "clean educational podcast thumbnail; 2-4 bold words; two-host focus; simple background; high readability; minimal clutter",
-    "video": "calm modern learning-podcast studio; two hosts; readable subtitles; occasional relevant B-roll; restrained transitions",
+    "thumbnail": "warm cream paper background; orange-red lesson headline; illustrated two-host focus; small English Podcast label; clean educational typography; minimal clutter",
+    "video": "warm illustrated learning-podcast studio; two-host wide shot and speaker close-ups; section labels for conversation, phrase tour, shadowing practice and recap; readable subtitles; B-roll only for stories",
     "branding": "THE TWO TAKES original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 
@@ -375,47 +469,84 @@ def _short_thumbnail_title(title, topic):
 
 
 def make_thumbnail(title, topic):
+    """Warm educational thumbnail: large lesson phrase + original illustrated hosts."""
     headline = _short_thumbnail_title(title, topic)
-    lines = textwrap.wrap(headline, width=17)[:3]
+    lines = textwrap.wrap(headline, width=15)[:2]
+
     headline_svg = "".join(
-        f'<text x="70" y="{265+i*82}" font-family="DejaVu Sans" font-size="68" font-weight="900" fill="#ffffff">{html.escape(line)}</text>'
-        for i,line in enumerate(lines)
+        f'<text x="78" y="{300+i*94}" font-family="DejaVu Sans" '
+        f'font-size="78" font-weight="900" fill="#c94d1a">{html.escape(line)}</text>'
+        for i, line in enumerate(lines)
     )
-    svg=f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
       <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset=".58" stop-color="#243b63"/><stop offset="1" stop-color="#111827"/></linearGradient>
-        <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".12"/><stop offset="1" stop-color="#ffffff" stop-opacity=".03"/></linearGradient>
+        <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff7e8"/>
+          <stop offset="1" stop-color="#f1dfc8"/>
+        </linearGradient>
       </defs>
-      <rect width="1280" height="720" fill="url(#bg)"/>
-      <circle cx="1040" cy="130" r="290" fill="#ffffff" opacity=".07"/>
-      <circle cx="1180" cy="650" r="260" fill="#ffffff" opacity=".05"/>
-      <rect x="34" y="34" width="1212" height="652" rx="34" fill="url(#card)" stroke="#ffffff" stroke-opacity=".18" stroke-width="3"/>
-      <rect x="70" y="66" width="270" height="48" rx="24" fill="#ffffff" opacity=".12"/>
-      <text x="205" y="99" text-anchor="middle" font-family="DejaVu Sans" font-size="23" font-weight="800" fill="#fff">THE TWO TAKES</text>
-      <rect x="70" y="175" width="510" height="410" rx="28" fill="#000000" opacity=".16"/>
+
+      <rect width="1280" height="720" fill="url(#paper)"/>
+      <rect width="1280" height="12" fill="#c94d1a"/>
+      <circle cx="1080" cy="120" r="220" fill="#c94d1a" opacity=".07"/>
+
+      <rect x="52" y="45" width="1176" height="630" rx="30"
+            fill="#fffaf1" stroke="#d9b98e" stroke-width="3"/>
+
+      <text x="78" y="100" font-family="DejaVu Sans" font-size="25"
+            font-weight="800" fill="#2b211c">THE TWO TAKES</text>
+      <text x="78" y="132" font-family="DejaVu Sans" font-size="18"
+            font-weight="700" fill="#8d4b2a">ENGLISH PODCAST</text>
+      <rect x="78" y="158" width="430" height="5" rx="2.5" fill="#c94d1a"/>
+
+      <text x="78" y="222" font-family="DejaVu Sans" font-size="24"
+            font-weight="700" fill="#6a584c">Learn English through real conversation</text>
+
       {headline_svg}
-      <rect x="70" y="585" width="360" height="48" rx="24" fill="#ffffff" opacity=".13"/>
-      <text x="250" y="617" text-anchor="middle" font-family="DejaVu Sans" font-size="22" font-weight="800" fill="#fff">LEARN • SPEAK • PRACTICE</text>
-      <g transform="translate(760,155)">
-        <ellipse cx="210" cy="450" rx="280" ry="42" fill="#000" opacity=".25"/>
-        <circle cx="125" cy="125" r="110" fill="#c98f6b"/><path d="M20 130 Q28 15 125 15 Q222 15 230 130 Q190 72 125 75 Q60 72 20 130Z" fill="#20242b"/>
-        <circle cx="92" cy="135" r="9"/><circle cx="158" cy="135" r="9"/><path d="M95 180 Q125 198 155 180" fill="none" stroke="#60332e" stroke-width="8"/>
-        <path d="M55 265 Q125 225 195 265 L225 430 L25 430Z" fill="#314b70"/>
-        <rect x="220" y="170" width="24" height="155" rx="12" fill="#171d26"/><ellipse cx="232" cy="155" rx="48" ry="24" fill="#10151d"/>
-        <circle cx="370" cy="165" r="100" fill="#c99070"/><path d="M275 165 Q270 55 370 55 Q470 55 465 165 Q430 105 370 108 Q310 105 275 165Z" fill="#3a2830"/>
-        <circle cx="342" cy="175" r="8"/><circle cx="398" cy="175" r="8"/><path d="M344 215 Q370 230 396 215" fill="none" stroke="#60332e" stroke-width="7"/>
-        <path d="M305 300 Q370 265 435 300 L460 430 L280 430Z" fill="#865f70"/>
-        <rect x="255" y="190" width="22" height="145" rx="11" fill="#171d26"/><ellipse cx="266" cy="175" rx="44" ry="22" fill="#10151d"/>
-        <rect x="95" y="445" width="390" height="48" rx="20" fill="#0b1220" stroke="#ffffff" stroke-opacity=".15"/>
-        <text x="290" y="477" text-anchor="middle" font-family="DejaVu Sans" font-size="22" font-weight="800" fill="#fff">HIMEL × NIHA</text>
+
+      <text x="78" y="565" font-family="DejaVu Sans" font-size="21"
+            font-weight="700" fill="#4d4139">LISTEN • REPEAT • SPEAK</text>
+
+      <g transform="translate(748,118)">
+        <ellipse cx="250" cy="505" rx="280" ry="34" fill="#1d1613" opacity=".14"/>
+
+        <!-- Himel -->
+        <circle cx="145" cy="170" r="100" fill="#c99170"/>
+        <path d="M50 165 Q55 65 145 65 Q235 65 240 165 Q203 112 145 116 Q87 112 50 165Z" fill="#22252b"/>
+        <circle cx="118" cy="177" r="8" fill="#1e252a"/>
+        <circle cx="172" cy="177" r="8" fill="#1e252a"/>
+        <path d="M120 217 Q145 232 170 217" fill="none" stroke="#6c3830" stroke-width="6" stroke-linecap="round"/>
+        <path d="M80 300 Q145 266 210 300 L233 448 L57 448Z" fill="#385a7f"/>
+        <rect x="214" y="203" width="20" height="115" rx="10" fill="#242322"/>
+        <ellipse cx="224" cy="190" rx="38" ry="19" fill="#11100f"/>
+
+        <!-- Niha -->
+        <circle cx="352" cy="173" r="96" fill="#cc9574"/>
+        <path d="M260 170 Q257 75 352 75 Q447 75 444 171 Q407 116 352 119 Q297 116 260 170Z" fill="#3c2a31"/>
+        <path d="M255 165 Q240 315 270 345 L294 323 L281 193Z" fill="#3c2a31"/>
+        <path d="M449 165 Q464 315 434 345 L410 323 L423 193Z" fill="#3c2a31"/>
+        <circle cx="327" cy="180" r="7" fill="#1e252a"/>
+        <circle cx="377" cy="180" r="7" fill="#1e252a"/>
+        <path d="M330 216 Q352 229 374 216" fill="none" stroke="#6c3830" stroke-width="5" stroke-linecap="round"/>
+        <path d="M292 296 Q352 265 412 296 L436 448 L268 448Z" fill="#a86779"/>
+        <rect x="262" y="210" width="20" height="110" rx="10" fill="#242322"/>
+        <ellipse cx="272" cy="195" rx="37" ry="19" fill="#11100f"/>
+
+        <rect x="95" y="470" width="390" height="46" rx="20" fill="#2b211c"/>
+        <text x="290" y="500" text-anchor="middle" font-family="DejaVu Sans"
+              font-size="21" font-weight="800" fill="#fff7e8">HIMEL × NIHA</text>
+
+        <circle cx="290" cy="55" r="27" fill="#c94d1a"/>
+        <path d="M276 48 Q290 34 304 48 L304 59 Q290 73 276 59Z" fill="#fff7e8"/>
       </g>
     </svg>'''
-    svgfile=Path(app.WORK)/"thumbnail.svg"
-    svgfile.write_text(svg,encoding="utf-8")
-    jpg=Path(app.WORK)/"thumbnail.jpg"
-    _run(["convert","-background","none",str(svgfile),"-quality","96",str(jpg)],label="Professional thumbnail")
-    return jpg
 
+    svgfile = Path(app.WORK) / "thumbnail.svg"
+    svgfile.write_text(svg, encoding="utf-8")
+    jpg = Path(app.WORK) / "thumbnail.jpg"
+    _run(["convert", "-background", "none", str(svgfile), "-quality", "96", str(jpg)], label="Warm educational thumbnail")
+    return jpg
 
 def quality_check(video):
     probe = subprocess.run([

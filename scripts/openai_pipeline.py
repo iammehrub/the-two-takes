@@ -304,22 +304,24 @@ def make_episode(news):
     prompt = f"""
 You are the lead writer for THE TWO TAKES, an original English-learning YouTube conversation show.
 
-REFERENCE STYLE: SPEAK ENGLISH WITH CLASS — ADAPT, DO NOT COPY
-- Match the overall learning experience: calm podcast conversation, friendly teacher-like delivery, practical everyday English, clear B1-B2 language, and a clean educational presentation.
-- Do NOT copy their scripts, exact phrases, episode titles, thumbnails, artwork, characters, branding, or distinctive wording.
-- INTRO: start with a natural 5-15 second hook about the learner's problem. Then a short friendly greeting and tell the viewer what they will learn. Never spend the opening on a long branded intro.
-- VOICE/DIALOGUE: sound like two real people teaching through conversation, not two actors reading an essay. Use warm, relaxed, clear delivery. Himel is calm/curious; Niha is warm/thoughtful. Alternate naturally, with short turns and real reactions.
-- ENGLISH LEVEL: mainly B1-B2. Prefer common words and explain harder phrases in simple English. Avoid academic wording unless it is the teaching point.
-- TOPIC SELECTION: choose practical, relatable speaking situations and questions learners actually face: confidence, habits, work/study, travel, friendships, daily problems, opinions, small talk, stories, and useful conversation situations. Give each episode one clear learning outcome.
-- LESSON FEEL: the conversation should teach naturally. Highlight useful phrases after they appear, then give examples and a short speaking/shadowing practice section.
-- PACING: calm but never flat. Use examples, reactions, mini-stories, questions and small changes of angle every 45-90 seconds.
-- ENDING: brief recap of useful phrases/ideas, then a natural invitation to practice and return. Avoid repetitive YouTube filler.
+REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — ADAPT THE FORMAT, KEEP EVERYTHING ORIGINAL
+- Recreate the same broad viewer experience: a calm, friendly English-learning podcast built around natural conversation, relatable life topics, vocabulary teaching, and speaking practice.
+- Do NOT copy their scripts, exact wording, recurring catchphrases, episode titles, thumbnail artwork, logos, characters, or distinctive branding. The Two Takes must remain original.
+- OPENING: start immediately with a relatable learner problem or life situation in the first few seconds. Follow with a brief welcome and a clear promise of what the viewer will be able to say or understand by the end.
+- MAIN CONVERSATION: Himel and Niha should feel like real friends/teachers talking about one continuous topic. Use personal examples, questions, follow-up questions, light disagreement, clarification, and natural reactions. Do not read a lecture.
+- LESSON ARCHITECTURE: build the episode as a smooth sequence: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Short Speaking/Shadowing Practice -> Recap. The teaching sections should grow out of phrases and ideas that appeared naturally in the conversation.
+- PHRASE TOUR: after the main discussion, teach 6 useful everyday phrases/words. For each one, give a very short meaning explanation and a natural example sentence. Keep it conversational instead of sounding like a textbook.
+- SPEAKING PRACTICE: finish with 5 practical sentence patterns. Have the hosts model each pattern once, then invite the viewer to repeat or adapt it. Keep the language simple enough for an A2-B1/B1-B2 learner.
+- PACING: calm, warm, and slightly slower than normal native conversation. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
+- OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
+- VISUAL-FRIENDLINESS: every major section should have a clear visual identity so the editor can show a wide two-host shot, a speaker close-up, a phrase card, or a shadowing-practice moment.
+- Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for The Two Takes.
 
 PRIMARY GOAL:
 Create a video concept that a new viewer can understand instantly and has a clear reason to click and keep watching.
 
 Audience:
-A2-B1/B1 English learners worldwide, especially people who want to speak more naturally in real life.
+A2-B1 and B1-B2 English learners worldwide, especially people who want to speak more naturally in everyday life.
 
 Hosts:
 Himel — calm, curious, friendly, quick-witted.
@@ -352,17 +354,17 @@ TITLE/PACKAGING RULES:
 - Thumbnail text must be truthful to the actual episode.
 
 CONTENT / RETENTION RULES:
-- Write an original 1,500–1,750 word two-host conversation.
-- The first 15 seconds must state a relatable problem/question and promise a concrete payoff.
-- Avoid a generic branded intro before the hook.
-- Get to the useful conversation immediately.
-- Make Himel and Niha react to each other frequently.
-- Most turns should be 1–3 sentences.
-- Add natural follow-up questions, examples, disagreement, clarification, and small moments of humor.
+- Write an original 1,800–2,200 word two-host conversation.
+- Start with a strong learner problem/question and concrete payoff in the first 15 seconds.
+- Use this flow: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Speaking/Shadowing Practice -> Recap.
+- The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
+- Phrase Tour: include 6 useful everyday phrases/words that were either used earlier or clearly fit the topic; give a simple meaning and one natural example for each.
+- Speaking/Shadowing Practice: include 5 short sentence patterns. Model each one naturally and invite the learner to repeat or personalize it.
+- Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences.
+- Add natural follow-up questions, examples, disagreement, clarification, personal mini-stories, and small moments of humor.
 - Every 45–90 seconds, introduce a fresh example, question, mini-challenge, or change of angle so the conversation does not flatten.
-- Include a practical "Speaking Practice" section with 5 repeatable sentence patterns.
-- Include a short "Word Tour" with 6 useful words or phrases and simple examples.
-- End with a concise recap and a reason to return.
+- Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip for the phrase tour, practice for shadowing, and recap for the ending.
+- End with a concise recap and a natural reason to practice again.
 - Do not pad the episode just to reach a length target.
 - Avoid repetitive openings, repetitive outro lines, or the same conversation pattern as recent episodes.
 - No copied scripts, quotes, statistics, or invented research.

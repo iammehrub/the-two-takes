@@ -1051,11 +1051,11 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 
     description_parts = [
         hook.strip(),
-        "Practice real-world English with Himel and Niha "
-        "through a natural conversation.",
+        "Practice English with Himel and Niha through a calm, natural conversation "
+        "designed for listening, speaking, and everyday communication.",
         f"Topic: {topic.strip()}",
-        "Useful for English listening, speaking practice, "
-        "everyday English, and natural conversation.",
+        "The episode moves from real conversation to useful phrases, "
+        "then short speaking and shadowing practice.",
     ]
     if search_phrases:
         description_parts.append(
@@ -1073,10 +1073,14 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
     tags = [
         "The Two Takes",
         "English learning",
+        "English podcast",
         "English speaking",
         "English conversation",
+        "English conversation practice",
         "spoken English",
         "English listening",
+        "shadowing practice",
+        "daily English",
     ] + search_phrases[:6]
 
     # Keep tags unique and bounded.

@@ -30,8 +30,17 @@
     "video_id": "Nvku0ndXa0k",
     "title": "How to End a Conversation Naturally in English",
     "topic": "How to end conversations naturally and politely in English",
+    "link": "https://youtu.be/Nvku0ndXa0k",
     "kind": "Podcast",
     "published": "2026-09-20T20:53:28.273335+00:00",
-    "script_sha256": "531ca7cb74694c30df854c38ba62d9c60300d974c1af8ae8c4375bf42a2c1e62"
+    "notified_at": "2026-09-20T20:53:29.504411+00:00"
+  },
+  {
+    "video_id": "9u1M8p6z_iY",
+    "title": "How to Ask Better Questions in English",
+    "topic": "How to ask better, more natural questions in everyday English",
+    "kind": "Podcast",
+    "published": "2026-09-21T02:30:03.031573+00:00",
+    "script_sha256": "90b54a7ee3cfda78aa894b09cb005e8822504ce8b002e7164e6a5f819fffb02a"
   }
 ]

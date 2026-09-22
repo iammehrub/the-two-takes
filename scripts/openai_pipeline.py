@@ -341,13 +341,14 @@ Use the channel audience profile as a signal, not a rule. Prioritize topics that
 
 TITLE/PACKAGING RULES:
 - Produce 3 distinct title options.
-- Put the main searchable phrase or problem near the beginning.
-- Keep each title concise, preferably under 65 characters.
+- Use a recognizable English-learning podcast title pattern, such as "[topic] | English Conversation Practice" or "English Podcast: [topic]".
+- Put the main searchable phrase or learner problem near the beginning.
+- Keep titles clear and reasonably concise; do not force awkwardly short titles.
 - Do not start the title with "The Two Takes".
 - Do not use episode numbers.
 - Make the title accurate, specific, and useful; no misleading clickbait.
 - One title should be clearly searchable.
-- One title should be curiosity-driven but still accurate.
+- One title should feel like a natural podcast episode title.
 - One title should combine search clarity with curiosity.
 - Choose the strongest primary title as "title".
 - Produce "thumbnail_text" with only 2–4 short words, different wording from the full title when possible.

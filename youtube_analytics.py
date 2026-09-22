@@ -198,6 +198,65 @@ def query_audience_insights(oauth_token: str) -> dict:
     # Save a compact, generator-friendly audience profile.
     return result
 
+
+def query_channel_deep_analytics(oauth_token: str) -> dict:
+    """Return deeper channel performance from the latest processed Analytics window."""
+    from datetime import timedelta
+
+    end = (datetime.now(timezone.utc) - timedelta(days=3)).date()
+    start = end - timedelta(days=27)
+    start_s, end_s = start.isoformat(), end.isoformat()
+
+    # These are core Analytics metrics documented by Google. The fallback keeps
+    # the workflow working if a newer/optional metric is unavailable.
+    primary_metrics = (
+        "views,estimatedMinutesWatched,averageViewDuration,"
+        "averageViewPercentage,likes,comments,subscribersGained"
+    )
+    report = analytics_get(oauth_token, {
+        "ids": "channel==MINE",
+        "startDate": start_s,
+        "endDate": end_s,
+        "metrics": primary_metrics,
+    })
+
+    headers = [x.get("name") for x in report.get("columnHeaders", [])]
+    values = report.get("rows", [])
+    row = values[0] if values else []
+
+    data = {name: row[i] for i, name in enumerate(headers) if i < len(row)}
+    result = {
+        "window": f"{start_s} to {end_s}",
+        "views": int(float(data.get("views", 0) or 0)),
+        "estimated_minutes_watched": round(float(data.get("estimatedMinutesWatched", 0) or 0), 1),
+        "average_view_duration_seconds": round(float(data.get("averageViewDuration", 0) or 0), 1),
+        "average_view_percentage": round(float(data.get("averageViewPercentage", 0) or 0), 2),
+        "likes": int(float(data.get("likes", 0) or 0)),
+        "comments": int(float(data.get("comments", 0) or 0)),
+        "subscribers_gained": int(float(data.get("subscribersGained", 0) or 0)),
+    }
+
+    # Impressions/CTR availability varies by report eligibility, so treat them
+    # as optional rather than making the whole analytics workflow fail.
+    try:
+        optional = analytics_get(oauth_token, {
+            "ids": "channel==MINE",
+            "startDate": start_s,
+            "endDate": end_s,
+            "metrics": "views,impressions,impressionsCtr",
+        })
+        oh = [x.get("name") for x in optional.get("columnHeaders", [])]
+        ov = optional.get("rows", [])
+        if ov:
+            od = {name: ov[0][i] for i, name in enumerate(oh) if i < len(ov[0])}
+            result["impressions"] = int(float(od.get("impressions", 0) or 0))
+            result["impressions_ctr"] = round(float(od.get("impressionsCtr", 0) or 0), 2)
+    except Exception as exc:
+        print(f"Impressions/CTR report unavailable: {exc}")
+
+    return result
+
+
 def parse_dt(value: str):
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -248,21 +307,28 @@ def main() -> None:
         print("No YouTube uploads are ready for 12-hour analytics.")
         return
 
-    for published, video, age_hours in sorted(ready, key=lambda x: x[0]):
+    audience = None
+    audience_error = ""
+    try:
+        audience = query_audience_insights(oauth_token)
+        save(ROOT / "data" / "youtube_audience_insights.json", audience)
+        notify_youtube_audience(audience, now.isoformat())
+    except Exception as exc:
+        audience_error = str(exc)
+        print(f"Audience intelligence unavailable: {exc}")
+
+    try:
+        deep = query_channel_deep_analytics(oauth_token)
+        save(ROOT / "data" / "youtube_deep_analytics.json", deep)
+        print("Deep channel analytics saved.")
+    except Exception as exc:
+        print(f"Deep channel analytics unavailable: {exc}")
+
+    for published    for published, video, age_hours in sorted(ready, key=lambda x: x[0]):
         video_id = video["video_id"]
 
         try:
             metrics = fetch_video(video_id, oauth_token)
-
-            audience = None
-            audience_error = ""
-            try:
-                audience = query_audience_insights(oauth_token)
-                save(ROOT / "data" / "youtube_audience_insights.json", audience)
-                notify_youtube_audience(audience, now.isoformat())
-            except Exception as exc:
-                audience_error = str(exc)
-                print(f"Audience intelligence unavailable: {exc}")
 
             analysis = {
                 "analyzed_at": now.isoformat(),
@@ -287,8 +353,7 @@ def main() -> None:
                 f"{analysis['views']} views, {analysis['likes']} likes, and "
                 f"{analysis['comments']} comments. "
                 f"Like rate: {analysis['like_rate']:.2f}%. "
-                "This is a YouTube API snapshot; it does not include "
-                "watch time or retention."
+                "This is the early YouTube Data API snapshot."
             )
 
             if notify_youtube_analytics(analysis):

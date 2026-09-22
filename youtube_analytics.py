@@ -324,7 +324,7 @@ def main() -> None:
     except Exception as exc:
         print(f"Deep channel analytics unavailable: {exc}")
 
-    for published    for published, video, age_hours in sorted(ready, key=lambda x: x[0]):
+    for published, video, age_hours in sorted(ready, key=lambda x: x[0]):
         video_id = video["video_id"]
 
         try:

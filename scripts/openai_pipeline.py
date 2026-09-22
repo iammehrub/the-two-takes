@@ -355,7 +355,7 @@ TITLE/PACKAGING RULES:
 - Thumbnail text must be truthful to the actual episode.
 
 CONTENT / RETENTION RULES:
-- Write an original 1,800–2,200 word two-host conversation.
+- Write an original 1,500–1,750 word two-host conversation.
 - Start with a strong learner problem/question and concrete payoff in the first 15 seconds.
 - Use this flow: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Speaking/Shadowing Practice -> Recap.
 - The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
@@ -420,7 +420,7 @@ Do not use these rejected candidates:
         script = extract_dialogue(raw)
         word_count = len(script.split())
 
-        if not script or word_count < 1300:
+        if not script or word_count < 1250:
             last_problem = f"dialogue too short ({word_count} words)"
             print(last_problem)
             continue
@@ -452,8 +452,8 @@ Do not use these rejected candidates:
                         "turn_type": turn_type,
                     })
 
-        if len(beats) < 24:
-            last_problem = f"too few dialogue turns ({len(beats)})"
+        if len(beats) < 24 or len(beats) > 60:
+            last_problem = f"dialogue turn count outside 24–60 ({len(beats)})"
             print(last_problem)
             continue
 

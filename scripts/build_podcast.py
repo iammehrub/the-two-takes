@@ -73,7 +73,10 @@ def gemini_generate(prompt, temperature=0.9):
         ],
         "generationConfig": {
             "temperature": temperature,
-            "maxOutputTokens": 5000
+            "maxOutputTokens": 7000,
+            "thinkingConfig": {
+                "thinkingBudget": 0
+            }
         }
     }
 

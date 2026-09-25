@@ -18,13 +18,10 @@ KOKORO_HIMEL_VOICE = "am_michael"
 KOKORO_NIHA_VOICE = "af_heart"
 KOKORO_SAMPLE_RATE = 24000
 
-if not OPENAI_API_KEY:
-    raise RuntimeError("Missing OPENAI_API_KEY GitHub secret")
-
 HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
     "Content-Type": "application/json",
-}
+} if OPENAI_API_KEY else {}
 
 print("=== INITIALIZING KOKORO TTS ===")
 KOKORO_PIPELINE = KPipeline(lang_code="a")
@@ -34,23 +31,68 @@ print(f"Niha voice: {KOKORO_NIHA_VOICE}")
 
 
 def openai_generate(prompt):
-    payload = {"model": OPENAI_TEXT_MODEL, "input": prompt, "max_output_tokens": 9000}
+    """Generate text with OpenAI when available, otherwise use the existing Gemini key.
+    If the OpenAI account has exhausted its credits, fail over immediately to Gemini.
+    """
+    if not OPENAI_API_KEY:
+        print("OPENAI_API_KEY is not configured; using Gemini text generation.")
+        return app.gemini_generate(prompt, temperature=0.8)
+
+    payload = {
+        "model": OPENAI_TEXT_MODEL,
+        "input": prompt,
+        "max_output_tokens": 9000,
+    }
     last_error = None
+
     for attempt in range(1, 4):
         print(f"OpenAI {OPENAI_TEXT_MODEL} attempt {attempt}/3...")
         try:
-            r = requests.post(OPENAI_RESPONSES_URL, headers=HEADERS, json=payload, timeout=(30, 240))
+            r = requests.post(
+                OPENAI_RESPONSES_URL,
+                headers=HEADERS,
+                json=payload,
+                timeout=(30, 240),
+            )
         except requests.RequestException as exc:
             last_error = str(exc)
             if attempt < 3:
                 continue
-            raise RuntimeError(f"OpenAI network request failed: {exc}") from exc
+            print("OpenAI network failed; falling back to Gemini.")
+            return app.gemini_generate(prompt, temperature=0.8)
+
         if r.status_code >= 400:
-            last_error = f"HTTP {r.status_code}: {r.text[:1200]}"
+            body = r.text[:1500]
+            last_error = f"HTTP {r.status_code}: {body}"
+
+            # A depleted OpenAI balance is a provider/account problem, not a
+            # content problem. Do not waste three retries; use the Gemini key
+            # already required by the production pipeline.
+            if r.status_code == 429 and any(
+                marker in body.lower()
+                for marker in (
+                    "insufficient_quota",
+                    "credit_balance_exhausted",
+                    "no credits remaining",
+                )
+            ):
+                print("OpenAI credits exhausted; falling back to Gemini.")
+                return app.gemini_generate(prompt, temperature=0.8)
+
+            if r.status_code in {401, 403, 404}:
+                print(
+                    f"OpenAI unavailable (HTTP {r.status_code}); "
+                    "falling back to Gemini."
+                )
+                return app.gemini_generate(prompt, temperature=0.8)
+
             if r.status_code in {429, 500, 502, 503, 504} and attempt < 3:
                 print("Temporary OpenAI error; retrying...")
                 continue
-            raise RuntimeError(f"OpenAI script generation failed: {last_error}")
+
+            print("OpenAI generation failed; falling back to Gemini.")
+            return app.gemini_generate(prompt, temperature=0.8)
+
         data = r.json()
         text = data.get("output_text", "")
         if not text:
@@ -60,11 +102,14 @@ def openai_generate(prompt):
                     if content.get("type") == "output_text" and content.get("text"):
                         chunks.append(content["text"])
             text = "\n".join(chunks)
+
         if text.strip():
             return text.strip()
-        last_error = "OpenAI returned an empty script response"
-    raise RuntimeError(f"OpenAI script generation failed: {last_error}")
 
+        last_error = "OpenAI returned an empty script response"
+
+    print(f"OpenAI generation failed: {last_error}; falling back to Gemini.")
+    return app.gemini_generate(prompt, temperature=0.8)
 
 def parse_json(text):
     text = text.strip()

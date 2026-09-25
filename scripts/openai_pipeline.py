@@ -394,25 +394,43 @@ RETURN ONLY VALID JSON:
 }}
 """
 
-    from content_guard import is_duplicate
+    from content_guard import is_duplicate, normalize_text
+
+    # Build a deterministic pool of unused topics so the model cannot get
+    # stuck regenerating the same rejected subject four times.
+    recent_normalized = normalize_text(recent_context)
+    fresh_topics = [
+        topic for topic in topic_bank
+        if normalize_text(topic) not in recent_normalized
+    ]
+    if not fresh_topics:
+        fresh_topics = list(topic_bank)
 
     last_problem = None
 
     for generation_attempt in range(1, 5):
+        forced_topic = fresh_topics[(generation_attempt - 1) % len(fresh_topics)]
         print(
             f"Generating fresh episode {generation_attempt}/4 "
             f"with duplicate protection..."
         )
 
-        attempt_prompt = prompt
+        attempt_prompt = prompt + f"""
+
+MANDATORY TOPIC FOR THIS ATTEMPT:
+{forced_topic}
+
+You must build the entire episode around this topic.
+Set the JSON "topic" to this topic or a very close natural wording.
+Do not switch to another topic.
+"""
         if generation_attempt > 1:
             attempt_prompt += f"""
 
 REGENERATION REQUIREMENT:
-The previous draft was rejected because it was too similar to an existing topic/title.
-Pick a clearly different topic and angle.
-Do not use these rejected candidates:
-{recent_context}
+The previous draft failed validation. Keep the mandatory topic above,
+but make the dialogue structurally different and fully valid.
+Do not reuse any previously published topic/title.
 """
 
         raw = openai_generate(attempt_prompt)
@@ -487,7 +505,21 @@ Do not use these rejected candidates:
                     str(obj.get("title", "")).strip()
                     or "Speak English More Naturally"
                 )
-                topic = str(obj.get("topic", "")).strip() or title
+                topic = str(obj.get("topic", "")).strip() or forced_topic
+
+                # If the model ignored the mandatory topic, reject this draft
+                # before the duplicate guard and move to the next deterministic topic.
+                forced_tokens = set(normalize_text(forced_topic).split())
+                generated_tokens = set(normalize_text(topic).split())
+                if (
+                    forced_tokens
+                    and generated_tokens
+                    and len(forced_tokens & generated_tokens) / len(forced_tokens) < 0.50
+                ):
+                    last_problem = f"model ignored mandatory topic: {topic}"
+                    print(last_problem)
+                    continue
+
                 duplicate, reason = is_duplicate(
                     app.ROOT, title, topic, script
                 )

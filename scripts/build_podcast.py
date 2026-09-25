@@ -1017,8 +1017,11 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         token_uri="https://oauth2.googleapis.com/token",
         client_id=YT_CLIENT_ID,
         client_secret=YT_CLIENT_SECRET,
+        # Request only the upload scope here. A refresh token authorized
+        # with narrower scopes can return invalid_scope for the broader
+        # youtube scope.
         scopes=[
-            "https://www.googleapis.com/auth/youtube"
+            "https://www.googleapis.com/auth/youtube.upload"
         ]
     )
 

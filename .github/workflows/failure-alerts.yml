@@ -6,6 +6,8 @@ on:
       - "Two Takes — Daily Episode"
       - "YouTube 12-Hour Analytics"
       - "Bangladesh Top 5 Discord News"
+      - "Two Takes — Automation Health"
+      - "Two Takes — Opportunity Watcher"
     types:
       - completed
 

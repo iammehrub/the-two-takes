@@ -44,6 +44,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile
 
+      - name: Verify YouTube upload OAuth
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          python scripts/youtube_upload_preflight.py
+
       - name: Build and publish episode
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

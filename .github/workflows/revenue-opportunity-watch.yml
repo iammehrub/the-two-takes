@@ -1,0 +1,48 @@
+name: Two Takes — Opportunity Watcher
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *'
+      timezone: "Asia/Dhaka"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: two-takes-opportunity-watcher
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run opportunity watcher
+        env:
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+        run: python -u scripts/revenue_opportunity_watch.py
+
+      - name: Persist opportunity queue
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/opportunity_queue.json
+          if git diff --cached --quiet; then
+            echo "No opportunity state changes."
+            exit 0
+          fi
+          git commit -m "Update automated opportunity queue"
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main || {
+              git rebase --abort || true
+              git pull --rebase origin main
+            }
+          done
+          exit 1

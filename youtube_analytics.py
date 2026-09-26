@@ -73,7 +73,19 @@ def fetch_video(video_id: str, oauth_token: str) -> dict:
     )
 
     if not response.ok:
-        body = response.text[:700]
+        body = response.text[:900]
+        if response.status_code in (401, 403) and (
+            "insufficientAuthenticationScopes" in body
+            or "Insufficient Permission" in body
+            or "insufficient permissions" in body.lower()
+        ):
+            raise RuntimeError(
+                "YouTube OAuth token lacks the scopes required by the analytics/data "
+                "queries. Re-authorize the refresh token with "
+                "https://www.googleapis.com/auth/youtube.readonly and "
+                "https://www.googleapis.com/auth/yt-analytics.readonly, then replace "
+                "YOUTUBE_REFRESH_TOKEN in GitHub Secrets."
+            )
         raise RuntimeError(
             f"YouTube Data API failed for {video_id}: "
             f"HTTP {response.status_code}: {body}"
@@ -108,9 +120,20 @@ def analytics_get(oauth_token: str, params: dict) -> dict:
         timeout=(10, 30),
     )
     if not response.ok:
+        body = response.text[:1100]
+        if response.status_code in (401, 403) and (
+            "insufficientAuthenticationScopes" in body
+            or "Insufficient Permission" in body
+            or "insufficient permissions" in body.lower()
+        ):
+            raise RuntimeError(
+                "YouTube Analytics OAuth scope error. Re-authorize the refresh token "
+                "with https://www.googleapis.com/auth/youtube.readonly and "
+                "https://www.googleapis.com/auth/yt-analytics.readonly, then replace "
+                "YOUTUBE_REFRESH_TOKEN in GitHub Secrets."
+            )
         raise RuntimeError(
-            f"YouTube Analytics API failed: HTTP {response.status_code}: "
-            f"{response.text[:900]}"
+            f"YouTube Analytics API failed: HTTP {response.status_code}: {body}"
         )
     return response.json()
 

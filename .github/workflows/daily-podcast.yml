@@ -1,4 +1,4 @@
-name: The Two Takes — Daily Episode
+name: Two Takes — Daily Episode
 
 on:
   workflow_dispatch:
@@ -6,10 +6,11 @@ on:
       trigger_source:
         description: Optional trigger label
         required: false
-        default: Activepieces
+        default: Manual
         type: string
   schedule:
     - cron: '0 2 * * *'
+      timezone: "Asia/Dhaka"
 
 permissions:
   contents: write
@@ -25,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install system packages
         run: |
@@ -36,6 +37,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+          cache: pip
 
       - name: Install Python packages
         run: |
@@ -51,20 +53,14 @@ jobs:
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
-          echo "=== PODCAST DEBUG START ==="
-          pwd
-          echo "=== SCRIPTS DIRECTORY ==="
-          ls -la scripts
-          echo "=== PYTHON VERSION ==="
+          set -euo pipefail
+          echo "=== PODCAST PREFLIGHT ==="
           python --version
-          echo "=== KOKORO CHECK ==="
+          ls -la scripts
           python -c "from kokoro import KPipeline; print('Kokoro import OK')"
-          echo "=== RUNNING PIPELINE PREFLIGHT ==="
           python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py
           echo "=== PIPELINE PREFLIGHT PASSED ==="
-          echo "=== RUNNING OPENAI + KOKORO PODCAST RUNNER ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
-          echo "=== PODCAST BUILDER FINISHED ==="
 
       - name: Notify Discord and record upload
         env:
@@ -75,55 +71,68 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
+          from datetime import datetime, timezone
           from discord_notify import notify_youtube
 
           info_path = Path("work/youtube_upload.json")
           if not info_path.exists():
               raise RuntimeError("Podcast upload metadata file was not created.")
-          info = json.loads(info_path.read_text(encoding="utf-8"))
 
+          info = json.loads(info_path.read_text(encoding="utf-8"))
           notified = notify_youtube(info, "Podcast", "DISCORD_YOUTUBE_PODCAST_WEBHOOK")
           print("Podcast Discord notification:", "sent" if notified else "not sent; continuing")
 
-          vid = str(info.get("video_id", "")).strip()
-          if not vid:
+          video_id = str(info.get("video_id", "")).strip()
+          if not video_id:
               raise RuntimeError("Podcast upload metadata has no video_id.")
 
-          from datetime import datetime, timezone
           record = {**info, "notified_at": datetime.now(timezone.utc).isoformat()}
           upload_dir = Path("data/youtube_uploads")
           upload_dir.mkdir(parents=True, exist_ok=True)
-          record_path = upload_dir / f"{vid}.json"
-          record_path.write_text(
+          (upload_dir / f"{video_id}.json").write_text(
               json.dumps(record, ensure_ascii=False, indent=2) + "\n",
               encoding="utf-8",
           )
-
-          print(f"Discord notified and upload recorded: {vid}")
+          print(f"Upload recorded: {video_id}")
+          PY
 
       - name: Persist upload record
+        if: success()
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add data/content_history.json data/youtube_uploads/*.json
+
+          if git diff --cached --quiet; then
+            echo "No repository state changes to commit."
+            exit 0
+          fi
+
           git commit -m "Record podcast upload and content history"
+
           for attempt in 1 2 3; do
             if git push; then
               exit 0
             fi
-            echo "Push attempt $attempt failed; rebasing onto latest main..."
+
+            echo "Push attempt $attempt failed; syncing with origin/main..."
             git fetch origin main
-            git rebase origin/main
+            git rebase origin/main || {
+              git rebase --abort || true
+              git pull --rebase origin main
+            }
           done
+
           echo "Could not persist podcast upload record after 3 attempts."
           exit 1
-
 
       - name: Save growth assets
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: the-two-takes-growth-pack
+          name: two-takes-growth-pack
           path: |
             work/growth_pack.json
             work/growth_pack.txt
@@ -134,4 +143,3 @@ jobs:
             work/thumbnail_text.txt
           if-no-files-found: ignore
           retention-days: 14
-

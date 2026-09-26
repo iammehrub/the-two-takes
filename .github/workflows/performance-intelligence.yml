@@ -1,0 +1,50 @@
+name: Two Takes — Performance Intelligence
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 3 * * 1'
+      timezone: "Asia/Dhaka"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: two-takes-performance-intelligence
+  cancel-in-progress: true
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build performance snapshot
+        run: python scripts/performance_intelligence.py
+
+      - name: Persist snapshot
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/performance_intelligence.json
+          if git diff --cached --quiet; then
+            echo "No performance changes."
+            exit 0
+          fi
+          git commit -m "Update performance intelligence"
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main || {
+              git rebase --abort || true
+              git pull --rebase origin main
+            }
+          done
+          exit 1

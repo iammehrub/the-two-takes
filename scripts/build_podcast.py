@@ -1017,10 +1017,11 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         token_uri="https://oauth2.googleapis.com/token",
         client_id=YT_CLIENT_ID,
         client_secret=YT_CLIENT_SECRET,
-        # Do not request a scope during refresh. Google refresh tokens are
-        # already bound to the scopes granted when the token was authorized;
-        # sending a scope here can trigger invalid_scope on refresh.
-        # The refresh token itself determines the usable YouTube permissions.
+        # Upload requires the YouTube upload scope. Keep this explicit so a
+        # read-only refresh token fails early instead of reaching the upload call.
+        scopes=[
+            "https://www.googleapis.com/auth/youtube.upload"
+        ]
     )
 
     creds.refresh(Request())

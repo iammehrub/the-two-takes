@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-09-27T21:32:23.000328+00:00",
+  "sample_size": 3,
+  "total_recorded_views": 8,
+  "average_views": 2.7,
+  "median_views": 3.0,
+  "average_likes": 1.3,
+  "average_comments": 0.0,
+  "top_videos_by_views": [
+    {
+      "video_id": "Ngy0ny56H0A",
+      "title": "How to Talk About Money and Saving in Everyday English",
+      "views": 4,
+      "likes": 2,
+      "comments": 0
+    },
+    {
+      "video_id": "CfGF3NiriWE",
+      "title": "How to Talk About Money and Saving in Everyday English",
+      "views": 3,
+      "likes": 2,
+      "comments": 0
+    },
+    {
+      "video_id": "vWy2i5lNZ1k",
+      "title": "Why Do We Procrastinate?",
+      "views": 1,
+      "likes": 0,
+      "comments": 0
+    }
+  ],
+  "note": "Descriptive performance history only. Small samples can be noisy; this snapshot is intended to guide future experiments, not guarantee results."
+}

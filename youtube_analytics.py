@@ -31,7 +31,9 @@ def save(path: Path, value) -> None:
 def refresh_access_token() -> str:
     client_id = os.environ.get("YOUTUBE_CLIENT_ID", "").strip()
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "").strip()
-    refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "").strip()
+    refresh_token = os.environ.get("YOUTUBE_ANALYTICS_REFRESH_TOKEN", "").strip()
+    if not refresh_token:
+        refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "").strip()
     if not client_id or not client_secret or not refresh_token:
         raise RuntimeError(
             "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN."

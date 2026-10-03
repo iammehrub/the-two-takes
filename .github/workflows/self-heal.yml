@@ -215,7 +215,7 @@ jobs:
           set -euo pipefail
           [[ -n "${DISCORD_ALERTS_WEBHOOK:-}" ]] || exit 0
           reason="$(cat repair_reason.txt 2>/dev/null || true)"
-          python - <<'PY' > payload.json
+          REPAIR_REASON="$reason" python - <<'PY' > payload.json
           import json, os
           reason = os.environ.get("REPAIR_REASON", "").strip()
           print(json.dumps({

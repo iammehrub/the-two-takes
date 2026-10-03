@@ -188,23 +188,25 @@ jobs:
             git rebase origin/main
           done
           echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Run repaired publisher
         if: steps.commit.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          REPAIR_SHA: ${{ steps.commit.outputs.commit_sha }}
         run: |
           set -euo pipefail
           gh workflow run daily-podcast.yml --repo "$GITHUB_REPOSITORY" --ref main -f trigger_source=self-heal
-          sleep 10
           run_id=""
           for _ in $(seq 1 60); do
             run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow daily-podcast.yml \
-              --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+              --event workflow_dispatch --limit 20 --json databaseId,headSha \
+              --jq 'map(select(.headSha == env.REPAIR_SHA)) | .[0].databaseId // empty')"
             [[ -n "$run_id" ]] && break
             sleep 5
           done
-          [[ -n "$run_id" ]] || exit 1
+          [[ -n "$run_id" ]] || { echo "Repaired run was not found."; exit 1; }
           gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status
 
       - name: Notify only when human action is required

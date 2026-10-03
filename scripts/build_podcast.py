@@ -181,34 +181,65 @@ def fetch_news():
         "q": q
     }
 
-    r = requests.get(
-        url,
-        params=params,
-        timeout=30,
-        headers={"User-Agent": "Mozilla/5.0"}
-    )
-
-    r.raise_for_status()
-    root = ET.fromstring(r.text)
-    items = []
-
-    for item in root.findall(".//item")[:30]:
-        title = item.findtext("title") or ""
-        link = item.findtext("link") or ""
-        pub = item.findtext("pubDate") or ""
-        source = item.findtext("source") or ""
-
-        if title:
-            items.append(
-                {
-                    "title": title,
-                    "source": source,
-                    "pubDate": pub,
-                    "link": link
-                }
+    last_error = None
+    for attempt in range(1, 5):
+        try:
+            print(f"Google News RSS attempt {attempt}/4...")
+            r = requests.get(
+                url,
+                params=params,
+                timeout=(15, 45),
+                headers={"User-Agent": "Mozilla/5.0"}
             )
+            r.raise_for_status()
+            root = ET.fromstring(r.text)
+            items = []
 
-    return items[:20]
+            for item in root.findall(".//item")[:30]:
+                title = item.findtext("title") or ""
+                link = item.findtext("link") or ""
+                pub = item.findtext("pubDate") or ""
+                source = item.findtext("source") or ""
+
+                if title:
+                    items.append(
+                        {
+                            "title": title,
+                            "source": source,
+                            "pubDate": pub,
+                            "link": link
+                        }
+                    )
+
+            if items:
+                return items[:20]
+
+            raise RuntimeError("Google News RSS returned no usable headlines.")
+        except (
+            requests.exceptions.Timeout,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ChunkedEncodingError,
+        ) as exc:
+            last_error = str(exc)
+            wait = 4 * attempt
+            print(f"Google News temporary failure; retrying in {wait}s...")
+            time.sleep(wait)
+        except ET.ParseError as exc:
+            last_error = f"RSS parse error: {exc}"
+            wait = 4 * attempt
+            print(f"Google News RSS parse failed; retrying in {wait}s...")
+            time.sleep(wait)
+        except requests.exceptions.HTTPError as exc:
+            status = getattr(exc.response, "status_code", None)
+            if status in {429, 500, 502, 503, 504} and attempt < 4:
+                last_error = str(exc)
+                wait = 4 * attempt
+                print(f"Google News HTTP {status}; retrying in {wait}s...")
+                time.sleep(wait)
+                continue
+            raise
+
+    raise RuntimeError(f"Google News fetch failed after 4 attempts: {last_error}")
 
 
 # ============================================================
@@ -1122,7 +1153,7 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
         )
     )
 
-    resp = req.execute()
+    resp = req.execute(num_retries=5)
     vid = resp["id"]
 
     print(f"YouTube upload complete. Video ID: {vid}")
@@ -1135,7 +1166,7 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
             str(thumb),
             mimetype="image/jpeg"
         )
-    ).execute()
+    ).execute(num_retries=5)
 
     upload_info = {
         "video_id": vid,

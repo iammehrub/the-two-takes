@@ -3,7 +3,6 @@ name: Two Takes — Workflow Failure Alerts
 on:
   workflow_run:
     workflows:
-      - "Two Takes — Daily Episode"
       - "YouTube 12-Hour Analytics"
       - "Bangladesh Top 5 Discord News"
       - "Two Takes — Automation Health"

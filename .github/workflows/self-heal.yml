@@ -1,0 +1,228 @@
+name: Two Takes — Self-Healing Publisher
+
+on:
+  workflow_run:
+    workflows:
+      - "Two Takes — Daily Episode"
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: two-takes-self-heal
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: >-
+      github.event.workflow_run.conclusion != 'success' &&
+      github.event.workflow_run.conclusion != 'skipped' &&
+      !contains(github.event.workflow_run.head_commit.message, '[self-heal]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Inspect failure
+        id: inspect
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --json conclusion,status,headSha,headBranch,runAttempt
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > failed.log 2>&1 || true
+          if grep -Fq "YouTube upload complete. Video ID:" failed.log; then
+            echo "post_upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "post_upload=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Retry failed run once
+        id: retry
+        if: steps.inspect.outputs.post_upload != 'true'
+        continue-on-error: true
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" --failed
+          gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
+
+      - name: Build repair context
+        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        run: |
+          set -euo pipefail
+          {
+            echo "=== FAILURE LOG ==="
+            tail -n 1600 failed.log 2>/dev/null || true
+            echo
+            echo "=== DAILY WORKFLOW ==="
+            cat .github/workflows/daily-podcast.yml
+            echo
+            echo "=== SOURCE FILES MENTIONED IN TRACEBACK ==="
+            grep -Eo 'scripts/[A-Za-z0-9_.-]+\.py(:[0-9]+)?' failed.log 2>/dev/null |
+              sed -E 's/:[0-9]+$//' | sort -u |
+              while read -r p; do
+                [[ -f "$p" ]] || continue
+                echo
+                echo "--- $p ---"
+                sed -n '1,280p' "$p"
+              done
+          } > repair_context.txt
+          tail -c 70000 repair_context.txt > repair_context_tail.txt
+
+      - name: Ask Gemini for repair
+        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, urllib.error, urllib.request
+          from pathlib import Path
+
+          key = os.environ.get("GEMINI_API_KEY", "").strip()
+          if not key:
+              raise SystemExit("GEMINI_API_KEY is missing")
+
+          ctx = Path("repair_context_tail.txt").read_text(encoding="utf-8")
+          prompt = """Repair a production GitHub Actions YouTube publisher.
+          Return JSON only: {"patch":"<unified git diff or empty>","reason":"<brief>"}.
+          Allowed files: .github/workflows/daily-podcast.yml, requirements.txt, scripts/*.py.
+          Never add secrets/tokens, never delete files, never add a second YouTube upload.
+          Keep the patch minimal and tied to the observed error. Prefer safe retries/fallbacks.
+          If the failure is a revoked/expired secret, quota, permissions, or provider outage
+          that code cannot fix, return an empty patch.
+
+          CONTEXT:
+          """ + ctx
+
+          url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+          payload = {
+              "contents": [{"parts": [{"text": prompt}]}],
+              "generationConfig": {"temperature": 0, "thinkingConfig": {"thinkingBudget": 0}, "maxOutputTokens": 7000},
+          }
+          last = None
+          for _ in range(3):
+              try:
+                  req = urllib.request.Request(
+                      url,
+                      data=json.dumps(payload).encode(),
+                      headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                      method="POST",
+                  )
+                  with urllib.request.urlopen(req, timeout=180) as resp:
+                      data = json.load(resp)
+                  text = "".join(
+                      part.get("text", "")
+                      for c in data.get("candidates", [])
+                      for part in c.get("content", {}).get("parts", [])
+                  ).strip()
+                  if text.startswith("```"):
+                      text = text.split("\n", 1)[1]
+                      if text.rstrip().endswith("```"):
+                          text = text.rstrip()[:-3]
+                  obj = json.loads(text.strip())
+                  Path("repair.patch").write_text(str(obj.get("patch", "") or "").strip(), encoding="utf-8")
+                  Path("repair_reason.txt").write_text(str(obj.get("reason", "") or "").strip(), encoding="utf-8")
+                  raise SystemExit(0)
+              except urllib.error.HTTPError as e:
+                  last = f"HTTP {e.code}"
+                  if e.code not in {429,500,502,503,504}:
+                      raise
+              except Exception as e:
+                  last = str(e)
+          raise SystemExit(f"Gemini repair failed: {last}")
+          PY
+
+      - name: Validate and apply repair
+        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        run: |
+          set -euo pipefail
+          if [[ ! -s repair.patch ]]; then
+            echo "No automatic patch produced."
+            cat repair_reason.txt 2>/dev/null || true
+            exit 20
+          fi
+          git apply --check repair.patch
+          git apply --whitespace=fix repair.patch
+          python -m compileall -q scripts
+          ruby -e 'require "yaml"; YAML.load_file(".github/workflows/daily-podcast.yml")'
+          while IFS= read -r p; do
+            case "$p" in
+              .github/workflows/daily-podcast.yml|requirements.txt|scripts/*.py) ;;
+              "") ;;
+              *) echo "Forbidden repair path: $p"; exit 1 ;;
+            esac
+          done < <(git diff --name-only)
+          if git diff --diff-filter=D --name-only | grep -q .; then
+            echo "Repair attempted deletion."
+            exit 1
+          fi
+
+      - name: Commit repair
+        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        id: commit
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/daily-podcast.yml requirements.txt scripts/*.py
+          git commit -m "fix(self-heal): repair daily publisher [self-heal]"
+          for attempt in 1 2 3 4 5; do
+            git push origin HEAD:main && break
+            [[ "$attempt" == "5" ]] && exit 1
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run repaired publisher
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run daily-podcast.yml --repo "$GITHUB_REPOSITORY" --ref main -f trigger_source=self-heal
+          sleep 10
+          run_id=""
+          for _ in $(seq 1 60); do
+            run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow daily-podcast.yml \
+              --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+            [[ -n "$run_id" ]] && break
+            sleep 5
+          done
+          [[ -n "$run_id" ]] || exit 1
+          gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status
+
+      - name: Notify only when human action is required
+        if: failure()
+        env:
+          DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          [[ -n "${DISCORD_ALERTS_WEBHOOK:-}" ]] || exit 0
+          reason="$(cat repair_reason.txt 2>/dev/null || true)"
+          python - <<'PY' > payload.json
+          import json, os
+          reason = os.environ.get("REPAIR_REASON", "").strip()
+          print(json.dumps({
+              "username": "Two Takes Self-Healer",
+              "content": "⚠️ Automatic recovery was exhausted." + (f" Reason: {reason}" if reason else ""),
+              "allowed_mentions": {"parse": []},
+          }))
+          PY
+          curl --fail-with-body --retry 2 --max-time 20 \
+            -H "Content-Type: application/json" -d @payload.json "$DISCORD_ALERTS_WEBHOOK"

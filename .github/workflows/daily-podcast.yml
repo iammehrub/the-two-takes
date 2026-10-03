@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -30,8 +30,17 @@ jobs:
 
       - name: Install system packages
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg imagemagick fonts-dejavu espeak-ng
+          for attempt in 1 2 3; do
+            if sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg imagemagick fonts-dejavu espeak-ng; then
+              break
+            fi
+            if [[ "$attempt" == "3" ]]; then
+              echo "System package installation failed after 3 attempts."
+              exit 1
+            fi
+            echo "System package installation failed; retrying..."
+            sleep $((attempt * 5))
+          done
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -41,8 +50,17 @@ jobs:
 
       - name: Install Python packages
         run: |
-          python -m pip install --upgrade pip
-          pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile
+          for attempt in 1 2 3; do
+            if python -m pip install --upgrade pip &&                python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile; then
+              break
+            fi
+            if [[ "$attempt" == "3" ]]; then
+              echo "Python package installation failed after 3 attempts."
+              exit 1
+            fi
+            echo "Python package installation failed; retrying..."
+            sleep $((attempt * 5))
+          done
 
       - name: Verify YouTube upload OAuth
         env:
@@ -76,7 +94,9 @@ jobs:
           DISCORD_YOUTUBE_PODCAST_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_PODCAST_WEBHOOK }}
           DISCORD_YOUTUBE_MENTION_ROLE_ID: ${{ secrets.DISCORD_YOUTUBE_MENTION_ROLE_ID }}
           DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+        continue-on-error: true
         run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
@@ -88,8 +108,19 @@ jobs:
               raise RuntimeError("Podcast upload metadata file was not created.")
 
           info = json.loads(info_path.read_text(encoding="utf-8"))
-          notified = notify_youtube(info, "Podcast", "DISCORD_YOUTUBE_PODCAST_WEBHOOK")
-          print("Podcast Discord notification:", "sent" if notified else "not sent; continuing")
+
+          try:
+              notified = notify_youtube(
+                  info,
+                  "Podcast",
+                  "DISCORD_YOUTUBE_PODCAST_WEBHOOK",
+              )
+              print(
+                  "Podcast Discord notification:",
+                  "sent" if notified else "not sent; continuing",
+              )
+          except Exception as exc:
+              print(f"Discord notification failed; upload record will still be saved: {exc}")
 
           video_id = str(info.get("video_id", "")).strip()
           if not video_id:
@@ -121,7 +152,7 @@ jobs:
 
           git commit -m "Record podcast upload and content history"
 
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             if git push; then
               exit 0
             fi
@@ -134,7 +165,7 @@ jobs:
             }
           done
 
-          echo "Could not persist podcast upload record after 3 attempts."
+          echo "Could not persist podcast upload record after 5 attempts."
           exit 1
 
       - name: Save growth assets

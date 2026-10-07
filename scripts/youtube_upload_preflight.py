@@ -38,15 +38,31 @@ def main() -> int:
         creds.refresh(Request())
     except RefreshError as exc:
         message = str(exc)
-        if "invalid_scope" in message.lower():
+        lowered = message.lower()
+
+        if "invalid_grant" in lowered:
+            print("YouTube OAuth check failed: the stored refresh token is expired or revoked.")
+            print()
+            print("Fix:")
+            print("1. Re-authorize the same Google OAuth client for the YouTube upload scope.")
+            print("2. Replace the GitHub Actions secret YOUTUBE_REFRESH_TOKEN.")
+            print("3. Re-run the Daily Podcast workflow manually.")
+            print()
             print(
-                "YouTube OAuth check failed: YOUTUBE_REFRESH_TOKEN is not "
-                "authorized for the YouTube upload scope."
+                "Important: if the Google OAuth consent screen is still in Testing, "
+                "Google can issue refresh tokens that expire after 7 days. Put the app "
+                "In production for a long-running scheduled workflow."
+            )
+            return 4
+
+        if "invalid_scope" in lowered:
+            print(
+                "YouTube OAuth check failed: the refresh token is not authorized "
+                "for the YouTube upload scope."
             )
             print(
                 "Re-authorize the same Google OAuth client with "
-                "https://www.googleapis.com/auth/youtube.upload and replace "
-                "the GitHub secret YOUTUBE_REFRESH_TOKEN."
+                f"{UPLOAD_SCOPE} and replace the GitHub secret YOUTUBE_REFRESH_TOKEN."
             )
             return 3
 

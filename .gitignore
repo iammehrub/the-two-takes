@@ -1,0 +1,4 @@
+# Local Google OAuth credentials
+client_secret*.json
+youtube_token.json
+.youtube_oauth/

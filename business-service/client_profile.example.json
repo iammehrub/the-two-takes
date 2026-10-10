@@ -1,0 +1,21 @@
+{
+  "business_name": "Sample Local Cafe",
+  "industry": "cafe",
+  "location": "Dhaka, Bangladesh",
+  "audience": "local residents, students, and people looking for a place to meet",
+  "tone": "friendly, clear, welcoming",
+  "primary_offer": "coffee, tea, and light snacks",
+  "primary_channel": "Facebook",
+  "call_to_action": "Visit us or message us for current menu details",
+  "brand_facts": [
+    "This is a fictional sample business profile.",
+    "Menu, prices, opening hours, and offers must be confirmed by the business before publishing."
+  ],
+  "avoid_claims": [
+    "unverified prices",
+    "unverified opening hours",
+    "health claims",
+    "guaranteed outcomes",
+    "invented customer reviews"
+  ]
+}

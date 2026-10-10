@@ -1,52 +1,65 @@
-# Business Content Studio — Zero-Cost Starter Kit
+# Business Content Studio — Free Starter Kit
 
-A lightweight, approval-first tool for preparing social-content drafts for small businesses. It helps you test a service offer without paying for an AI API or connecting a client's social account.
+An approval-first tool for preparing social-content drafts for small businesses. The core workflow uses Python and GitHub Actions without a paid service or AI API.
 
-## What it does
+## Four included parts
+
+1. **Writing generator:** seven captions and a calendar. It runs with templates at no cost. Optional OpenRouter free-model routing can improve wording if you configure your own free-tier API key; free availability/rate limits can change. No paid model is selected by this project.
+2. **Sample pack:** a clearly labeled fictional Dhaka cafe sample in `sample-pack/`. It is a portfolio example, not a real client result.
+3. **Customer-acquisition kit:** service offer, intake form, portfolio checklist, pricing worksheet, and outreach drafts. Messages are drafts only; send them manually after reviewing and personalizing.
+4. **Business dashboard:** a standalone HTML file at `dashboard.html`. It stores your prospect/client tracker in this browser only and supports JSON export/import. It has no server, paid database, or automatic messaging.
+
+## What the generator does
+
 - Reads a business profile JSON file.
-- Creates seven distinct caption drafts, a seven-day calendar, visual directions, and a review checklist.
-- Uses the business name, industry, location, audience, offer, channel, tone, confirmed facts, and claims to avoid.
-- Exports Markdown (easy to review/share) and JSON (structured for future tools).
+- Creates seven caption drafts, a seven-day calendar, visual directions, and a factual/approval checklist.
+- Exports Markdown and JSON.
 - Runs in GitHub Actions when manually started; your computer can be off.
-- Keeps every item in draft status. It does not publish posts, message prospects, or spend money.
+- Never publishes posts, messages prospects, or processes payments.
 
-**Important limitation:** this is template-assisted copy, not an AI model. It does not browse the web, verify business details, or guarantee custom marketing quality. A human must edit and approve every draft.
+## Quick start — fully free, no API
 
-## Quick start
 From the repository root:
 
 ```bash
-python business-service/generate_demo.py --profile business-service/client_profile.example.json --start-date 2026-10-12
+python business-service/generate_demo.py --profile business-service/client_profile.example.json --mode template --start-date 2026-10-12
 ```
 
 Outputs:
 - `work/business_service_demo/content_pack.md`
 - `work/business_service_demo/content_pack.json`
 
-Omit `--start-date` to start from today.
+### Optional free AI writing
 
-## Make a prospect-specific profile
-1. Copy `client_profile.example.json` to a new JSON file.
-2. Replace fictional sample details with public information or facts the business explicitly confirmed.
-3. Keep `brand_facts` limited to verified details and list unsupported claims in `avoid_claims`.
-4. Run the generator with your copied profile.
-5. Review and customize every caption before sharing. Never add passwords, access tokens, private customer lists, or sensitive personal data.
+If you choose to use OpenRouter, create a free-tier key in your own account and add it to the repository as the Actions secret `OPENROUTER_API_KEY`. Never paste the key into code or chat. The workflow requests the `openrouter/free` router and falls back to templates if unavailable. Free models may be rate-limited, unavailable, or change. Keep `--mode template` for a no-key/no-network run.
 
-## Run it on GitHub
+## Run on GitHub
+
 1. Open the [Business Content Studio workflow](../.github/workflows/business-content-studio-demo.yml).
 2. Choose **Run workflow** and optionally enter a start date as `YYYY-MM-DD`.
 3. Open the completed run and download the `business-content-studio-demo` artifact.
-4. Review the Markdown and JSON pack before using it. Artifacts expire after seven days.
+4. Review the Markdown and JSON pack. Artifacts expire after seven days.
 
-## Suggested first service
-Offer a small pilot: seven caption drafts, a one-week calendar, visual suggestions, a factual review checklist, and one revision round. Agree on price, deadline, revisions, and payment terms before work starts. Do not promise sales, virality, reach, or follower growth. This repo does not process payments or automatically acquire customers.
+## Sample portfolio
 
-See [service offer](service-offer.md), [client intake](client-intake.md), and [prospect message drafts](prospect-message-drafts.md). Personalize any outreach and send it yourself only after reviewing it; do not mass-message businesses.
+See [sample pack](sample-pack/README.md). It is fictional and deliberately avoids unverified prices, hours, testimonials, and performance claims. Replace it with a client-approved example only after receiving permission.
+
+## First pilot offer
+
+Offer seven caption drafts, a one-week calendar, visual suggestions, a factual review checklist, and one revision round. Agree on deliverables, deadline, revisions, fee, and payment terms before work starts. Do not promise sales, virality, reach, or follower growth.
+
+See [service offer](service-offer.md), [client intake](client-intake.md), [prospect message drafts](prospect-message-drafts.md), and [free pricing worksheet](pricing-worksheet.md).
+
+## Dashboard privacy and limitations
+
+Open `dashboard.html` in a browser. Records are saved in that browser's local storage and do not automatically sync to another device. Export backups regularly. Do not store passwords, tokens, bank details, or sensitive customer data. This dashboard does not collect payments or send outreach.
 
 ## Tests
+
 ```bash
 python -m unittest discover -s business-service -p 'test_*.py' -v
 ```
 
-## Later upgrades
-An optional AI provider could improve originality, but requires an authorized API key and may have limits or costs. Add it only after the free workflow proves useful. Any publishing integration should require explicit client authorization and a tested approval gate.
+## Honest limitations
+
+This is a small content-preparation tool, not an autonomous agency. AI output is not fact-checked research. A human must verify and approve every draft. Free-tier service availability can change. All publishing, outreach, pricing agreements, and payment handling remain manual.

@@ -1,52 +1,52 @@
 # Business Content Studio — Zero-Cost Starter Kit
 
-A small, approval-first demo for offering content-planning and social-post preparation to local businesses. This is a service starter, not a claim of completed client work or guaranteed income.
+A lightweight, approval-first tool for preparing social-content drafts for small businesses. It helps you test a service offer without paying for an AI API or connecting a client's social account.
 
-## What it does now
-
+## What it does
 - Reads a business profile JSON file.
-- Generates a 7-day content plan with caption drafts and a clear approval status.
-- Saves the pack to `work/business_service_demo/`.
-- Uses only Python's standard library; no API key or paid service is required for the demo.
-- Does not publish, message customers, or spend money.
+- Creates seven distinct caption drafts, a seven-day calendar, visual directions, and a review checklist.
+- Uses the business name, industry, location, audience, offer, channel, tone, confirmed facts, and claims to avoid.
+- Exports Markdown (easy to review/share) and JSON (structured for future tools).
+- Runs in GitHub Actions when manually started; your computer can be off.
+- Keeps every item in draft status. It does not publish posts, message prospects, or spend money.
+
+**Important limitation:** this is template-assisted copy, not an AI model. It does not browse the web, verify business details, or guarantee custom marketing quality. A human must edit and approve every draft.
 
 ## Quick start
-
 From the repository root:
 
 ```bash
-python business-service/generate_demo.py --profile business-service/client_profile.example.json
+python business-service/generate_demo.py --profile business-service/client_profile.example.json --start-date 2026-10-12
 ```
 
-Output: `work/business_service_demo/content_pack.md` and `work/business_service_demo/content_pack.json`.
+Outputs:
+- `work/business_service_demo/content_pack.md`
+- `work/business_service_demo/content_pack.json`
 
-## Make a prospect-specific demo
+Omit `--start-date` to start from today.
 
-1. Copy `client_profile.example.json` and edit the copy with a business's public-facing details.
-2. Run the command above with your copied profile path.
-3. Review every draft for accuracy and brand fit.
-4. Share only after you approve it. Do not put private customer data or credentials in the profile.
+## Make a prospect-specific profile
+1. Copy `client_profile.example.json` to a new JSON file.
+2. Replace fictional sample details with public information or facts the business explicitly confirmed.
+3. Keep `brand_facts` limited to verified details and list unsupported claims in `avoid_claims`.
+4. Run the generator with your copied profile.
+5. Review and customize every caption before sharing. Never add passwords, access tokens, private customer lists, or sensitive personal data.
 
-## What a paid service could include
+## Run it on GitHub
+1. Open the [Business Content Studio workflow](../.github/workflows/business-content-studio-demo.yml).
+2. Choose **Run workflow** and optionally enter a start date as `YYYY-MM-DD`.
+3. Open the completed run and download the `business-content-studio-demo` artifact.
+4. Review the Markdown and JSON pack before using it. Artifacts expire after seven days.
 
-- Weekly content calendar and caption drafts.
-- Brand voice and FAQ setup.
-- Human-approved scheduling/publishing integration as a separate phase.
-- Monthly performance report, if the customer connects suitable analytics.
+## Suggested first service
+Offer a small pilot: seven caption drafts, a one-week calendar, visual suggestions, a factual review checklist, and one revision round. Agree on price, deadline, revisions, and payment terms before work starts. Do not promise sales, virality, reach, or follower growth. This repo does not process payments or automatically acquire customers.
 
-Start with a narrow promise: "I prepare a week's worth of reviewed social content drafts." Do not promise sales growth, virality, or guaranteed results. Ask the client what success metric matters and establish a baseline before claiming impact.
+See [service offer](service-offer.md), [client intake](client-intake.md), and [prospect message drafts](prospect-message-drafts.md). Personalize any outreach and send it yourself only after reviewing it; do not mass-message businesses.
 
-## Client approval boundary
+## Tests
+```bash
+python -m unittest discover -s business-service -p 'test_*.py' -v
+```
 
-Every generated item is marked `DRAFT — HUMAN APPROVAL REQUIRED`. The demo intentionally has no publishing or outbound-messaging capability. Add integrations only after the client authorizes them and a review step is tested.
-
-## Free workflow demo
-
-The GitHub Actions workflow `Business Content Studio — Demo Pack` can be run manually to generate an artifact. It does not publish externally. The artifact is for internal review only.
-
-## Next implementation steps
-
-1. Replace the sample profile with a clearly fictional demo or a prospect's public business information.
-2. Collect feedback and refine the template.
-3. Add an optional AI provider only if the service has authorized credentials and the cost is understood.
-4. Add client-specific publishing only behind an explicit approval gate.
+## Later upgrades
+An optional AI provider could improve originality, but requires an authorized API key and may have limits or costs. Add it only after the free workflow proves useful. Any publishing integration should require explicit client authorization and a tested approval gate.

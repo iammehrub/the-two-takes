@@ -32,11 +32,11 @@ def refresh_access_token() -> str:
     client_id = os.environ.get("YOUTUBE_CLIENT_ID", "").strip()
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "").strip()
     refresh_token = os.environ.get("YOUTUBE_ANALYTICS_REFRESH_TOKEN", "").strip()
-    if not refresh_token:
-        refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN", "").strip()
     if not client_id or not client_secret or not refresh_token:
         raise RuntimeError(
-            "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN."
+            "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or "
+            "YOUTUBE_ANALYTICS_REFRESH_TOKEN. The analytics token must include "
+            "youtube.readonly and yt-analytics.readonly scopes."
         )
 
     response = requests.post(
@@ -82,11 +82,10 @@ def fetch_video(video_id: str, oauth_token: str) -> dict:
             or "insufficient permissions" in body.lower()
         ):
             raise RuntimeError(
-                "YouTube OAuth token lacks the scopes required by the analytics/data "
-                "queries. Re-authorize the refresh token with "
-                "https://www.googleapis.com/auth/youtube.readonly and "
-                "https://www.googleapis.com/auth/yt-analytics.readonly, then replace "
-                "YOUTUBE_REFRESH_TOKEN in GitHub Secrets."
+                "The token used by YouTube analytics lacks the required scopes. "
+                "Re-authorize with https://www.googleapis.com/auth/youtube.readonly "
+                "and https://www.googleapis.com/auth/yt-analytics.readonly, then "
+                "replace the GitHub secret YOUTUBE_ANALYTICS_REFRESH_TOKEN."
             )
         raise RuntimeError(
             f"YouTube Data API failed for {video_id}: "
@@ -129,10 +128,10 @@ def analytics_get(oauth_token: str, params: dict) -> dict:
             or "insufficient permissions" in body.lower()
         ):
             raise RuntimeError(
-                "YouTube Analytics OAuth scope error. Re-authorize the refresh token "
-                "with https://www.googleapis.com/auth/youtube.readonly and "
+                "YouTube Analytics OAuth scope error. Re-authorize with "
+                "https://www.googleapis.com/auth/youtube.readonly and "
                 "https://www.googleapis.com/auth/yt-analytics.readonly, then replace "
-                "YOUTUBE_REFRESH_TOKEN in GitHub Secrets."
+                "the GitHub secret YOUTUBE_ANALYTICS_REFRESH_TOKEN."
             )
         raise RuntimeError(
             f"YouTube Analytics API failed: HTTP {response.status_code}: {body}"

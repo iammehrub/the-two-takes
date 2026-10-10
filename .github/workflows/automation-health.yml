@@ -38,12 +38,15 @@ jobs:
               ".github/workflows/failure-alerts.yml",
               "scripts/openai_pipeline.py",
               "scripts/content_guard.py",
+              "business-service/generate_demo.py",
+              "business-service/client_profile.example.json",
           ]
           missing = [p for p in required if not (root / p).exists()]
           if missing:
               raise SystemExit("Missing critical automation files: " + ", ".join(missing))
 
           py_files = list((root / "scripts").rglob("*.py"))
+          py_files += list((root / "business-service").rglob("*.py"))
           failures = []
           for path in py_files:
               try:
@@ -72,5 +75,36 @@ jobs:
                   raise SystemExit("content_history.json has an unexpected structure")
               print(f"Content history entries: {len(entries)}")
 
-          print(f"Healthy: checked {len(py_files)} Python files and repository JSON state.")
+          profile = json.loads((root / "business-service/client_profile.example.json").read_text(encoding="utf-8"))
+          if not isinstance(profile, dict):
+              raise SystemExit("Business service example profile must be a JSON object")
+
+          import subprocess
+          import tempfile
+          with tempfile.TemporaryDirectory() as temp_dir:
+              subprocess.run(
+                  [
+                      sys.executable,
+                      "business-service/generate_demo.py",
+                      "--profile",
+                      "business-service/client_profile.example.json",
+                      "--output-dir",
+                      temp_dir,
+                  ],
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              )
+              pack_path = pathlib.Path(temp_dir) / "content_pack.json"
+              markdown_path = pathlib.Path(temp_dir) / "content_pack.md"
+              if not pack_path.exists() or not markdown_path.exists():
+                  raise SystemExit("Business service demo did not create both expected files")
+              pack = json.loads(pack_path.read_text(encoding="utf-8"))
+              items = pack.get("items", [])
+              if len(items) != 7 or pack.get("published") is not False or pack.get("approval_required") is not True:
+                  raise SystemExit("Business service demo safety/quality check failed")
+              if any(item.get("status") != "DRAFT — HUMAN APPROVAL REQUIRED" for item in items):
+                  raise SystemExit("Business service output is missing its approval status")
+
+          print(f"Healthy: checked {len(py_files)} Python files, JSON state, and 7-item approval-only demo.")
           PY

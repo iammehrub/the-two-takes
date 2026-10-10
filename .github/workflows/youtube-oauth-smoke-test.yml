@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/youtube-oauth-smoke-test.yml"
 
+# One-time end-to-end trigger for the daily podcast workflow.
 permissions:
   contents: read
 

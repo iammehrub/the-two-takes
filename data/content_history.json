@@ -57,8 +57,17 @@
     "video_id": "XreMPfU1ENc",
     "title": "Speak English With Confidence | Even When You Make Mistakes",
     "topic": "How to Speak English With Confidence Even When You Make Mistakes",
+    "link": "https://youtu.be/XreMPfU1ENc",
     "kind": "Podcast",
     "published": "2026-10-10T14:03:51.486617+00:00",
-    "script_sha256": "f78b1eccb2ee4d6b856001517169d963cac22afcc7b9fee7db635d114b1c9cea"
+    "notified_at": "2026-10-10T14:03:53.106853+00:00"
+  },
+  {
+    "video_id": "4S1ubRi_Ab0",
+    "title": "Keep Talking: How to Extend Conversations in English",
+    "topic": "How to Keep a Conversation Going When You Run Out of Things to Say",
+    "kind": "Podcast",
+    "published": "2026-10-10T20:29:04.810924+00:00",
+    "script_sha256": "54a4087ea33ab40b8c9683b89a3ee2612819afd84c949fc0f9e9d530ccd04c60"
   }
 ]

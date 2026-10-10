@@ -1,9 +1,10 @@
-"""Unit tests for the no-API content generator."""
+"""Unit tests for the approval-only content generator."""
 import json
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 import generate_demo
 
 
@@ -46,10 +47,31 @@ class GeneratorTests(unittest.TestCase):
     def test_markdown_discloses_draft_only_mode(self):
         profile = self.profile()
         items = generate_demo.build_items(profile, date(2026, 10, 12))
-        md = generate_demo.render_markdown(profile, items, date(2026, 10, 12))
+        md = generate_demo.render_markdown(profile, items, date(2026, 10, 12), "template-only")
         self.assertIn("NO POSTS HAVE BEEN PUBLISHED", md)
         self.assertIn("HUMAN APPROVAL REQUIRED", md)
-        self.assertIn("not AI research", md)
+        self.assertIn("not fact-checked research", md)
+
+    def test_ai_without_key_falls_back_without_network(self):
+        items = generate_demo.build_items(self.profile(), date(2026, 10, 12))
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": ""}):
+            changed, mode = generate_demo.improve_with_free_ai(self.profile(), items)
+        self.assertEqual(mode, "template-fallback-no-api-key")
+        self.assertEqual(changed[0]["caption_draft"], items[0]["caption_draft"])
+
+    def test_ai_bad_response_falls_back(self):
+        items = generate_demo.build_items(self.profile(), date(2026, 10, 12))
+        fake_response = type("Response", (), {
+            "__enter__": lambda self: self,
+            "__exit__": lambda self, *args: None,
+            "read": lambda self: b'{"choices":[{"message":{"content":"not-json"}}]}',
+        })()
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test-key"}), patch(
+            "urllib.request.urlopen", return_value=fake_response
+        ):
+            changed, mode = generate_demo.improve_with_free_ai(self.profile(), items)
+        self.assertEqual(mode, "template-fallback-ai-unavailable")
+        self.assertEqual(len(changed), 7)
 
 
 if __name__ == "__main__":

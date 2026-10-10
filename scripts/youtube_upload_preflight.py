@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Fail fast when the YouTube refresh token cannot upload videos."""
-
+"""Validate that the configured Google refresh token includes upload permission."""
 from __future__ import annotations
 
 import os
 import sys
 
+import requests
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
 
 UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 
@@ -39,55 +38,54 @@ def main() -> int:
     except RefreshError as exc:
         message = str(exc)
         lowered = message.lower()
-
         if "invalid_grant" in lowered:
-            print("YouTube OAuth check failed: the stored refresh token is expired or revoked.")
-            print()
-            print("Fix:")
-            print("1. Re-authorize the same Google OAuth client for the YouTube upload scope.")
-            print("2. Replace the GitHub Actions secret YOUTUBE_REFRESH_TOKEN.")
-            print("3. Re-run the Daily Podcast workflow manually.")
-            print()
-            print(
-                "Important: if the Google OAuth consent screen is still in Testing, "
-                "Google can issue refresh tokens that expire after 7 days. Put the app "
-                "In production for a long-running scheduled workflow."
-            )
+            print("YouTube OAuth failed: refresh token is expired or revoked.")
+            print("Re-authorize the same OAuth client with the upload scope and update YOUTUBE_REFRESH_TOKEN.")
+            print("If the OAuth consent screen is in Testing, Google may expire refresh tokens after 7 days.")
             return 4
-
         if "invalid_scope" in lowered:
-            print(
-                "YouTube OAuth check failed: the refresh token is not authorized "
-                "for the YouTube upload scope."
-            )
-            print(
-                "Re-authorize the same Google OAuth client with "
-                f"{UPLOAD_SCOPE} and replace the GitHub secret YOUTUBE_REFRESH_TOKEN."
-            )
+            print(f"YouTube OAuth failed: token is not authorized for {UPLOAD_SCOPE}.")
+            print("Re-authorize the same OAuth client with this scope and update YOUTUBE_REFRESH_TOKEN.")
             return 3
-
         print("YouTube OAuth refresh failed: " + message[:800])
         return 4
 
+    # Do NOT call channels.list(mine=true) here: that endpoint requires
+    # youtube.readonly and falsely rejects a valid upload-only token.
     try:
-        youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
-        response = youtube.channels().list(part="id,snippet", mine=True).execute()
-    except Exception as exc:
-        print("YouTube API access check failed: " + str(exc)[:800])
+        response = requests.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"access_token": creds.token},
+            timeout=(10, 20),
+        )
+    except requests.RequestException as exc:
+        print("Could not verify the access-token scopes: " + str(exc)[:500])
         return 5
 
-    channels = response.get("items", [])
-    if not channels:
-        print("YouTube OAuth refreshed, but no authenticated channel was returned.")
-        return 6
+    if not response.ok:
+        print(f"Google tokeninfo request failed with HTTP {response.status_code}: {response.text[:500]}")
+        return 5
 
-    channel = channels[0]
-    title = str(channel.get("snippet", {}).get("title", "Unknown channel"))
-    channel_id = str(channel.get("id", "unknown"))
+    try:
+        info = response.json()
+    except ValueError:
+        print("Google tokeninfo returned invalid JSON.")
+        return 5
+
+    granted = set(str(info.get("scope", "")).split())
+    if UPLOAD_SCOPE not in granted:
+        print("YouTube OAuth refreshed, but the access token lacks the upload scope.")
+        print("Granted scopes reported by Google:")
+        print("\n".join(sorted(granted)) or "(none returned)")
+        print(f"Required scope: {UPLOAD_SCOPE}")
+        print("Re-authorize the same OAuth client with youtube.upload and update YOUTUBE_REFRESH_TOKEN.")
+        return 3
 
     print("YouTube upload OAuth check passed.")
-    print(f"Authenticated channel: {title} ({channel_id})")
-    print(f"Required scope: {UPLOAD_SCOPE}")
+    print(f"Google confirms required scope: {UPLOAD_SCOPE}")
+    extra = sorted(granted - {UPLOAD_SCOPE})
+    if extra:
+        print("Additional granted scopes: " + ", ".join(extra))
     return 0
 
 

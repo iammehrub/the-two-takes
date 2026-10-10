@@ -1,4 +1,4 @@
-name: YouTube OAuth Credential Smoke Test
+name: YouTube OAuth Credential Smoke Test (scope verifier)
 
 on:
   push:

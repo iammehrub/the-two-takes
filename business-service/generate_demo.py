@@ -64,7 +64,7 @@ def build_items(profile, start_date):
         f"Meet {name}{location_phrase}. We focus on {offer} for {audience}. If you are exploring {industry} options, tell us what matters most to you. {cta}.",
         f"A behind-the-scenes idea from {name}: show one real part of how we prepare or deliver {offer}. Use only a photo or video the business has approved, and explain what viewers are seeing. {cta}.",
         f"Thinking about {offer}? At {name}, we want it to be easy to ask questions before deciding. Tell us which details you would like confirmed. {cta}.",
-        f"A helpful {industry} checklist: identify what you need, compare the details that matter to you, and confirm current terms before deciding. If you are part of {audience}, save this reminder. {cta}.",
+        f"At {name}, here is a helpful {industry} checklist: identify what you need, compare the details that matter to you, and confirm current terms before deciding. If you are part of {audience}, save this reminder. {cta}.",
         f"Before choosing a {industry} service, ask what is included, which details need confirming, and what to prepare in advance. Ask {name} about the current details of {offer}. {cta}.",
         f"Community question from {name}: when looking for {industry} options, what matters most to you—convenience, clear information, or having choices? Share your preference below. {cta}.",
         f"Planning your next {industry} visit or enquiry? Keep {name} in mind for {offer}. Check directly with the business for current availability and details before making plans. {cta}.",

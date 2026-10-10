@@ -7,6 +7,14 @@ on:
         description: Optional plan start date (YYYY-MM-DD)
         required: false
         type: string
+      writing_mode:
+        description: Use templates (always free) or try the optional free AI router
+        required: true
+        default: template
+        type: choice
+        options:
+          - template
+          - auto
 
 permissions:
   contents: read
@@ -38,13 +46,15 @@ jobs:
         shell: bash
         env:
           PLAN_START_DATE: ${{ inputs.start_date }}
+          WRITING_MODE: ${{ inputs.writing_mode }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           set -euo pipefail
+          args=(--mode "$WRITING_MODE")
           if [[ -n "$PLAN_START_DATE" ]]; then
-            python business-service/generate_demo.py --start-date "$PLAN_START_DATE"
-          else
-            python business-service/generate_demo.py
+            args+=(--start-date "$PLAN_START_DATE")
           fi
+          python business-service/generate_demo.py "${args[@]}"
 
       - name: Upload draft pack
         uses: actions/upload-artifact@v6

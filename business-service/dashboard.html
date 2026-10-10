@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Business Content Studio — Free Dashboard</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#131b2f;--line:#2b3855;--text:#edf2ff;--muted:#a8b4cc;--accent:#a5b4fc}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:22px}h1{margin:0;font-size:1.7rem}h2{font-size:1.1rem;margin:0 0 12px}.muted,small{color:var(--muted)}.top{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}.notice{border:1px solid var(--line);background:#10182b;border-radius:12px;padding:12px;margin:14px 0 20px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:18px}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}.stat strong{display:block;font-size:1.45rem}.layout{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:14px}.fields{display:grid;gap:10px}label{display:grid;gap:4px;color:var(--muted);font-size:.9rem}input,select,textarea,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:10px;background:#0c1426;color:var(--text);width:100%}textarea{min-height:76px;resize:vertical}button{cursor:pointer;background:#26365b}button:hover{border-color:var(--accent)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{width:auto;flex:1}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.toolbar input,.toolbar select{flex:1;min-width:130px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}.pill{display:inline-block;border:1px solid var(--line);padding:2px 8px;border-radius:99px;font-size:.8rem}.rowbtn{width:auto;padding:5px 8px;font-size:.85rem}.empty{padding:22px;text-align:center;color:var(--muted)}footer{margin-top:18px;color:var(--muted);font-size:.85rem}@media(max-width:780px){.layout{grid-template-columns:1fr}main{padding:14px}}
+</style>
+</head>
+<body><main>
+<div class="top"><div><h1>Business Content Studio</h1><div class="muted">Free local dashboard · leads · requests · drafts · revisions · payments</div></div><div class="actions"><button id="exportBtn" type="button">Export backup</button><button id="importBtn" type="button">Import backup</button><input id="importFile" type="file" accept="application/json" hidden></div></div>
+<div class="notice"><strong>Privacy:</strong> records are saved only in this browser on this device. Export backups regularly. Do not store passwords, API keys, bank details, or sensitive customer data. This page never sends messages, publishes posts, or collects payments.</div>
+<div class="stats" id="stats"></div>
+<div class="layout">
+<section class="panel"><h2 id="formTitle">Add a record</h2><form id="recordForm" class="fields">
+<input id="recordId" type="hidden">
+<label>Business / contact name<input id="name" required maxlength="120" placeholder="e.g. Example Cafe"></label>
+<label>Record type<select id="type"><option>Prospect</option><option>Client</option><option>Client request</option><option>Content draft</option><option>Revision</option><option>Payment</option></select></label>
+<label>Status<select id="status"><option>New</option><option>Contacted</option><option>Interested</option><option>Waiting for details</option><option>Drafting</option><option>Needs review</option><option>Awaiting approval</option><option>Revision requested</option><option>Delivered</option><option>Paid</option><option>On hold</option><option>Closed</option></select></label>
+<label>Next date<input id="nextDate" type="date"></label>
+<label>Amount (BDT, optional)<input id="amount" type="number" min="0" step="1" placeholder="0"></label>
+<label>Notes / next action<textarea id="notes" maxlength="2000" placeholder="Scope, next step, agreed deadline (no sensitive data)"></textarea></label>
+<div class="actions"><button type="submit" id="saveBtn">Save record</button><button type="button" id="resetBtn">Clear</button></div>
+</form></section>
+<section class="panel"><h2>Work tracker</h2><div class="toolbar"><input id="search" placeholder="Search records"><select id="filter"><option value="All">All types</option><option>Prospect</option><option>Client</option><option>Client request</option><option>Content draft</option><option>Revision</option><option>Payment</option></select><select id="statusFilter"><option value="All">All statuses</option><option>New</option><option>Contacted</option><option>Interested</option><option>Waiting for details</option><option>Drafting</option><option>Needs review</option><option>Awaiting approval</option><option>Revision requested</option><option>Delivered</option><option>Paid</option><option>On hold</option><option>Closed</option></select></div><div class="tablewrap" id="tableWrap"></div></section>
+</div>
+<footer>Works offline after the file is opened. Browser storage can be cleared by device settings; use Export backup to save a JSON copy.</footer>
+</main>
+<script>
+(function(){
+'use strict';
+const STORAGE_KEY='business-content-studio-records-v1';
+const $=id=>document.getElementById(id);
+let records=[];
+try{const raw=localStorage.getItem(STORAGE_KEY);records=raw?JSON.parse(raw):[];if(!Array.isArray(records))records=[];}catch(e){records=[];}
+function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(records));render();}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(v){const n=Number(v);return v!==''&&Number.isFinite(n)?'৳'+n.toLocaleString('en-BD'):'—';}
+function reset(){ $('recordForm').reset();$('recordId').value='';$('formTitle').textContent='Add a record';$('saveBtn').textContent='Save record';}
+function edit(id){const r=records.find(x=>x.id===id);if(!r)return;for(const k of ['id','name','type','status','nextDate','amount','notes'])$(k==='id'?'recordId':k).value=r[k]??'';$('formTitle').textContent='Edit record';$('saveBtn').textContent='Update record';window.scrollTo({top:0,behavior:'smooth'});}
+function remove(id){if(!confirm('Delete this record? This cannot be undone unless you have a backup.'))return;records=records.filter(x=>x.id!==id);persist();if($('recordId').value===id)reset();}
+function render(){
+const types=['Prospect','Client','Client request','Content draft','Revision','Payment'];
+$('stats').innerHTML=types.map(t=>'<div class="stat"><span class="muted">'+esc(t)+'</span><strong>'+records.filter(r=>r.type===t).length+'</strong></div>').join('');
+const q=$('search').value.toLowerCase(),type=$('filter').value,status=$('statusFilter').value;
+const shown=records.filter(r=>(type==='All'||r.type===type)&&(status==='All'||r.status===status)&&[r.name,r.notes,r.type,r.status].join(' ').toLowerCase().includes(q)).sort((a,b)=>(a.nextDate||'9999').localeCompare(b.nextDate||'9999'));
+if(!shown.length){$('tableWrap').innerHTML='<div class="empty">No records match. Add one using the form.</div>';return;}
+$('tableWrap').innerHTML='<table><thead><tr><th>Business / notes</th><th>Type / status</th><th>Next date</th><th>Amount</th><th>Actions</th></tr></thead><tbody>'+shown.map(r=>'<tr><td><strong>'+esc(r.name)+'</strong><br><small>'+esc(r.notes||'No notes')+'</small></td><td><span class="pill">'+esc(r.type)+'</span><br><small>'+esc(r.status)+'</small></td><td>'+esc(r.nextDate||'—')+'</td><td>'+fmt(r.amount)+'</td><td><button class="rowbtn" data-edit="'+esc(r.id)+'">Edit</button> <button class="rowbtn" data-delete="'+esc(r.id)+'">Delete</button></td></tr>').join('')+'</tbody></table>';
+}
+$('recordForm').addEventListener('submit',e=>{e.preventDefault();const id=$('recordId').value||String(Date.now())+'-'+Math.random().toString(16).slice(2);const obj={id,name:$('name').value.trim(),type:$('type').value,status:$('status').value,nextDate:$('nextDate').value,amount:$('amount').value,notes:$('notes').value.trim(),updatedAt:new Date().toISOString()};if(!obj.name)return;const idx=records.findIndex(r=>r.id===id);if(idx>=0)records[idx]=obj;else records.unshift(obj);persist();reset();});
+$('resetBtn').addEventListener('click',reset);
+$('search').addEventListener('input',render);$('filter').addEventListener('change',render);$('statusFilter').addEventListener('change',render);
+$('tableWrap').addEventListener('click',e=>{const editBtn=e.target.closest('[data-edit]'),delBtn=e.target.closest('[data-delete]');if(editBtn)edit(editBtn.dataset.edit);if(delBtn)remove(delBtn.dataset.delete);});
+$('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({schema:1,exportedAt:new Date().toISOString(),records},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='business-content-studio-backup.json';a.click();URL.revokeObjectURL(a.href);});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{const file=e.target.files&&e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());const incoming=Array.isArray(data)?data:data.records;if(!Array.isArray(incoming)||!incoming.every(r=>r&&typeof r.name==='string'&&typeof r.type==='string'))throw new Error('The file does not contain valid records.');if(!confirm('Import '+incoming.length+' records? Existing records with the same ID will be replaced; other records are kept.'))return;for(const r of incoming){const item={id:String(r.id||Date.now()+Math.random()),name:String(r.name).slice(0,120),type:String(r.type),status:String(r.status||'New'),nextDate:String(r.nextDate||''),amount:String(r.amount||''),notes:String(r.notes||'').slice(0,2000),updatedAt:new Date().toISOString()};const i=records.findIndex(x=>x.id===item.id);if(i>=0)records[i]=item;else records.push(item);}persist();alert('Import complete.');}catch(err){alert('Import failed: '+err.message);}finally{e.target.value='';}});
+render();
+})();
+</script></body></html>

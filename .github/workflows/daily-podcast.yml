@@ -1,6 +1,9 @@
 name: Two Takes — Daily Episode
 
 on:
+  push:
+    paths:
+      - ".github/workflows/youtube-oauth-smoke-test.yml"
   workflow_dispatch:
     inputs:
       trigger_source:

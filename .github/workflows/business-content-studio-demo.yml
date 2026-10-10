@@ -28,15 +28,20 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Run unit tests
+        run: python -m unittest discover -s business-service -p 'test_*.py' -v
+
       - name: Validate generator
         run: python -m py_compile business-service/generate_demo.py
 
       - name: Generate approval-only demo
         shell: bash
+        env:
+          PLAN_START_DATE: ${{ inputs.start_date }}
         run: |
           set -euo pipefail
-          if [[ -n "${{ inputs.start_date }}" ]]; then
-            python business-service/generate_demo.py --start-date "${{ inputs.start_date }}"
+          if [[ -n "$PLAN_START_DATE" ]]; then
+            python business-service/generate_demo.py --start-date "$PLAN_START_DATE"
           else
             python business-service/generate_demo.py
           fi

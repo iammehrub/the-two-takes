@@ -1,0 +1,47 @@
+name: Business Content Studio — Tests
+
+on:
+  push:
+    paths:
+      - "business-service/**"
+      - ".github/workflows/business-content-studio-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: business-content-studio-tests
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compile generator
+        run: python -m py_compile business-service/generate_demo.py
+      - name: Run unit tests
+        run: python -m unittest discover -s business-service -p 'test_*.py' -v
+      - name: Generate sample pack
+        run: |
+          python business-service/generate_demo.py --start-date 2026-10-12 --output-dir "$RUNNER_TEMP/business-content-pack"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "business-content-pack"
+          pack = json.loads((root / "content_pack.json").read_text(encoding="utf-8"))
+          assert len(pack["items"]) == 7
+          assert pack["published"] is False
+          assert pack["approval_required"] is True
+          assert all(item["status"] == "DRAFT — HUMAN APPROVAL REQUIRED" for item in pack["items"])
+          assert (root / "content_pack.md").exists()
+          print("Validated seven draft items; publishing remains disabled.")
+          PY

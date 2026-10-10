@@ -1,0 +1,50 @@
+name: Business Content Studio — Demo Pack
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: Optional plan start date (YYYY-MM-DD)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: business-content-studio-demo
+  cancel-in-progress: false
+
+jobs:
+  generate-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Validate generator
+        run: python -m py_compile business-service/generate_demo.py
+
+      - name: Generate approval-only demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.start_date }}" ]]; then
+            python business-service/generate_demo.py --start-date "${{ inputs.start_date }}"
+          else
+            python business-service/generate_demo.py
+          fi
+
+      - name: Upload draft pack
+        uses: actions/upload-artifact@v6
+        with:
+          name: business-content-studio-demo
+          path: work/business_service_demo/
+          if-no-files-found: error
+          retention-days: 7

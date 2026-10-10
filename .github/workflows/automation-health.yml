@@ -40,6 +40,7 @@ jobs:
               "scripts/content_guard.py",
               "business-service/generate_demo.py",
               "business-service/client_profile.example.json",
+              "business-service/test_generate_demo.py",
           ]
           missing = [p for p in required if not (root / p).exists()]
           if missing:
@@ -106,5 +107,12 @@ jobs:
               if any(item.get("status") != "DRAFT — HUMAN APPROVAL REQUIRED" for item in items):
                   raise SystemExit("Business service output is missing its approval status")
 
-          print(f"Healthy: checked {len(py_files)} Python files, JSON state, and 7-item approval-only demo.")
+          test_result = subprocess.run(
+              [sys.executable, "-m", "unittest", "discover", "-s", "business-service", "-p", "test_*.py", "-v"],
+              check=False, capture_output=True, text=True,
+          )
+          if test_result.returncode:
+              raise SystemExit("Business service unit tests failed:\\n" + test_result.stdout + test_result.stderr)
+          print(test_result.stdout)
+          print(f"Healthy: checked {len(py_files)} Python files, JSON state, unit tests, and 7-item approval-only demo.")
           PY

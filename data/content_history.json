@@ -75,8 +75,17 @@
     "video_id": "rH53hhSTjKY",
     "title": "How to Start a Conversation With Someone You Just Met | English Speaking Practice",
     "topic": "How to Start a Conversation With Someone You Just Met",
+    "link": "https://youtu.be/rH53hhSTjKY",
     "kind": "Podcast",
     "published": "2026-10-11T20:29:49.030059+00:00",
-    "script_sha256": "a31c8d64d6e8d21e988990327a737e1959be9e8f320bdb96c859e6f03212e690"
+    "notified_at": "2026-10-11T20:29:50.553363+00:00"
+  },
+  {
+    "video_id": "L8XragzyKMs",
+    "title": "Small Talk Tips: How to Chat Naturally in English",
+    "topic": "How to Make Small Talk Without Feeling Awkward",
+    "kind": "Podcast",
+    "published": "2026-10-12T20:27:13.209990+00:00",
+    "script_sha256": "7a570d5c02412433e410210d661d964f6c87562945365a295ee112c4744131d9"
   }
 ]

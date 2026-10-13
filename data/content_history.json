@@ -84,8 +84,17 @@
     "video_id": "L8XragzyKMs",
     "title": "Small Talk Tips: How to Chat Naturally in English",
     "topic": "How to Make Small Talk Without Feeling Awkward",
+    "link": "https://youtu.be/L8XragzyKMs",
     "kind": "Podcast",
     "published": "2026-10-12T20:27:13.209990+00:00",
-    "script_sha256": "7a570d5c02412433e410210d661d964f6c87562945365a295ee112c4744131d9"
+    "notified_at": "2026-10-12T20:27:14.788702+00:00"
+  },
+  {
+    "video_id": "px4P_tmuFkg",
+    "title": "Sound More Natural: Everyday English Phrases for Real Talk",
+    "topic": "English Phrases You Can Use in Real Conversations",
+    "kind": "Podcast",
+    "published": "2026-10-13T20:42:58.334451+00:00",
+    "script_sha256": "8b4e2dbd494c5397e391f591b73502ca48fb50bc46f5a47d52f7b4ce48b10e2a"
   }
 ]

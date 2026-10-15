@@ -16,7 +16,11 @@ import sys
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly",
+    "https://www.googleapis.com/auth/yt-analytics.readonly",
+]
 DEFAULT_CLIENT_FILE = Path("client_secret.json")
 
 
@@ -63,7 +67,7 @@ def config_from_env() -> dict | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Authorize the Two Takes YouTube uploader and print a new refresh token."
+        description="Authorize Two Takes uploads and analytics and print a new refresh token."
     )
     parser.add_argument(
         "--client-file",
@@ -86,7 +90,9 @@ def main() -> int:
     print()
     print("Google will open a browser for authorization.")
     print("Grant access to the YouTube channel that Two Takes should publish to.")
-    print("Required scope: https://www.googleapis.com/auth/youtube.upload")
+    print("Required scopes:")
+    for scope in SCOPES:
+        print(" - " + scope)
     print()
 
     try:
@@ -112,12 +118,16 @@ def main() -> int:
         return 2
 
     print()
-    print("=== NEW YOUTUBE_REFRESH_TOKEN ===")
+    print("=== NEW YOUTUBE_REFRESH_TOKEN (upload + analytics) ===")
     print(refresh_token)
     print("=== END TOKEN ===")
     print()
     print(
-        "Replace the GitHub Actions secret named YOUTUBE_REFRESH_TOKEN with this value."
+        "Replace the GitHub Actions secret YOUTUBE_REFRESH_TOKEN with this value."
+    )
+    print(
+        "The analytics workflow can now reuse this token; no separate "
+        "YOUTUBE_ANALYTICS_REFRESH_TOKEN secret is required."
     )
     print(
         "Do not commit the token or paste it into chat."

@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
-            --json conclusion,status,headSha,headBranch,runAttempt
+            --json conclusion,status,headSha,headBranch,attempt
           gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > failed.log 2>&1 || true
           if grep -Fq "YouTube upload complete. Video ID:" failed.log; then
             echo "post_upload=true" >> "$GITHUB_OUTPUT"

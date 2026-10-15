@@ -1,43 +1,47 @@
 # YouTube OAuth recovery for Two Takes
 
-The Daily Podcast workflow is blocked before video generation when Google rejects the stored
-YOUTUBE_REFRESH_TOKEN.
+The Daily Podcast workflow stops before generating a video when Google rejects the stored
+`YOUTUBE_REFRESH_TOKEN`. The latest checked run reported that the refresh token is expired or revoked.
+The YouTube Analytics workflow also lacked `YOUTUBE_ANALYTICS_REFRESH_TOKEN`.
 
 ## Permanent recovery
 
-1. In Google Cloud Console, open the OAuth consent screen for the same project used by
-   YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET.
-2. Change the app publishing status from **Testing** to **In production** when this is a
-   long-running personal automation. Google documents that refresh tokens issued while an
-   external OAuth app is in Testing can expire after 7 days.
-3. Create a fresh refresh token for the same OAuth client with this scope:
+1. In Google Cloud Console, open **Google Auth Platform -> Audience** for the same project used by
+   `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET`.
+2. For a long-running personal automation, change the app publishing status from **Testing** to
+   **In production**. Google documents that refresh tokens issued while an external OAuth app is in
+   Testing can expire after 7 days:
+   https://developers.google.com/identity/protocols/oauth2
+3. Generate a fresh token for the **same OAuth client** with all three scopes:
+   - `https://www.googleapis.com/auth/youtube.upload`
+   - `https://www.googleapis.com/auth/youtube.readonly`
+   - `https://www.googleapis.com/auth/yt-analytics.readonly`
 
-   https://www.googleapis.com/auth/youtube.upload
+   From a local clone, run `python scripts/youtube_reauthorize.py`. The script opens Google's
+   consent flow and prints the token locally. Use a client JSON file saved as `client_secret.json`
+   in the repository root, or set `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` in your local
+   environment before running it. Never commit `client_secret.json` or the generated token.
 
-   The repository also contains scripts/youtube_reauthorize.py for a local browser-based
-   authorization flow. It requires the OAuth client credentials locally and never writes the
-   token to the repository.
+   You can also use Google's OAuth 2.0 Playground with **your own OAuth client credentials** and
+   offline access, requesting all three scopes above.
+4. In GitHub, open **Settings -> Secrets and variables -> Actions**. Update
+   `YOUTUBE_REFRESH_TOKEN` with the newly generated token.
+5. The analytics workflow now uses `YOUTUBE_ANALYTICS_REFRESH_TOKEN` when that secret exists, and
+   otherwise falls back to `YOUTUBE_REFRESH_TOKEN`. Therefore, one combined-scope token is enough;
+   optionally, the same value can also be saved as `YOUTUBE_ANALYTICS_REFRESH_TOKEN`.
+6. Run **Actions -> Two Takes — Daily Episode -> Run workflow**. Confirm the
+   **Verify YouTube upload OAuth** step passes. Then run **YouTube 12-Hour Analytics** manually and
+   confirm **Verify YouTube analytics OAuth** passes.
 
-   Another option is Google's OAuth 2.0 Playground using the custom OAuth credentials for
-   this same client. Use offline access and consent, authorize the YouTube upload scope,
-   exchange the authorization code, and copy the new refresh token.
-4. In GitHub:
-   Settings -> Secrets and variables -> Actions -> YOUTUBE_REFRESH_TOKEN -> Update secret
-   with the new token.
-5. Do not paste the token into chat or commit it to Git.
-6. Run Actions -> Two Takes - Daily Episode -> Run workflow.
+## What the workflows verify
 
-## What the workflow verifies
-
-Before spending time generating audio/video, youtube_upload_preflight.py refreshes the
-Google credential and calls the YouTube Data API. The workflow stops immediately when the
-refresh token is missing, expired, revoked, or lacks the upload scope.
-
-Once the preflight passes, the existing build -> render -> upload -> Discord -> repository
-recording pipeline can proceed.
+Before spending time generating audio/video, the upload preflight refreshes the Google credential and
+checks the YouTube upload scope. Analytics preflight checks that the token is valid and includes both
+read scopes. Both stop early if Google rejects the refresh token or if required scopes are missing.
 
 ## Important
 
-The workflow's YOUTUBE_REFRESH_TOKEN secret is the credential that failed in Run #110.
-Changing Python scopes alone cannot repair a revoked/expired refresh token; Google requires
-reauthorization and a newly issued token.
+Do not paste tokens into chat, issue comments, workflow files, logs, or commits. Put the token only in
+GitHub Actions Secrets. If a newly created token expires again after roughly seven days, verify that
+the OAuth app is no longer in Testing; creating another token without addressing Testing status may
+only repeat the problem.

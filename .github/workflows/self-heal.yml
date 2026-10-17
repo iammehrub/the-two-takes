@@ -44,10 +44,15 @@ jobs:
           else
             echo "post_upload=false" >> "$GITHUB_OUTPUT"
           fi
+          if grep -Eiq 'invalid_grant|refresh token is expired or revoked|token has been expired or revoked|lacks the upload scope|missing required scope|insufficientAuthenticationScopes|Insufficient Permission' failed.log; then
+            echo "oauth_action_required=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "oauth_action_required=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Retry failed run once
         id: retry
-        if: steps.inspect.outputs.post_upload != 'true'
+        if: steps.inspect.outputs.post_upload != 'true' && steps.inspect.outputs.oauth_action_required != 'true'
         continue-on-error: true
         env:
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -57,8 +62,20 @@ jobs:
           gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" --failed
           gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
 
+      - name: Stop on OAuth credentials requiring human action
+        if: steps.inspect.outputs.oauth_action_required == 'true'
+        run: |
+          set -euo pipefail
+          {
+            echo "YouTube OAuth refresh token is expired/revoked or lacks a required scope."
+            echo "Publishing secret: re-authorize with https://www.googleapis.com/auth/youtube.upload and update YOUTUBE_REFRESH_TOKEN."
+            echo "Analytics secret: re-authorize with https://www.googleapis.com/auth/youtube.readonly and https://www.googleapis.com/auth/yt-analytics.readonly, then update YOUTUBE_ANALYTICS_REFRESH_TOKEN."
+            echo "Do not keep retrying until the appropriate GitHub Actions secret is updated."
+          } | tee repair_reason.txt
+          exit 1
+
       - name: Build repair context
-        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
         run: |
           set -euo pipefail
           {
@@ -81,7 +98,7 @@ jobs:
           tail -c 70000 repair_context.txt > repair_context_tail.txt
 
       - name: Ask Gemini for repair
-        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -145,7 +162,7 @@ jobs:
           PY
 
       - name: Validate and apply repair
-        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
         run: |
           set -euo pipefail
           if [[ ! -s repair.patch ]]; then
@@ -170,7 +187,7 @@ jobs:
           fi
 
       - name: Commit repair
-        if: steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
         id: commit
         run: |
           set -euo pipefail

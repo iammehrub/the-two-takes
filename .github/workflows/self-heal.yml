@@ -36,6 +36,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          attempt="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq '.run_attempt')"
+          echo "run_attempt=$attempt" >> "$GITHUB_OUTPUT"
           gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
             --json conclusion,status,headSha,headBranch,attempt
           gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > failed.log 2>&1 || true
@@ -44,7 +46,7 @@ jobs:
           else
             echo "post_upload=false" >> "$GITHUB_OUTPUT"
           fi
-          if grep -Eiq 'invalid_grant|refresh token is expired or revoked|token has been expired or revoked|lacks the upload scope|missing required scope|insufficientAuthenticationScopes|Insufficient Permission' failed.log; then
+          if grep -Eiq 'invalid_grant|refresh token is expired or revoked|token has been expired or revoked|lacks the upload scope|missing required scope|insufficientAuthenticationScopes|Insufficient Permission|YouTube OAuth failed|youtube_upload_preflight.py.*exit code 4' failed.log; then
             echo "oauth_action_required=true" >> "$GITHUB_OUTPUT"
           else
             echo "oauth_action_required=false" >> "$GITHUB_OUTPUT"
@@ -52,7 +54,7 @@ jobs:
 
       - name: Retry failed run once
         id: retry
-        if: steps.inspect.outputs.post_upload != 'true' && steps.inspect.outputs.oauth_action_required != 'true'
+        if: steps.inspect.outputs.run_attempt == '1' && steps.inspect.outputs.post_upload != 'true' && steps.inspect.outputs.oauth_action_required != 'true'
         continue-on-error: true
         env:
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -75,7 +77,7 @@ jobs:
           exit 1
 
       - name: Build repair context
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
         run: |
           set -euo pipefail
           {
@@ -98,7 +100,7 @@ jobs:
           tail -c 70000 repair_context.txt > repair_context_tail.txt
 
       - name: Ask Gemini for repair
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -162,7 +164,7 @@ jobs:
           PY
 
       - name: Validate and apply repair
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
         run: |
           set -euo pipefail
           if [[ ! -s repair.patch ]]; then
@@ -187,7 +189,7 @@ jobs:
           fi
 
       - name: Commit repair
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome != 'success')
+        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
         id: commit
         run: |
           set -euo pipefail

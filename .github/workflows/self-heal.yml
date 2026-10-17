@@ -52,18 +52,6 @@ jobs:
             echo "oauth_action_required=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Retry failed run once
-        id: retry
-        if: steps.inspect.outputs.run_attempt == '1' && steps.inspect.outputs.post_upload != 'true' && steps.inspect.outputs.oauth_action_required != 'true'
-        continue-on-error: true
-        env:
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh run rerun "$RUN_ID" --repo "$GITHUB_REPOSITORY" --failed
-          gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status
-
       - name: Stop on OAuth credentials requiring human action
         if: steps.inspect.outputs.oauth_action_required == 'true'
         run: |
@@ -77,7 +65,7 @@ jobs:
           exit 1
 
       - name: Build repair context
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
+        if: steps.inspect.outputs.oauth_action_required != 'true'
         run: |
           set -euo pipefail
           {
@@ -100,7 +88,7 @@ jobs:
           tail -c 70000 repair_context.txt > repair_context_tail.txt
 
       - name: Ask Gemini for repair
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
+        if: steps.inspect.outputs.oauth_action_required != 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -164,7 +152,7 @@ jobs:
           PY
 
       - name: Validate and apply repair
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
+        if: steps.inspect.outputs.oauth_action_required != 'true'
         run: |
           set -euo pipefail
           if [[ ! -s repair.patch ]]; then
@@ -189,7 +177,7 @@ jobs:
           fi
 
       - name: Commit repair
-        if: steps.inspect.outputs.oauth_action_required != 'true' && (steps.inspect.outputs.post_upload == 'true' || steps.retry.outcome == 'failure')
+        if: steps.inspect.outputs.oauth_action_required != 'true'
         id: commit
         run: |
           set -euo pipefail

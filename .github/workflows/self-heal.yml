@@ -17,6 +17,7 @@ concurrency:
 jobs:
   recover:
     if: >-
+      github.event.workflow_run.run_attempt == 1 &&
       github.event.workflow_run.conclusion != 'success' &&
       github.event.workflow_run.conclusion != 'skipped' &&
       !contains(github.event.workflow_run.head_commit.message, '[self-heal]')

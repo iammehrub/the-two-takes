@@ -3,6 +3,7 @@ name: Two Takes — Workflow Failure Alerts
 on:
   workflow_run:
     workflows:
+      - "Two Takes — Daily Episode"
       - "YouTube 12-Hour Analytics"
       - "Bangladesh Top 5 Discord News"
       - "Two Takes — Automation Health"
@@ -17,6 +18,7 @@ jobs:
   alert:
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 3
 
     steps:
       - name: Send Discord failure alert

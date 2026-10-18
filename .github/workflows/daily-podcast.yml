@@ -30,6 +30,7 @@ jobs:
 
       - name: Install system packages
         run: |
+          set -euo pipefail
           for attempt in 1 2 3; do
             if sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg imagemagick fonts-dejavu espeak-ng; then
               break
@@ -50,8 +51,9 @@ jobs:
 
       - name: Install Python packages
         run: |
+          set -euo pipefail
           for attempt in 1 2 3; do
-            if python -m pip install --upgrade pip &&                python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile; then
+            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile; then
               break
             fi
             if [[ "$attempt" == "3" ]]; then
@@ -89,7 +91,44 @@ jobs:
           echo "=== PIPELINE PREFLIGHT PASSED ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
 
-      - name: Notify Discord and record upload
+      - name: Validate upload metadata and record upload
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          info_path = Path("work/youtube_upload.json")
+          if not info_path.exists():
+              raise RuntimeError(
+                  "YouTube upload metadata is missing. The build step did not "
+                  "complete its upload-recording stage."
+              )
+
+          info = json.loads(info_path.read_text(encoding="utf-8"))
+          if not isinstance(info, dict):
+              raise RuntimeError("YouTube upload metadata is not a JSON object.")
+
+          video_id = str(info.get("video_id", "")).strip()
+          if not video_id:
+              raise RuntimeError("YouTube upload metadata has no video_id.")
+
+          record = {
+              **info,
+              "notified_at": datetime.now(timezone.utc).isoformat(),
+          }
+          upload_dir = Path("data/youtube_uploads")
+          upload_dir.mkdir(parents=True, exist_ok=True)
+          record_path = upload_dir / f"{video_id}.json"
+          record_path.write_text(
+              json.dumps(record, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(f"Verified and recorded YouTube upload: {video_id}")
+          PY
+
+      - name: Notify Discord about published episode
         env:
           DISCORD_YOUTUBE_PODCAST_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_PODCAST_WEBHOOK }}
           DISCORD_YOUTUBE_MENTION_ROLE_ID: ${{ secrets.DISCORD_YOUTUBE_MENTION_ROLE_ID }}
@@ -100,40 +139,16 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from datetime import datetime, timezone
           from discord_notify import notify_youtube
 
           info_path = Path("work/youtube_upload.json")
-          if not info_path.exists():
-              raise RuntimeError("Podcast upload metadata file was not created.")
-
           info = json.loads(info_path.read_text(encoding="utf-8"))
-
-          try:
-              notified = notify_youtube(
-                  info,
-                  "Podcast",
-                  "DISCORD_YOUTUBE_PODCAST_WEBHOOK",
-              )
-              print(
-                  "Podcast Discord notification:",
-                  "sent" if notified else "not sent; continuing",
-              )
-          except Exception as exc:
-              print(f"Discord notification failed; upload record will still be saved: {exc}")
-
-          video_id = str(info.get("video_id", "")).strip()
-          if not video_id:
-              raise RuntimeError("Podcast upload metadata has no video_id.")
-
-          record = {**info, "notified_at": datetime.now(timezone.utc).isoformat()}
-          upload_dir = Path("data/youtube_uploads")
-          upload_dir.mkdir(parents=True, exist_ok=True)
-          (upload_dir / f"{video_id}.json").write_text(
-              json.dumps(record, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8",
+          sent = notify_youtube(
+              info,
+              "Podcast",
+              "DISCORD_YOUTUBE_PODCAST_WEBHOOK",
           )
-          print(f"Upload recorded: {video_id}")
+          print("Podcast Discord notification:", "sent" if sent else "not sent; continuing")
           PY
 
       - name: Persist upload record
@@ -143,7 +158,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/content_history.json data/youtube_uploads/*.json
+          git add data/content_history.json data/youtube_uploads/
 
           if git diff --cached --quiet; then
             echo "No repository state changes to commit."

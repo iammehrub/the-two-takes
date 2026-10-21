@@ -107,28 +107,42 @@ def notify_error(message: str, component: str) -> bool:
 def notify_youtube_analytics(analysis: dict) -> bool:
     analyzed_bd = bd_time(analysis.get("analyzed_at"))
     mention_role_id = os.environ.get("DISCORD_YOUTUBE_MENTION_ROLE_ID", "").strip()
+    checkpoint = str(analysis.get("checkpoint", "12-hour"))
+    fields = [
+        ("Video", analysis.get("title", "Untitled"), False),
+        ("Checkpoint", checkpoint, True),
+        ("Video age", f"{analysis.get('age_hours', 0):.1f} hours", True),
+        ("Views", str(analysis.get("views", 0)), True),
+        ("Likes", str(analysis.get("likes", 0)), True),
+        ("Comments", str(analysis.get("comments", 0)), True),
+        ("Like rate", f"{analysis.get('like_rate', 0):.2f}%", True),
+    ]
+
+    if "views_since_previous_report" in analysis:
+        fields.extend([
+            ("Views since previous report", f"+{analysis.get('views_since_previous_report', 0)}", True),
+            ("Likes since previous report", f"+{analysis.get('likes_since_previous_report', 0)}", True),
+            ("Comments since previous report", f"+{analysis.get('comments_since_previous_report', 0)}", True),
+        ])
+
+    fields.extend([
+        ("Watch time", str(analysis.get("estimated_minutes_watched", "Not available from this snapshot")), True),
+        ("Avg view", str(analysis.get("average_view_duration", "Not available from this snapshot")), True),
+        ("Avg % viewed", str(analysis.get("average_view_percentage", "Not available from this snapshot")), True),
+        ("Subscribers", str(analysis.get("subscribers_gained", "Not available from this snapshot")), True),
+        ("Analyzed", analyzed_bd, True),
+        ("Data note", "Public totals at report time; not exact hourly historical data.", False),
+    ])
+
     return send_webhook(
         "DISCORD_YOUTUBE_ANALYTICS_WEBHOOK",
-        "📊 12-Hour YouTube Analysis",
-        analysis.get("summary", "YouTube analytics snapshot completed."),
-        fields=[
-            ("Video", analysis.get("title", "Untitled"), False),
-            ("Type", analysis.get("kind", "YouTube"), True),
-            ("Views", str(analysis.get("views", 0)), True),
-            ("Likes", str(analysis.get("likes", 0)), True),
-            ("Comments", str(analysis.get("comments", 0)), True),
-            ("Like rate", f"{analysis.get('like_rate', 0):.2f}%", True),
-            ("Watch time", str(analysis.get("estimated_minutes_watched", "Not available")), True),
-            ("Avg view", str(analysis.get("average_view_duration", "Not available")), True),
-            ("Avg % viewed", str(analysis.get("average_view_percentage", "Not available")), True),
-            ("Subscribers", str(analysis.get("subscribers_gained", "Not available")), True),
-            ("Analyzed", analyzed_bd, True),
-        ],
+        f"📊 YouTube {checkpoint} Analysis",
+        analysis.get("summary", "YouTube checkpoint analysis completed."),
+        fields=fields,
         url=analysis.get("link", ""),
-        footer="YouTube • 12-Hour Analytics • Bangladesh time",
+        footer=f"YouTube • {checkpoint} Analytics • Bangladesh time",
         mention_role_id=mention_role_id,
     )
-
 
 
 def notify_youtube_audience(audience: dict, analyzed_at: str) -> bool:

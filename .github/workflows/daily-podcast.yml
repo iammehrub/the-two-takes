@@ -77,6 +77,8 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Gemini is the default; OpenAI is only used if this repository variable is explicitly set to true.
+          USE_OPENAI_FOR_SCRIPT: ${{ vars.USE_OPENAI_FOR_SCRIPT }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -87,7 +89,7 @@ jobs:
           python --version
           ls -la scripts
           python -c "from kokoro import KPipeline; print('Kokoro import OK')"
-          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py
           echo "=== PIPELINE PREFLIGHT PASSED ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
 
@@ -199,5 +201,8 @@ jobs:
             work/chapters.txt
             work/original_music_bed.wav
             work/shorts/
+            work/production_report.json
+            work/production_report.txt
+            work/captions.srt
           if-no-files-found: ignore
           retention-days: 14

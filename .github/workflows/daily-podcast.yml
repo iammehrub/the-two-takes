@@ -87,7 +87,7 @@ jobs:
           python --version
           ls -la scripts
           python -c "from kokoro import KPipeline; print('Kokoro import OK')"
-          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py
           echo "=== PIPELINE PREFLIGHT PASSED ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
 
@@ -198,5 +198,6 @@ jobs:
             work/thumbnail_text.txt
             work/chapters.txt
             work/original_music_bed.wav
+            work/shorts/
           if-no-files-found: ignore
           retention-days: 14

@@ -302,33 +302,60 @@ def main() -> None:
             if isinstance(record, dict) and record.get("video_id"):
                 upload_records[str(record["video_id"]).strip()] = record
 
-    # Keep legacy watcher history as a backwards-compatible source.
+    # Preserve legacy watcher history for videos recorded before upload files existed.
     for record in watcher.get("notified_videos", []):
         if isinstance(record, dict) and record.get("video_id"):
             upload_records.setdefault(str(record["video_id"]).strip(), record)
-    state = load(ANALYTICS_STATE, {"processed": [], "history": []})
-    processed = set(str(x) for x in state.get("processed", []))
+
+    state = load(ANALYTICS_STATE, {"processed": [], "history": [], "milestones": {}})
     history = list(state.get("history", []))
+    raw_milestones = state.get("milestones", {})
+    milestones = {
+        str(video_id): list(values) if isinstance(values, list) else []
+        for video_id, values in raw_milestones.items()
+    } if isinstance(raw_milestones, dict) else {}
 
-    # Use the same YouTube OAuth refresh token as both upload workflows.
-    # The token must have the broad YouTube account scope.
+    # Migrate the old state: "processed" meant the 12-hour notification was sent.
+    for video_id in state.get("processed", []):
+        marks = milestones.setdefault(str(video_id), [])
+        if "12h" not in marks:
+            marks.append("12h")
+
+    # This credential must be the separate read-only analytics refresh token.
     oauth_token = refresh_access_token()
-
     now = datetime.now(timezone.utc)
-    ready = []
+    due = []
 
+    # If a workflow was down for several days, send only the latest eligible
+    # checkpoint; the public API cannot recreate an exact historical 12h snapshot.
+    checkpoints = (("7d", 168, "7-day"), ("24h", 24, "24-hour"), ("12h", 12, "12-hour"))
     for video in upload_records.values():
         video_id = str(video.get("video_id", "")).strip()
         published = parse_dt(video.get("published", ""))
-        if not video_id or not published or video_id in processed:
+        if not video_id or not published:
             continue
 
-        age_hours = (now - published).total_seconds() / 3600
-        if age_hours >= 12:
-            ready.append((published, video, age_hours))
+        age_hours = max(0.0, (now - published).total_seconds() / 3600)
+        sent = set(milestones.get(video_id, []))
+        checkpoint = next(
+            (
+                (key, label)
+                for key, threshold, label in checkpoints
+                if age_hours >= threshold and key not in sent
+            ),
+            None,
+        )
+        if checkpoint:
+            due.append((published, video, age_hours, checkpoint[0], checkpoint[1]))
 
-    if not ready:
-        print("No YouTube uploads are ready for 12-hour analytics.")
+    if not due:
+        print("No new 12-hour, 24-hour, or 7-day video checkpoints are due.")
+        # Save the migration so existing 12-hour notifications are not duplicated.
+        state["milestones"] = milestones
+        state["processed"] = [
+            video_id for video_id, marks in milestones.items() if "12h" in marks
+        ][-500:]
+        save(ANALYTICS_STATE, state)
         return
 
     audience = None
@@ -336,7 +363,8 @@ def main() -> None:
     try:
         audience = query_audience_insights(oauth_token)
         save(ROOT / "data" / "youtube_audience_insights.json", audience)
-        notify_youtube_audience(audience, now.isoformat())
+        if not notify_youtube_audience(audience, now.isoformat()):
+            print("Audience intelligence Discord notification was not sent.")
     except Exception as exc:
         audience_error = str(exc)
         print(f"Audience intelligence unavailable: {exc}")
@@ -348,15 +376,24 @@ def main() -> None:
     except Exception as exc:
         print(f"Deep channel analytics unavailable: {exc}")
 
-    for published, video, age_hours in sorted(ready, key=lambda x: x[0]):
-        video_id = video["video_id"]
-
+    for published, video, age_hours, checkpoint_key, checkpoint_label in sorted(
+        due, key=lambda item: item[0]
+    ):
+        video_id = str(video["video_id"]).strip()
         try:
             metrics = fetch_video(video_id, oauth_token)
+            previous = [
+                item for item in history
+                if str(item.get("video_id", "")).strip() == video_id
+            ]
+            previous.sort(key=lambda item: parse_dt(item.get("analyzed_at", "")) or datetime.min.replace(tzinfo=timezone.utc))
+            last = previous[-1] if previous else None
 
             analysis = {
                 "analyzed_at": now.isoformat(),
                 "age_hours": round(age_hours, 2),
+                "checkpoint": checkpoint_label,
+                "checkpoint_key": checkpoint_key,
                 "video_id": video_id,
                 "title": metrics["title"],
                 "kind": video.get("kind", "YouTube"),
@@ -364,37 +401,61 @@ def main() -> None:
                 "likes": metrics["likes"],
                 "comments": metrics["comments"],
                 "like_rate": metrics["like_rate"],
-                "link": video.get(
-                    "link",
-                    f"https://www.youtube.com/watch?v={video_id}",
-                ),
+                "link": video.get("link", f"https://www.youtube.com/watch?v={video_id}"),
                 "audience_insights_available": bool(audience),
                 "audience_error": audience_error,
+                "metric_source": "YouTube Data API public totals; not watch-time or retention data",
             }
 
+            if last:
+                analysis["previous_views"] = int(last.get("views", 0) or 0)
+                analysis["views_since_previous_report"] = max(
+                    0, analysis["views"] - analysis["previous_views"]
+                )
+                analysis["likes_since_previous_report"] = max(
+                    0, analysis["likes"] - int(last.get("likes", 0) or 0)
+                )
+                analysis["comments_since_previous_report"] = max(
+                    0, analysis["comments"] - int(last.get("comments", 0) or 0)
+                )
+
+            change_text = ""
+            if last:
+                change_text = (
+                    f" Since the previous report: +{analysis['views_since_previous_report']} views, "
+                    f"+{analysis['likes_since_previous_report']} likes, and "
+                    f"+{analysis['comments_since_previous_report']} comments."
+                )
+
             analysis["summary"] = (
-                f"At about {age_hours:.1f} hours, this video has "
-                f"{analysis['views']} views, {analysis['likes']} likes, and "
-                f"{analysis['comments']} comments. "
-                f"Like rate: {analysis['like_rate']:.2f}%. "
-                "This is the early YouTube Data API snapshot."
+                f"{checkpoint_label} checkpoint, about {age_hours:.1f} hours after publication: "
+                f"{analysis['views']} total views, {analysis['likes']} likes, and "
+                f"{analysis['comments']} comments. Like rate: {analysis['like_rate']:.2f}%. "
+                f"{change_text} These are public totals at the time of this report, not exact "
+                "hour-by-hour historical totals."
             )
 
             if notify_youtube_analytics(analysis):
-                processed.add(video_id)
+                marks = milestones.setdefault(video_id, [])
+                if checkpoint_key not in marks:
+                    marks.append(checkpoint_key)
                 history.append(analysis)
-                print(f"YouTube 12-hour analysis sent for {video_id}.")
+                print(f"YouTube {checkpoint_label} analysis sent for {video_id}.")
             else:
                 print(
-                    f"Discord analytics notification failed for {video_id}; "
-                    "will retry."
+                    f"Discord analytics notification failed for {video_id} "
+                    f"({checkpoint_label}); this checkpoint will retry."
                 )
 
         except Exception as exc:
-            notify_error(str(exc), "YouTube 12-hour analytics")
+            notify_error(str(exc), f"YouTube {checkpoint_label} analytics")
 
-    state["processed"] = list(processed)[-500:]
-    state["history"] = history[-200:]
+    state["milestones"] = milestones
+    # Keep this legacy field for backwards compatibility with previous workflow versions.
+    state["processed"] = [
+        video_id for video_id, marks in milestones.items() if "12h" in marks
+    ][-500:]
+    state["history"] = history[-500:]
     save(ANALYTICS_STATE, state)
 
 

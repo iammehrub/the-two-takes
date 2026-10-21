@@ -1,0 +1,71 @@
+name: Voice Pipeline Quality Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/openai_pipeline.py"
+      - ".github/workflows/voice-quality-check.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: two-takes-voice-quality
+  cancel-in-progress: true
+
+jobs:
+  syntax-and-behavior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Compile voice pipeline
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py
+
+      - name: Check expressive voice features
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path("scripts/openai_pipeline.py")
+          source = path.read_text(encoding="utf-8")
+          tree = ast.parse(source, filename=str(path))
+
+          functions = {
+              node.name
+              for node in ast.walk(tree)
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+          }
+          required_functions = {"delivery_speed", "kokoro_segment", "split_for_kokoro", "tts"}
+          missing = sorted(required_functions - functions)
+          if missing:
+              raise SystemExit("Missing voice pipeline functions: " + ", ".join(missing))
+
+          required_features = [
+              'KOKORO_HIMEL_VOICE = "am_eric"',
+              'KOKORO_NIHA_VOICE = "af_bella"',
+              '"delivery": delivery',
+              'next_turn_index != turn_index',
+              '"amused"',
+              '"curious"',
+              '"thoughtful"',
+              '"playful"',
+          ]
+          for feature in required_features:
+              if feature not in source:
+                  raise SystemExit("Missing expected expressive voice feature: " + feature)
+
+          print("Voice pipeline syntax and expressive pacing checks passed.")
+          PY

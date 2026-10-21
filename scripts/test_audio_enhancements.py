@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from scripts.audio_enhancements import build_chapters, generate_music_bed
+from scripts.audio_enhancements import build_chapters, generate_music_bed, select_short_windows
 
 
 class AudioEnhancementTests(unittest.TestCase):
@@ -26,6 +26,29 @@ class AudioEnhancementTests(unittest.TestCase):
             self.assertGreater(rms, 10.0, "Music bed should not be silent.")
             self.assertLess(rms, 5000.0, "Music bed should remain safely quiet.")
 
+    def test_short_windows_are_bounded_non_overlapping_and_start_on_speech(self):
+        segments = []
+        labels = {0: 'hook', 45: 'language_tip', 90: 'practice', 135: 'story'}
+        for i in range(36):
+            start = float(i * 5)
+            segments.append({
+                'start': start,
+                'end': start + 5.0,
+                'turn_index': i,
+                'turn_type': labels.get(int(start), 'reaction'),
+                'text': f'spoken segment {i}',
+            })
+
+        windows = select_short_windows(segments, 180.0, max_clips=3)
+        self.assertEqual(len(windows), 3)
+        self.assertEqual(windows, sorted(windows, key=lambda item: item['start']))
+        for window in windows:
+            self.assertGreaterEqual(window['duration'], 18.0)
+            self.assertLessEqual(window['duration'], 35.0)
+            self.assertIn(window['start'], [item['start'] for item in segments])
+            self.assertIn(window['end'], [item['end'] for item in segments])
+        for previous, current in zip(windows, windows[1:]):
+            self.assertGreaterEqual(current['start'] - previous['start'], 35.0)
     def test_music_bed_rejects_invalid_duration(self):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ValueError):

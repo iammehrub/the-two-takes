@@ -1,4 +1,4 @@
-"""Original studio-style production layer for The Two Takes.
+"""Original studio-style production layer for Two Takes Podcast.
 
 Designed around the English-learning podcast genre without copying another
 channel's protected branding, artwork, scripts, characters, or exact voice.
@@ -167,7 +167,7 @@ def _studio_svg():
       <rect x="80" y="60" width="1760" height="920" rx="36"
             fill="#fffaf1" stroke="#d9b98e" stroke-width="3"/>
       <text x="130" y="125" font-family="DejaVu Sans" font-size="34"
-            font-weight="800" fill="#1f1b18">THE TWO TAKES</text>
+            font-weight="800" fill="#1f1b18">TWO TAKES PODCAST</text>
       <rect x="130" y="150" width="270" height="42" rx="21" fill="#c94d1a"/>
       <text x="265" y="179" text-anchor="middle" font-family="DejaVu Sans"
             font-size="20" font-weight="800" fill="#ffffff">ENGLISH PODCAST</text>
@@ -344,6 +344,7 @@ def render_video(wav, clips, srt, title):
 
     camera_by_type = {
         "hook": "wide",
+        "welcome": "wide",
         "question": "himel",
         "follow_up": "himel",
         "story": "wide",
@@ -352,6 +353,7 @@ def render_video(wav, clips, srt, title):
         "language_tip": "wide",
         "practice": "wide",
         "recap": "wide",
+        "outro": "wide",
     }
 
     # Prefer a close-up of whoever is speaking for questions/stories, while
@@ -424,6 +426,7 @@ def render_video(wav, clips, srt, title):
             out = segment_dir / f"scene_{index:03d}.mp4"
             section_label = {
                 "hook": "ENGLISH PODCAST",
+                "welcome": "WELCOME",
                 "question": "CONVERSATION",
                 "follow_up": "CONVERSATION",
                 "story": "STORY",
@@ -432,6 +435,7 @@ def render_video(wav, clips, srt, title):
                 "language_tip": "PHRASE TOUR",
                 "practice": "SHADOWING PRACTICE",
                 "recap": "RECAP",
+                "outro": "SIGN-OFF",
             }.get(turn_type, "CONVERSATION")
             _make_studio_segment(
                 studio,
@@ -623,7 +627,7 @@ def render_shorts(wav, title, topic):
             "[0:v]scale=1080:-2[fg];"
             "[bg][fg]overlay=(W-w)/2:(H-h)/2-140,"
             "drawbox=x=48:y=50:w=984:h=124:color=0x211914@0.90:t=fill,"
-            f"drawtext=fontfile={font}:text='THE TWO TAKES':"
+            f"drawtext=fontfile={font}:text='TWO TAKES PODCAST':"
             "x=(w-text_w)/2:y=88:fontsize=42:fontcolor=white,"
             "drawbox=x=48:y=1710:w=984:h=132:color=0x211914@0.90:t=fill,"
             f"drawtext=fontfile={font}:text='FULL EPISODE ON CHANNEL':"
@@ -666,7 +670,7 @@ def render_shorts(wav, title, topic):
             "file": output_video.name,
             "title": short_title,
             "description": (
-                "Practice everyday English with The Two Takes. "
+                "Practice everyday English with Two Takes Podcast. "
                 "Watch the full conversation on the channel and try the phrase yourself."
             ),
             "hashtag_suggestions": ["#Shorts", "#EnglishLearning", "#SpeakEnglish"],
@@ -695,12 +699,11 @@ def render_shorts(wav, title, topic):
 
 
 # VISUAL REFERENCE STYLE
-# Warm English-learning podcast presentation inspired by the genre, while keeping
-# The Two Takes original branding, characters and artwork.
+# Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
     "thumbnail": "warm cream paper background; orange-red lesson headline; illustrated two-host focus; small English Podcast label; clean educational typography; minimal clutter",
     "video": "warm illustrated learning-podcast studio; two-host wide shot and speaker close-ups; section labels for conversation, phrase tour, shadowing practice and recap; readable subtitles; B-roll only for stories",
-    "branding": "THE TWO TAKES original branding; no copied logos, characters, artwork, or distinctive visual assets",
+    "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 
 def _short_thumbnail_title(title, topic):
@@ -745,7 +748,7 @@ def make_thumbnail(title, topic):
             fill="#fffaf1" stroke="#d9b98e" stroke-width="3"/>
 
       <text x="78" y="100" font-family="DejaVu Sans" font-size="25"
-            font-weight="800" fill="#2b211c">THE TWO TAKES</text>
+            font-weight="800" fill="#2b211c">TWO TAKES PODCAST</text>
       <text x="78" y="132" font-family="DejaVu Sans" font-size="18"
             font-weight="700" fill="#8d4b2a">ENGLISH PODCAST</text>
       <rect x="78" y="158" width="430" height="5" rx="2.5" fill="#c94d1a"/>

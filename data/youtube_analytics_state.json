@@ -2,7 +2,8 @@
   "processed": [
     "vWy2i5lNZ1k",
     "CfGF3NiriWE",
-    "Ngy0ny56H0A"
+    "Ngy0ny56H0A",
+    "Bfzmt-DjTf4"
   ],
   "history": [
     {
@@ -43,6 +44,331 @@
       "like_rate": 0.0,
       "link": "https://youtu.be/vWy2i5lNZ1k",
       "summary": "At about 12.7 hours, this video has 1 views, 0 likes, and 0 comments. Like rate: 0.00%. This is a YouTube API snapshot; it does not include watch time or retention."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 805.46,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "CfGF3NiriWE",
+      "title": "How to Talk About Money and Saving in Everyday English",
+      "kind": "Podcast",
+      "views": 3,
+      "likes": 2,
+      "comments": 0,
+      "like_rate": 66.66666666666666,
+      "link": "https://youtu.be/CfGF3NiriWE",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 3,
+      "views_since_previous_report": 0,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself.",
+      "summary": "7-day checkpoint, about 805.5 hours after publication: 3 total views, 2 likes, and 0 comments. Like rate: 66.67%.  Since the previous report: +0 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 799.07,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "Ngy0ny56H0A",
+      "title": "How to Talk About Money and Saving in Everyday English",
+      "kind": "Podcast",
+      "views": 4,
+      "likes": 2,
+      "comments": 0,
+      "like_rate": 50.0,
+      "link": "https://youtu.be/Ngy0ny56H0A",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 4,
+      "views_since_previous_report": 0,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself.",
+      "summary": "7-day checkpoint, about 799.1 hours after publication: 4 total views, 2 likes, and 0 comments. Like rate: 50.00%.  Since the previous report: +0 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 766.73,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "vWy2i5lNZ1k",
+      "title": "Why Do We Procrastinate?",
+      "kind": "Shorts",
+      "views": 2,
+      "likes": 0,
+      "comments": 0,
+      "like_rate": 0.0,
+      "link": "https://youtu.be/vWy2i5lNZ1k",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 1,
+      "views_since_previous_report": 1,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "Try a clearer opening and ask viewers one simple question to encourage useful comments and feedback.",
+      "summary": "7-day checkpoint, about 766.7 hours after publication: 2 total views, 0 likes, and 0 comments. Like rate: 0.00%.  Since the previous report: +1 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Try a clearer opening and ask viewers one simple question to encourage useful comments and feedback."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 742.73,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "HBVNG78pf_w",
+      "title": "Sources Needed",
+      "kind": "Shorts",
+      "views": 0,
+      "likes": 0,
+      "comments": 0,
+      "like_rate": 0.0,
+      "link": "https://youtu.be/HBVNG78pf_w",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Check the title and thumbnail in YouTube Studio, then share the video with people who are likely to enjoy this topic.",
+      "summary": "7-day checkpoint, about 742.7 hours after publication: 0 total views, 0 likes, and 0 comments. Like rate: 0.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Check the title and thumbnail in YouTube Studio, then share the video with people who are likely to enjoy this topic."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 739.45,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "zelwGRZSvMc",
+      "title": "What to Say When You Don’t Understand English",
+      "kind": "Podcast",
+      "views": 1,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 100.0,
+      "link": "https://youtu.be/zelwGRZSvMc",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "7-day checkpoint, about 739.4 hours after publication: 1 total views, 1 likes, and 0 comments. Like rate: 100.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 739.04,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "Nvku0ndXa0k",
+      "title": "How to End a Conversation Naturally in English",
+      "kind": "Podcast",
+      "views": 1,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 100.0,
+      "link": "https://youtu.be/Nvku0ndXa0k",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "7-day checkpoint, about 739.0 hours after publication: 1 total views, 1 likes, and 0 comments. Like rate: 100.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 733.43,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "9u1M8p6z_iY",
+      "title": "How to Ask Better Questions in English",
+      "kind": "Podcast",
+      "views": 1,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 100.0,
+      "link": "https://youtu.be/9u1M8p6z_iY",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "7-day checkpoint, about 733.4 hours after publication: 1 total views, 1 likes, and 0 comments. Like rate: 100.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 277.14,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "-P-v8s3Z7iM",
+      "title": "Stop Translating in Your Head: Speak English More Naturally",
+      "kind": "Podcast",
+      "views": 1,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 100.0,
+      "link": "https://youtu.be/-P-v8s3Z7iM",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "7-day checkpoint, about 277.1 hours after publication: 1 total views, 1 likes, and 0 comments. Like rate: 100.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 265.87,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "XreMPfU1ENc",
+      "title": "Speak English With Confidence | Even When You Make Mistakes",
+      "kind": "Podcast",
+      "views": 0,
+      "likes": 0,
+      "comments": 0,
+      "like_rate": 0.0,
+      "link": "https://youtu.be/XreMPfU1ENc",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Check the title and thumbnail in YouTube Studio, then share the video with people who are likely to enjoy this topic.",
+      "summary": "7-day checkpoint, about 265.9 hours after publication: 0 total views, 0 likes, and 0 comments. Like rate: 0.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Check the title and thumbnail in YouTube Studio, then share the video with people who are likely to enjoy this topic."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 259.45,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "4S1ubRi_Ab0",
+      "title": "Keep Talking: How to Extend Conversations in English",
+      "kind": "Podcast",
+      "views": 1,
+      "likes": 0,
+      "comments": 0,
+      "like_rate": 0.0,
+      "link": "https://youtu.be/4S1ubRi_Ab0",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Try a clearer opening and ask viewers one simple question to encourage useful comments and feedback.",
+      "summary": "7-day checkpoint, about 259.4 hours after publication: 1 total views, 0 likes, and 0 comments. Like rate: 0.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Try a clearer opening and ask viewers one simple question to encourage useful comments and feedback."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 235.43,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "rH53hhSTjKY",
+      "title": "How to Start a Conversation With Someone You Just Met | English Speaking Practice",
+      "kind": "Podcast",
+      "views": 1,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 100.0,
+      "link": "https://youtu.be/rH53hhSTjKY",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "7-day checkpoint, about 235.4 hours after publication: 1 total views, 1 likes, and 0 comments. Like rate: 100.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 211.48,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "L8XragzyKMs",
+      "title": "Small Talk Tips: How to Chat Naturally in English",
+      "kind": "Podcast",
+      "views": 0,
+      "likes": 0,
+      "comments": 0,
+      "like_rate": 0.0,
+      "link": "https://youtu.be/L8XragzyKMs",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Check the title and thumbnail in YouTube Studio, then share the video with people who are likely to enjoy this topic.",
+      "summary": "7-day checkpoint, about 211.5 hours after publication: 0 total views, 0 likes, and 0 comments. Like rate: 0.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Check the title and thumbnail in YouTube Studio, then share the video with people who are likely to enjoy this topic."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 187.21,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "px4P_tmuFkg",
+      "title": "Sound More Natural: Everyday English Phrases for Real Talk",
+      "kind": "Podcast",
+      "views": 2,
+      "likes": 0,
+      "comments": 0,
+      "like_rate": 0.0,
+      "link": "https://youtu.be/px4P_tmuFkg",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Try a clearer opening and ask viewers one simple question to encourage useful comments and feedback.",
+      "summary": "7-day checkpoint, about 187.2 hours after publication: 2 total views, 0 likes, and 0 comments. Like rate: 0.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Try a clearer opening and ask viewers one simple question to encourage useful comments and feedback."
+    },
+    {
+      "analyzed_at": "2026-10-21T15:55:52.264516+00:00",
+      "age_hours": 12.75,
+      "checkpoint": "12-hour",
+      "checkpoint_key": "12h",
+      "video_id": "Bfzmt-DjTf4",
+      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+      "kind": "Podcast",
+      "views": 6,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 16.666666666666664,
+      "link": "https://youtu.be/Bfzmt-DjTf4",
+      "audience_insights_available": false,
+      "audience_error": "YouTube Analytics API failed: HTTP 403: {\n  \"error\": {\n    \"code\": 403,\n    \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n    \"errors\": [\n      {\n        \"message\": \"YouTube Analytics API has not been used in project 430337780902 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/youtubeanalytics.googleapis.com/overview?project=430337780902 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.\",\n        \"domain\": \"usageLimits\",\n        \"reason\": \"accessNotConfigured\",\n        \"extendedHelp\": \"https://console.developers.google.com\"\n      }\n    ],\n    \"status\": \"PERMISSION_DENIED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\",\n        \"reason\": \"SERVICE_DISABLED\",\n        \"dom",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "12-hour checkpoint, about 12.7 hours after publication: 6 total views, 1 likes, and 0 comments. Like rate: 16.67%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
-  ]
+  ],
+  "milestones": {
+    "vWy2i5lNZ1k": [
+      "12h",
+      "7d"
+    ],
+    "CfGF3NiriWE": [
+      "12h",
+      "7d"
+    ],
+    "Ngy0ny56H0A": [
+      "12h",
+      "7d"
+    ],
+    "HBVNG78pf_w": [
+      "7d"
+    ],
+    "zelwGRZSvMc": [
+      "7d"
+    ],
+    "Nvku0ndXa0k": [
+      "7d"
+    ],
+    "9u1M8p6z_iY": [
+      "7d"
+    ],
+    "-P-v8s3Z7iM": [
+      "7d"
+    ],
+    "XreMPfU1ENc": [
+      "7d"
+    ],
+    "4S1ubRi_Ab0": [
+      "7d"
+    ],
+    "rH53hhSTjKY": [
+      "7d"
+    ],
+    "L8XragzyKMs": [
+      "7d"
+    ],
+    "px4P_tmuFkg": [
+      "7d"
+    ],
+    "Bfzmt-DjTf4": [
+      "12h"
+    ]
+  }
 }

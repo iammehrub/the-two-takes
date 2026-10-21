@@ -1221,6 +1221,136 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 # GROWTH PACK
 # ============================================================
 
+
+def youtube_upload_one_short(topic):
+    """Publish the best available generated Short after the main episode succeeds.
+
+    This is intentionally best-effort: a Shorts upload failure must not undo the
+    successful full episode. It uses the same upload-only OAuth token.
+    """
+    manifest_path = WORK / "shorts" / "shorts_manifest.json"
+    if not manifest_path.exists():
+        print("No Shorts manifest; skipping automatic Shorts publishing.")
+        return None
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"Could not read Shorts manifest; skipping auto-publish: {exc}")
+        return None
+
+    if not isinstance(manifest, list) or not manifest:
+        print("No eligible Shorts were rendered; skipping auto-publish.")
+        return None
+
+    # Render order prioritizes clean, captioned excerpts. Publish one per episode
+    # to avoid flooding subscribers with several Shorts at the same time.
+    selected = manifest[0]
+    short_file = WORK / "shorts" / str(selected.get("file", ""))
+    if not short_file.is_file():
+        print(f"Short file is missing ({short_file}); skipping auto-publish.")
+        return None
+
+    duration = float(selected.get("duration_seconds", 0))
+    if duration < 18 or duration > 35:
+        print(f"Short duration {duration:.1f}s is outside the expected range; skipping.")
+        return None
+
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+
+    creds = Credentials(
+        None,
+        refresh_token=YT_REFRESH,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=YT_CLIENT_ID,
+        client_secret=YT_CLIENT_SECRET,
+        scopes=["https://www.googleapis.com/auth/youtube.upload"],
+    )
+    creds.refresh(Request())
+    yt = build("youtube", "v3", credentials=creds)
+
+    episode_info_path = WORK / "youtube_upload.json"
+    episode_url = ""
+    if episode_info_path.exists():
+        try:
+            episode_url = str(json.loads(
+                episode_info_path.read_text(encoding="utf-8")
+            ).get("link", "")).strip()
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    base_title = str(selected.get("title") or topic or "Everyday English").strip()
+    short_title = base_title[:86].rstrip()
+    if "#shorts" not in short_title.lower():
+        short_title = (short_title + " #Shorts")[:100]
+
+    description_parts = [
+        "Learn one useful English idea in under a minute with Himel and Niha.",
+        "Listen, repeat the phrase, and write your own example in the comments.",
+    ]
+    if episode_url:
+        description_parts.append(f"Watch the full conversation: {episode_url}")
+    hashtags = selected.get("hashtag_suggestions", [])
+    if not isinstance(hashtags, list):
+        hashtags = []
+    hashtags = [
+        str(tag).strip() for tag in hashtags
+        if str(tag).strip().startswith("#")
+    ][:4]
+    if "#Shorts" not in hashtags:
+        hashtags.insert(0, "#Shorts")
+    description_parts.append(" ".join(dict.fromkeys(hashtags)))
+    description = "\n\n".join(description_parts)
+
+    body = {
+        "snippet": {
+            "title": short_title,
+            "description": description[:4900],
+            "categoryId": "27",
+            "tags": [
+                "The Two Takes", "English learning", "English conversation",
+                "spoken English", "English speaking practice", "Shorts",
+            ],
+        },
+        "status": {
+            "privacyStatus": "public",
+            "selfDeclaredMadeForKids": False,
+        },
+    }
+
+    print(f"Publishing one vertical Short: {short_file.name}")
+    response = yt.videos().insert(
+        part="snippet,status",
+        body=body,
+        media_body=MediaFileUpload(
+            str(short_file),
+            mimetype="video/mp4",
+            chunksize=8 * 1024 * 1024,
+            resumable=True,
+        ),
+    ).execute(num_retries=5)
+    video_id = response["id"]
+    result = {
+        "video_id": video_id,
+        "title": short_title,
+        "topic": str(selected.get("topic") or topic)[:300],
+        "kind": "Short",
+        "link": f"https://youtube.com/shorts/{video_id}",
+        "source_episode_title": str(selected.get("source_episode_title", ""))[:100],
+        "published": datetime.now(timezone.utc).isoformat(),
+        "file": short_file.name,
+    }
+    (WORK / "youtube_shorts.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Short published: {result['link']}")
+    return result
+
+
 def create_growth_pack(title, topic, script, hook):
     """Create upload/promotion assets without artificial engagement."""
     title_options = [title]
@@ -1515,6 +1645,14 @@ def main():
         hook,
         clips
     )
+
+    print("\nPublishing one discovery Short (best-effort)...")
+    try:
+        youtube_upload_one_short(topic)
+    except Exception as exc:
+        # The full episode is already uploaded; do not fail or repeat it because
+        # an optional promotional Short failed.
+        print(f"Short publishing failed; full episode remains published: {exc}")
 
     print("\n" + "=" * 60)
     print("EPISODE COMPLETE")

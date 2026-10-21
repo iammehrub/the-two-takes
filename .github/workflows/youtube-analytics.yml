@@ -35,14 +35,16 @@ jobs:
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_ANALYTICS_REFRESH_TOKEN: ${{ secrets.YOUTUBE_ANALYTICS_REFRESH_TOKEN || secrets.YOUTUBE_REFRESH_TOKEN }}
+          # Analytics must use its own correctly scoped token. Never silently
+          # fall back to the upload token because it may lack read permissions.
+          YOUTUBE_ANALYTICS_REFRESH_TOKEN: ${{ secrets.YOUTUBE_ANALYTICS_REFRESH_TOKEN }}
         run: python scripts/youtube_analytics_preflight.py
       - name: Analyze YouTube
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_ANALYTICS_REFRESH_TOKEN: ${{ secrets.YOUTUBE_ANALYTICS_REFRESH_TOKEN || secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_ANALYTICS_REFRESH_TOKEN: ${{ secrets.YOUTUBE_ANALYTICS_REFRESH_TOKEN }}
           DISCORD_YOUTUBE_ANALYTICS_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_ANALYTICS_WEBHOOK }}
           DISCORD_YOUTUBE_MENTION_ROLE_ID: ${{ secrets.DISCORD_YOUTUBE_MENTION_ROLE_ID }}
           DISCORD_ALERTS_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
@@ -53,8 +55,6 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Optional reports may not exist when the API returns no data or an
-          # insufficient-scope response. Stage only files actually created.
           for file in data/youtube_analytics_state.json data/youtube_audience_insights.json data/youtube_deep_analytics.json; do
             if [[ -f "$file" ]]; then git add "$file"; else echo "Optional output not created: $file"; fi
           done

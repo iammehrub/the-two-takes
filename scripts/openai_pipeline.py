@@ -31,11 +31,12 @@ print(f"Niha voice: {KOKORO_NIHA_VOICE}")
 
 
 def openai_generate(prompt):
-    """Generate text with OpenAI when available, otherwise use the existing Gemini key.
-    If the OpenAI account has exhausted its credits, fail over immediately to Gemini.
-    """
-    if not OPENAI_API_KEY:
-        print("OPENAI_API_KEY is not configured; using Gemini text generation.")
+    """Use Gemini by default; only call the potentially paid OpenAI API when opted in."""
+    use_openai = os.environ.get("USE_OPENAI_FOR_SCRIPT", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+    if not OPENAI_API_KEY or not use_openai:
+        print("Free-first mode: using configured Gemini text generation.")
         return app.gemini_generate(prompt, temperature=0.8)
 
     payload = {
@@ -354,9 +355,16 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - Do NOT copy their scripts, exact wording, recurring catchphrases, episode titles, thumbnail artwork, logos, characters, or distinctive branding. The Two Takes must remain original.
 - OPENING: start immediately with a relatable learner problem or life situation in the first few seconds. Follow with a brief welcome and a clear promise of what the viewer will be able to say or understand by the end.
 - MAIN CONVERSATION: Himel and Niha should feel like real friends/teachers talking about one continuous topic. Use personal examples, questions, follow-up questions, light disagreement, clarification, and natural reactions. Do not read a lecture.
-- LESSON ARCHITECTURE: build the episode as a smooth sequence: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Short Speaking/Shadowing Practice -> Recap. The teaching sections should grow out of phrases and ideas that appeared naturally in the conversation.
-- PHRASE TOUR: after the main discussion, teach 6 useful everyday phrases/words. For each one, give a very short meaning explanation and a natural example sentence. Keep it conversational instead of sounding like a textbook.
-- SPEAKING PRACTICE: finish with 5 practical sentence patterns. Have the hosts model each pattern once, then invite the viewer to repeat or adapt it. Keep the language simple enough for an A2-B1/B1-B2 learner.
+- LESSON ARCHITECTURE: Hook -> branded welcome -> real conversation -> short audio transition -> phrase tour -> speaking/shadowing practice -> recap -> concise sign-off.
+- TIMED INTRO: the very first dialogue item must be a 1–2 sentence hook designed for 0:00–0:08 and marked turn_type "hook". The next spoken welcome should be marked turn_type "welcome". The production system inserts a 5.5-second original instrumental sting after the hook automatically; never write a spoken music cue.
+- WELCOME: keep the welcome/title/learning promise brief, approximately 0:15–0:35 after the music sting. Give a specific promise of what learners can say by the end.
+- MAIN DISCUSSION: aim for 0:35–3:30, using stories, follow-up questions, gentle disagreement, clarification and natural reactions.
+- TRANSITION: the production system supplies the short instrumental interlude automatically; do not add a host line saying "music plays".
+- PHRASE TOUR: teach exactly 6 useful everyday phrases/words in the middle/late middle. Mark explanation turns "language_tip"; explain meaning simply and give natural examples.
+- SPEAKING PRACTICE: include 5 practical sentence patterns with short model lines and invitations to repeat/personalize. Mark these turns "practice".
+- QUICK TIP: include one memorable rule or common mistake near the end.
+- OUTRO: finish with a brief recap marked "recap", then a friendly sign-off and one specific comment question marked "outro". The production system adds 7 seconds of instrumental fade-out after the final spoken line.
+- Target about 10 minutes at 130–150 words per minute. Avoid padding; keep intro and outro concise.
 - PACING: natural conversational English at a comfortable everyday speed, not slow or sleepy. Vary energy with the moment: lively curiosity, relaxed storytelling, quick reactions, thoughtful pauses, and encouraging practice. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
 - OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
 - VISUAL-FRIENDLINESS: every major section should have a clear visual identity so the editor can show a wide two-host shot, a speaker close-up, a phrase card, or a shadowing-practice moment.
@@ -410,17 +418,19 @@ TITLE/PACKAGING RULES:
 - Thumbnail text must be truthful to the actual episode.
 
 CONTENT / RETENTION RULES:
-- Write an original 1,500–1,750 word two-host conversation.
-- Start with a specific, relatable learner problem and a clear payoff in the first 5–8 seconds. Skip a long channel introduction; give the viewer a useful phrase or insight within the first 30–45 seconds.
-- Use this flow: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Speaking/Shadowing Practice -> Recap.
+- Write an original 1,300–1,450 word two-host conversation, aiming for approximately 9–11 minutes of spoken audio before the short musical tail.
+- First turn: a compelling 1–2 sentence hook, marked "hook", designed for 5–8 seconds.
+- The first few turns must include a brief branded welcome, marked "welcome", after the automatic 5.5-second music sting.
+- Use this flow: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Quick Tip -> Speaking/Shadowing Practice -> Recap -> Outro.
 - The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
 - Phrase Tour: include 6 useful everyday phrases/words that were either used earlier or clearly fit the topic; give a simple meaning and one natural example for each.
 - Speaking/Shadowing Practice: include 5 short sentence patterns. Model each one naturally and invite the learner to repeat or personalize it.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences.
 - Add natural follow-up questions, examples, disagreement, clarification, personal mini-stories, and small moments of humor.
 - Every 25–45 seconds, introduce a fresh example, question, mini-challenge, useful phrase, or change of angle so the conversation does not flatten. Use a natural curiosity loop, then answer it honestly; never promise a reveal the episode does not deliver.
-- Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip for the phrase tour, practice for shadowing, and recap for the ending.
-- End with a concise recap and a natural reason to practice again.
+- Use clear turn_type labels: hook, welcome, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. Use "welcome" for the branded opening and "outro" for the final sign-off.
+- The first dialogue item must be type "hook"; at least one of the first five items must be type "welcome"; include multiple language_tip and practice turns; include at least one recap and one final outro turn.
+- End with a concise recap, one concrete practice task, one specific comment question, and a natural sign-off. No generic long outro.
 - Do not pad the episode just to reach a length target.
 - Include one natural mid-episode question that invites viewers to compare the idea with their own experience, plus one specific comment question at the end.
 - Make the title and thumbnail promise the same clear viewer benefit; keep thumbnail text at 2–4 readable words and avoid vague clickbait.
@@ -503,8 +513,8 @@ Do not reuse any previously published topic/title.
 
         dialogue_obj = obj.get("dialogue", []) if isinstance(obj, dict) else []
         valid_types = {
-            "hook", "question", "story", "reaction", "follow_up",
-            "clarification", "language_tip", "practice", "recap"
+            "hook", "welcome", "question", "story", "reaction", "follow_up",
+            "clarification", "language_tip", "practice", "recap", "outro"
         }
 
         beats = []
@@ -535,6 +545,21 @@ Do not reuse any previously published topic/title.
                         "turn_type": turn_type,
                         "delivery": delivery,
                     })
+
+        turn_types = [beat["turn_type"] for beat in beats]
+        required_structure_ok = (
+            bool(beats)
+            and turn_types[0] == "hook"
+            and "welcome" in turn_types[:5]
+            and turn_types.count("language_tip") >= 3
+            and turn_types.count("practice") >= 3
+            and "recap" in turn_types
+            and turn_types[-1] == "outro"
+        )
+        if not required_structure_ok:
+            last_problem = "episode is missing required hook/welcome/phrase/practice/recap/outro structure"
+            print(last_problem)
+            continue
 
         if len(beats) < 24 or len(beats) > 60:
             last_problem = f"dialogue turn count outside 24–60 ({len(beats)})"
@@ -877,6 +902,9 @@ def tts(script):
             # a little air, and ellipses are reserved for genuine hesitation.
             if text.endswith("...") or text.endswith("…"):
                 pause = 0.34
+            elif turn_type == "hook" and next_turn_index != turn_index:
+                # Dedicated 5.5-second music-only signature sting between hook and welcome.
+                pause = 5.5
             elif next_turn_index != turn_index:
                 pause = 0.34 if next_speaker != speaker else 0.24
             elif next_speaker != speaker:
@@ -899,10 +927,21 @@ def tts(script):
     if not audio_parts:
         raise RuntimeError("Kokoro produced no audio segments")
 
+    # Seven seconds of music-only tail; the locally generated score fades during
+    # its final 2.2 seconds for a clean, non-abrupt sign-off.
+    outro_silence_seconds = 7.0
+    audio_parts.append(
+        np.zeros(int(KOKORO_SAMPLE_RATE * outro_silence_seconds), dtype=np.float32)
+    )
+    cursor += outro_silence_seconds
+
     audio = np.concatenate(audio_parts)
     wav = app.WORK / "voice.wav"
     sf.write(str(wav), audio, KOKORO_SAMPLE_RATE)
-    print(f"Combined conversational Kokoro TTS audio: {wav}")
+    print(
+        f"Combined conversational Kokoro TTS audio: {wav}; "
+        f"added {outro_silence_seconds:.1f}s outro music tail."
+    )
     return wav
 
 

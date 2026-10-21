@@ -16,11 +16,18 @@ import sys
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCOPES = [
-    "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube.readonly",
-    "https://www.googleapis.com/auth/yt-analytics.readonly",
-]
+SCOPE_SETS = {
+    "upload": ["https://www.googleapis.com/auth/youtube.upload"],
+    "analytics": [
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+    ],
+    "combined": [
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/yt-analytics.readonly",
+    ],
+}
 DEFAULT_CLIENT_FILE = Path("client_secret.json")
 
 
@@ -74,7 +81,19 @@ def main() -> int:
         default=str(DEFAULT_CLIENT_FILE),
         help="Path to the Google OAuth client JSON (default: client_secret.json).",
     )
+    parser.add_argument(
+        "--purpose",
+        choices=("upload", "analytics", "combined"),
+        default="combined",
+        help="Token permissions to request: upload, analytics, or combined (default).",
+    )
     args = parser.parse_args()
+    scopes = SCOPE_SETS[args.purpose]
+    secret_name = {
+        "upload": "YOUTUBE_REFRESH_TOKEN",
+        "analytics": "YOUTUBE_ANALYTICS_REFRESH_TOKEN",
+        "combined": "YOUTUBE_REFRESH_TOKEN and YOUTUBE_ANALYTICS_REFRESH_TOKEN",
+    }[args.purpose]
 
     env_config = config_from_env()
     if env_config is not None:
@@ -85,13 +104,13 @@ def main() -> int:
         client_config = load_client_config(client_path)
         print(f"Using OAuth client file: {client_path}")
 
-    flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
+    flow = InstalledAppFlow.from_client_config(client_config, scopes)
 
     print()
     print("Google will open a browser for authorization.")
     print("Grant access to the YouTube channel that Two Takes should publish to.")
     print("Required scopes:")
-    for scope in SCOPES:
+    for scope in scopes:
         print(" - " + scope)
     print()
 
@@ -118,20 +137,17 @@ def main() -> int:
         return 2
 
     print()
-    print("=== NEW YOUTUBE_REFRESH_TOKEN (upload + analytics) ===")
+    print(f"=== NEW REFRESH TOKEN for {args.purpose.upper()} ===")
     print(refresh_token)
     print("=== END TOKEN ===")
     print()
-    print(
-        "Replace the GitHub Actions secret YOUTUBE_REFRESH_TOKEN with this value."
-    )
-    print(
-        "The analytics workflow can now reuse this token; no separate "
-        "YOUTUBE_ANALYTICS_REFRESH_TOKEN secret is required."
-    )
-    print(
-        "Do not commit the token or paste it into chat."
-    )
+    print(f"Save this value in GitHub Actions secret: {secret_name}")
+    if args.purpose == "combined":
+        print(
+            "For a separate-token setup, run this script again with "
+            "--purpose upload and then with --purpose analytics."
+        )
+    print("Do not commit the token or paste it into chat.")
 
     return 0
 

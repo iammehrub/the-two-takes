@@ -490,9 +490,9 @@ def render_video(wav, clips, srt, title):
     generate_music_bed(audio_duration, music_bed, sample_rate=24000)
     audio_filter = (
         "[1:a]asplit=2[voice_sc][voice_raw];"
-        "[2:a]volume=0.85[music];"
+        "[2:a]volume=1.1[music];"
         "[music][voice_sc]sidechaincompress="
-        "threshold=0.025:ratio=8:attack=20:release=450[ducked_music];"
+        "threshold=0.08:ratio=2.5:attack=20:release=450[ducked_music];"
         "[voice_raw]highpass=f=70,lowpass=f=12000,"
         "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
         "volume=1.12[voice];"
@@ -641,9 +641,9 @@ def render_shorts(wav, title, topic):
         )
         audio_filter = (
             "[1:a]asplit=2[voice_sc][voice_raw];"
-            "[2:a]volume=0.85[music];"
+            "[2:a]volume=1.1[music];"
             "[music][voice_sc]sidechaincompress="
-            "threshold=0.025:ratio=8:attack=20:release=450[ducked_music];"
+            "threshold=0.08:ratio=2.5:attack=20:release=450[ducked_music];"
             "[voice_raw]highpass=f=70,lowpass=f=12000,"
             "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
             "volume=1.12[voice];"

@@ -61,17 +61,19 @@ def send_webhook(env_name: str, title: str, description: str, *, fields=None, ur
 def notify_bangladesh_news(items: list[dict], generated_at: str) -> bool:
     fields = []
     for i, item in enumerate(items[:5], 1):
+        title = item.get("easy_title") or item.get("title", "News story")
+        summary = item.get("easy_summary") or item.get("summary", "No summary available.")
         fields.append((
-            f"{i}. {item['title']}",
-            f"{item.get('summary','No summary available.')}\nSource: {item.get('source','Unknown')}\n{item.get('link','')}",
+            f"{i}. {title}",
+            f"{summary}\nSource: {item.get('source', 'Unknown')}\n{item.get('link', '')}",
             False,
         ))
     return send_webhook(
         "DISCORD_BD_NEWS_WEBHOOK",
-        "🇧🇩 Bangladesh Top 5 News",
-        f"Fresh stories selected from multiple Bangladesh news sources. Updated {generated_at}.",
+        "🇧🇩 Bangladesh Top 5 News | Simple English",
+        f"Five fresh stories written in simple A2-B1 English. Updated {generated_at}.",
         fields=fields,
-        footer="Synapse Feed • Bangladesh",
+        footer="Synapse Feed • A2-B1 English • Bangladesh",
     )
 
 

@@ -1265,13 +1265,99 @@ def create_growth_pack(title, topic, script, hook):
             short_candidates.append(line)
     shorts = short_candidates[:5]
 
+    # Build timestamped moments that are easy to repurpose as vertical Shorts.
+    timed_shorts = []
+    timing_path = WORK / "tts_segments.json"
+    try:
+        tts_segments = json.loads(timing_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        tts_segments = []
+
+    turns = {}
+    for segment in tts_segments:
+        try:
+            turn_id = int(segment.get("turn_index", -1))
+            start = float(segment.get("start", 0))
+            end = float(segment.get("end", 0))
+        except (TypeError, ValueError):
+            continue
+        if turn_id < 0 or end <= start:
+            continue
+        if turn_id not in turns:
+            turns[turn_id] = {
+                "start": start,
+                "end": end,
+                "turn_type": str(segment.get("turn_type", "reaction")).lower(),
+                "text": str(segment.get("text", "")).strip(),
+            }
+        else:
+            turns[turn_id]["end"] = max(turns[turn_id]["end"], end)
+            turns[turn_id]["text"] += " " + str(segment.get("text", "")).strip()
+
+    total_audio_seconds = max(
+        (float(item.get("end", 0) or 0) for item in tts_segments),
+        default=0.0,
+    )
+
+    def clip_stamp(seconds):
+        seconds = max(0, int(seconds))
+        return f"{seconds // 60:02}:{seconds % 60:02}"
+
+    priorities = [
+        ("hook", "Strong opening hook"),
+        ("language_tip", "One useful English phrase"),
+        ("practice", "Quick speaking practice"),
+        ("story", "A relatable real-life example"),
+        ("question", "A question that starts a conversation"),
+    ]
+    used_starts = []
+    for turn_type, label in priorities:
+        match = next(
+            (
+                item for item in sorted(turns.values(), key=lambda x: x["start"])
+                if item["turn_type"] == turn_type
+                and all(abs(item["start"] - previous) >= 35 for previous in used_starts)
+                and item["start"] < total_audio_seconds - 12
+            ),
+            None,
+        )
+        if not match:
+            continue
+        start_seconds = max(0, int(match["start"]))
+        end_seconds = min(int(total_audio_seconds), start_seconds + 30)
+        if end_seconds - start_seconds < 15:
+            continue
+        timed_shorts.append({
+            "title": f"{label}: {title}",
+            "start": clip_stamp(start_seconds),
+            "end": clip_stamp(end_seconds),
+            "start_seconds": start_seconds,
+            "end_seconds": end_seconds,
+            "spoken_hook": match["text"][:220],
+            "recommended_format": "Vertical 9:16, 20–30 seconds, readable captions",
+            "note": "Suggested excerpt from the final episode; review the clip before posting.",
+        })
+        used_starts.append(match["start"])
+        if len(timed_shorts) >= 3:
+            break
+
+    chapter_path = WORK / "chapters.txt"
+    try:
+        chapter_lines = [
+            line.strip()
+            for line in chapter_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except OSError:
+        chapter_lines = []
+
     pack = {
         "episode_title": title,
         "title_options": title_options,
         "topic": topic,
         "hook": hook,
         "hashtags": hashtags,
-        "shorts_ideas": [
+        "shorts_ideas": timed_shorts or [
             {
                 "hook": item,
                 "source": "episode dialogue",
@@ -1279,6 +1365,7 @@ def create_growth_pack(title, topic, script, hook):
             }
             for item in shorts
         ],
+        "chapters": chapter_lines,
         "pinned_comment": (
             "What part of this conversation was most useful for your English? "
             "Tell us one phrase you want to practice."
@@ -1288,9 +1375,11 @@ def create_growth_pack(title, topic, script, hook):
             "English-learning episode from The Two Takes."
         ),
         "description": (
-            f"{hook}\\n\\n"
+            f"{hook}\n\n"
             "A practical English-learning conversation with Himel and Niha.\\n\\n"
-            f"Topic: {topic}\\n\\n"
+            f"Topic: {topic}\n\n"
+            + ("CHAPTERS\n" + "\n".join(chapter_lines) + "\n\n" if len(chapter_lines) >= 3 else "")
+            + "Question for you: Which phrase will you practise today? Share an example in the comments.\n\n"
             + " ".join(hashtags)
         ),
         "discovery_note": (
@@ -1305,18 +1394,24 @@ def create_growth_pack(title, topic, script, hook):
     )
 
     (WORK / "growth_pack.txt").write_text(
-        "THE TWO TAKES — GROWTH PACK\\n\\n"
-        f"Primary title: {title}\\n\\n"
-        "Title options:\\n" +
-        "\\n".join(f"- {x}" for x in title_options) +
-        "\\n\\nHashtags:\\n" +
+        "THE TWO TAKES — GROWTH PACK\n\n"
+        f"Primary title: {title}\n\n"
+        "Title options:\n" +
+        "\n".join(f"- {x}" for x in title_options) +
+        "\n\nHashtags:\n" +
         " ".join(hashtags) +
-        "\\n\\nPinned comment:\\n" +
+        "\n\nPinned comment:\n" +
         pack["pinned_comment"] +
-        "\\n\\nNext-video CTA:\\n" +
+        "\n\nNext-video CTA:\n" +
         pack["next_video_cta"] +
-        "\\n\\nShorts candidates:\\n" +
-        "\\n".join(f"- {x}" for x in shorts),
+        "\n\nYouTube chapters:\n" +
+        ("\n".join(chapter_lines) if chapter_lines else "No chapter markers available.") +
+        "\n\nShorts candidates:\n" +
+        "\n".join(
+            f"- {item.get('title', item.get('hook', 'Clip'))} "
+            f"[{item.get('start', 'check timing')}–{item.get('end', 'check timing')}]"
+            for item in (timed_shorts or [{"hook": x} for x in shorts])
+        ),
         encoding="utf-8"
     )
 

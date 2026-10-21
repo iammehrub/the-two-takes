@@ -348,11 +348,11 @@ def make_episode(news):
     audience_context = audience_profile_context()
 
     prompt = f"""
-You are the lead writer for THE TWO TAKES, an original English-learning YouTube conversation show.
+You are the lead writer for TWO TAKES PODCAST, an original English-learning YouTube conversation show.
 
 REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — ADAPT THE FORMAT, KEEP EVERYTHING ORIGINAL
 - Recreate the same broad viewer experience: a calm, friendly English-learning podcast built around natural conversation, relatable life topics, vocabulary teaching, and speaking practice.
-- Do NOT copy their scripts, exact wording, recurring catchphrases, episode titles, thumbnail artwork, logos, characters, or distinctive branding. The Two Takes must remain original.
+- Do NOT copy their scripts, exact wording, recurring catchphrases, episode titles, thumbnail artwork, logos, characters, or distinctive branding. Two Takes Podcast must remain original.
 - OPENING: start immediately with a relatable learner problem or life situation in the first few seconds. Follow with a brief welcome and a clear promise of what the viewer will be able to say or understand by the end.
 - MAIN CONVERSATION: Himel and Niha should feel like real friends/teachers talking about one continuous topic. Use personal examples, questions, follow-up questions, light disagreement, clarification, and natural reactions. Do not read a lecture.
 - LESSON ARCHITECTURE: Hook -> branded welcome -> real conversation -> short audio transition -> phrase tour -> speaking/shadowing practice -> recap -> concise sign-off.
@@ -368,7 +368,7 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - PACING: natural conversational English at a comfortable everyday speed, not slow or sleepy. Vary energy with the moment: lively curiosity, relaxed storytelling, quick reactions, thoughtful pauses, and encouraging practice. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
 - OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
 - VISUAL-FRIENDLINESS: every major section should have a clear visual identity so the editor can show a wide two-host shot, a speaker close-up, a phrase card, or a shadowing-practice moment.
-- Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for The Two Takes.
+- Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for Two Takes Podcast.
 
 PRIMARY GOAL:
 Create a video concept that a new viewer can understand instantly and has a clear reason to click and keep watching.
@@ -407,7 +407,7 @@ TITLE/PACKAGING RULES:
 - Use a recognizable English-learning podcast title pattern, such as "[topic] | English Conversation Practice" or "English Podcast: [topic]".
 - Put the main searchable phrase or learner problem near the beginning.
 - Keep titles clear and reasonably concise; do not force awkwardly short titles.
-- Do not start the title with "The Two Takes".
+- Do not start the title with "Two Takes Podcast".
 - Do not use episode numbers.
 - Make the title accurate, specific, and useful; no misleading clickbait.
 - One title should be clearly searchable.
@@ -741,7 +741,7 @@ Do not reuse any previously published topic/title.
                     encoding="utf-8",
                 )
 
-                print("Script provider: OpenAI")
+                print("Script generation and validation completed.")
                 print(f"Script length: {word_count} words")
                 print(f"Primary title: {title}")
                 print(f"Thumbnail text: {thumbnail_text}")

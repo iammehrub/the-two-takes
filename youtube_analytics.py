@@ -427,6 +427,27 @@ def main() -> None:
                     f"+{analysis['comments_since_previous_report']} comments."
                 )
 
+            if analysis["views"] == 0:
+                recommendation = (
+                    "Check the title and thumbnail in YouTube Studio, then share the video "
+                    "with people who are likely to enjoy this topic."
+                )
+            elif last and analysis.get("views_since_previous_report", 0) == 0:
+                recommendation = (
+                    "No new views appeared since the last report. Review the title, thumbnail, "
+                    "and topic fit before changing the video itself."
+                )
+            elif analysis["like_rate"] < 1.0:
+                recommendation = (
+                    "Try a clearer opening and ask viewers one simple question to encourage "
+                    "useful comments and feedback."
+                )
+            else:
+                recommendation = (
+                    "Keep this topic and format as a comparison point. Check impressions and "
+                    "audience retention in YouTube Studio before making larger changes."
+                )
+            analysis["recommendation"] = recommendation
             analysis["summary"] = (
                 f"{checkpoint_label} checkpoint, about {age_hours:.1f} hours after publication: "
                 f"{analysis['views']} total views, {analysis['likes']} likes, and "

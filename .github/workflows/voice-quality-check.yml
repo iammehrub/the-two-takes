@@ -38,7 +38,7 @@ jobs:
       - name: Compile voice and production pipeline
         run: |
           set -euo pipefail
-          python -m py_compile scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/test_audio_enhancements.py
+          python -m py_compile scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py scripts/audio_enhancements.py scripts/test_audio_enhancements.py
 
       - name: Test original music bed and chapter generation
         run: python -m unittest scripts.test_audio_enhancements

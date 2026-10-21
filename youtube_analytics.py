@@ -260,23 +260,11 @@ def query_channel_deep_analytics(oauth_token: str) -> dict:
         "subscribers_gained": int(float(data.get("subscribersGained", 0) or 0)),
     }
 
-    # Impressions/CTR availability varies by report eligibility, so treat them
-    # as optional rather than making the whole analytics workflow fail.
-    try:
-        optional = analytics_get(oauth_token, {
-            "ids": "channel==MINE",
-            "startDate": start_s,
-            "endDate": end_s,
-            "metrics": "views,impressions,impressionsCtr",
-        })
-        oh = [x.get("name") for x in optional.get("columnHeaders", [])]
-        ov = optional.get("rows", [])
-        if ov:
-            od = {name: ov[0][i] for i, name in enumerate(oh) if i < len(ov[0])}
-            result["impressions"] = int(float(od.get("impressions", 0) or 0))
-            result["impressions_ctr"] = round(float(od.get("impressionsCtr", 0) or 0), 2)
-    except Exception as exc:
-        print(f"Impressions/CTR report unavailable: {exc}")
+    # Thumbnail impressions and impression click-through rate are not supported
+    # by the targeted YouTube Analytics reports.query request used in this script.
+    # Google exposes reach metrics through separate YouTube Reporting API bulk
+    # reports; omit these fields until that API is implemented, rather than
+    # making a request that always fails with an unknown-metric error.
 
     return result
 

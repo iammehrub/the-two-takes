@@ -1,10 +1,12 @@
 import json
+import os
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import quote_plus
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -92,6 +94,128 @@ def choose(items, previous):
     return candidates[:5]
 
 
+
+def simplify_stories(items):
+    """Rewrite selected news for English learners at approximately CEFR A2-B1."""
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY is missing. Add it to the Bangladesh news workflow so "
+            "the Discord post can use simple A2-B1 English."
+        )
+
+    input_items = [
+        {
+            "id": i,
+            "headline": item["title"],
+            "summary": item.get("summary", ""),
+            "source": item.get("source", ""),
+        }
+        for i, item in enumerate(items, 1)
+    ]
+    prompt = (
+        "Rewrite these factual Bangladesh news stories for English learners at "
+        "CEFR A2-B1 level. Return ONLY a valid JSON array, with exactly one object "
+        "for each input id. Each object must have: id (integer), title (string), "
+        "summary (string). Write a clear, short headline of 5-12 common words. "
+        "Write exactly two short sentences for each summary; aim for 8-15 words "
+        "per sentence. Use common everyday words, simple grammar, and active voice. "
+        "Explain or replace difficult terms with common words. Keep names, places, "
+        "numbers, and the main facts accurate. Do not add facts, opinions, or advice. "
+        "Do not copy source labels into titles. Avoid idioms, unexplained technical "
+        "terms, and long sentences. Do not omit an important fact just to make it simple.\n\n"
+        "NEWS INPUT JSON:\n" + json.dumps(input_items, ensure_ascii=False)
+    )
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        "gemini-2.5-flash:generateContent"
+    )
+    last_error = "No response"
+    for attempt in range(1, 4):
+        try:
+            response = requests.post(
+                url,
+                headers={
+                    "x-goog-api-key": api_key,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.2,
+                        "maxOutputTokens": 2200,
+                        "responseMimeType": "application/json",
+                        "thinkingConfig": {"thinkingBudget": 0},
+                    },
+                },
+                timeout=(15, 60),
+            )
+            if response.status_code in {429, 500, 502, 503, 504} and attempt < 3:
+                last_error = f"Gemini HTTP {response.status_code}: {response.text[:300]}"
+                print(f"Easy-English rewrite retry {attempt}/3 after temporary API error.")
+                continue
+            if not response.ok:
+                raise RuntimeError(
+                    f"Gemini easy-English rewrite failed: HTTP {response.status_code}: "
+                    f"{response.text[:600]}"
+                )
+            data = response.json()
+            parts = (
+                data.get("candidates", [{}])[0]
+                .get("content", {})
+                .get("parts", [])
+            )
+            text = "\n".join(
+                part.get("text", "") for part in parts if part.get("text")
+            ).strip()
+            text = re.sub(r"^\s*json\s*\n", "", text, flags=re.I)
+            text = re.sub(r"\s*\x60{3}\s*$", "", text).strip()
+            try:
+                output = json.loads(text)
+            except json.JSONDecodeError:
+                left, right = text.find("["), text.rfind("]")
+                if left < 0 or right <= left:
+                    raise RuntimeError("Gemini did not return a JSON array.")
+                output = json.loads(text[left:right + 1])
+            if isinstance(output, dict):
+                output = output.get("stories", [])
+            if not isinstance(output, list):
+                raise RuntimeError("Gemini response did not contain a list of stories.")
+
+            by_id = {
+                int(row["id"]): row for row in output
+                if isinstance(row, dict) and str(row.get("id", "")).isdigit()
+            }
+            if len(by_id) != len(items):
+                raise RuntimeError(
+                    f"Gemini returned {len(by_id)} of {len(items)} required story rewrites."
+                )
+
+            rewritten = []
+            for i, original in enumerate(items, 1):
+                row = by_id.get(i, {})
+                title = clean(str(row.get("title", "")))
+                summary = clean(str(row.get("summary", "")))
+                if not title or not summary:
+                    raise RuntimeError(f"Gemini returned an empty rewrite for story {i}.")
+                copied = dict(original)
+                copied["easy_title"] = title[:180]
+                copied["easy_summary"] = summary[:650]
+                rewritten.append(copied)
+            print("Rewrote the five Bangladesh stories in simple A2-B1 English.")
+            return rewritten
+        except (requests.RequestException, ValueError, KeyError, TypeError, RuntimeError) as exc:
+            last_error = str(exc)
+            if attempt < 3:
+                print(f"Easy-English rewrite attempt {attempt}/3 failed: {last_error[:300]}")
+                continue
+            break
+
+    raise RuntimeError(
+        "Could not create easy-English versions of the selected news: " + last_error
+    )
+
+
 def main():
     state = load_state()
     previous = set(state.get("posted_links", []))
@@ -113,7 +237,8 @@ def main():
     if len(selected) < 5:
         raise RuntimeError(f"Only {len(selected)} fresh stories passed filtering; refusing to send a fake Top 5.")
 
-    generated_at = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
+    selected = simplify_stories(selected)
+    generated_at = datetime.now(timezone.utc).astimezone(ZoneInfo("Asia/Dhaka")).strftime("%Y-%m-%d %H:%M BST")
     if not notify_bangladesh_news(selected, generated_at):
         raise RuntimeError("Bangladesh news Discord webhook is not configured or failed.")
 

@@ -367,8 +367,30 @@ def render_video(wav, clips, srt, title):
 
     scenes = []
     footage_index = 0
+    timeline_cursor = 0.0
 
     for index, group in enumerate(groups):
+        # Preserve the real audio timeline: sentence pauses and the dedicated
+        # intro sting must have matching video frames or subtitles will drift.
+        gap_seconds = float(group["start"]) - timeline_cursor
+        if gap_seconds > 0.08:
+            gap_out = segment_dir / f"gap_{index:03d}.mp4"
+            if gap_seconds >= 3.0 and timeline_cursor < 12.0:
+                gap_section = "INTRO MUSIC STING"
+            elif gap_seconds >= 3.0:
+                gap_section = "MUSIC TRANSITION"
+            else:
+                gap_section = "CONVERSATION"
+            _make_studio_segment(
+                studio,
+                gap_out,
+                gap_seconds,
+                camera="wide",
+                section=gap_section,
+                speaker="",
+            )
+            scenes.append(gap_out)
+
         seconds = max(0.25, min(audio_duration - group["start"], group["end"] - group["start"]))
         if seconds <= 0.25:
             continue
@@ -420,6 +442,23 @@ def render_video(wav, clips, srt, title):
                 speaker=group["speaker"],
             )
             scenes.append(out)
+
+        timeline_cursor = float(group["end"])
+
+    # The voice WAV deliberately ends with seven seconds of silence so the
+    # locally generated theme can fade out. Keep video frames during that tail.
+    trailing_gap = max(0.0, audio_duration - timeline_cursor)
+    if trailing_gap > 0.08:
+        tail_out = segment_dir / "music_fade_out.mp4"
+        _make_studio_segment(
+            studio,
+            tail_out,
+            trailing_gap,
+            camera="wide",
+            section="MUSIC FADE OUT",
+            speaker="",
+        )
+        scenes.append(tail_out)
 
     concat = Path(app.WORK) / "scenes.txt"
     with concat.open("w", encoding="utf-8") as f:

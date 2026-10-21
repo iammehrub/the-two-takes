@@ -210,10 +210,10 @@ def create_report(root, script, voice_path, video_path, subtitle_path) -> dict:
         f"Peak audio volume: {audio_levels.get('peak_volume_db')} dBFS",
         "",
         "WARNINGS:",
-        *(f"- {item}" for item in warnings) if warnings else ["- None"],
+        *((f"- {item}" for item in warnings) if warnings else ["- None"]),
         "",
         "ERRORS:",
-        *(f"- {item}" for item in errors) if errors else ["- None"],
+        *((f"- {item}" for item in errors) if errors else ["- None"]),
     ]
     text_path.write_text("\n".join(text_lines) + "\n", encoding="utf-8")
 

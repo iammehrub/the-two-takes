@@ -1,0 +1,28 @@
+{
+  "window": "2026-09-21 to 2026-10-18",
+  "countries": [],
+  "age_gender": [],
+  "traffic_sources": [
+    {
+      "source": "YT_SEARCH",
+      "views": 3,
+      "minutes": 0.0
+    },
+    {
+      "source": "YT_CHANNEL",
+      "views": 2,
+      "minutes": 3.0
+    },
+    {
+      "source": "SUBSCRIBER",
+      "views": 1,
+      "minutes": 9.0
+    },
+    {
+      "source": "NO_LINK_OTHER",
+      "views": 0,
+      "minutes": 0.0
+    }
+  ],
+  "top_videos": []
+}

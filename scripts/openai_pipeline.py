@@ -14,8 +14,8 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_TEXT_MODEL = "gpt-5.6-luna"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 
-KOKORO_HIMEL_VOICE = "am_michael"
-KOKORO_NIHA_VOICE = "af_heart"
+KOKORO_HIMEL_VOICE = "am_eric"
+KOKORO_NIHA_VOICE = "af_bella"
 KOKORO_SAMPLE_RATE = 24000
 
 HEADERS = {
@@ -357,7 +357,7 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - LESSON ARCHITECTURE: build the episode as a smooth sequence: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Short Speaking/Shadowing Practice -> Recap. The teaching sections should grow out of phrases and ideas that appeared naturally in the conversation.
 - PHRASE TOUR: after the main discussion, teach 6 useful everyday phrases/words. For each one, give a very short meaning explanation and a natural example sentence. Keep it conversational instead of sounding like a textbook.
 - SPEAKING PRACTICE: finish with 5 practical sentence patterns. Have the hosts model each pattern once, then invite the viewer to repeat or adapt it. Keep the language simple enough for an A2-B1/B1-B2 learner.
-- PACING: calm, warm, and slightly slower than normal native conversation. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
+- PACING: natural conversational English at a comfortable everyday speed, not slow or sleepy. Vary energy with the moment: lively curiosity, relaxed storytelling, quick reactions, thoughtful pauses, and encouraging practice. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
 - OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
 - VISUAL-FRIENDLINESS: every major section should have a clear visual identity so the editor can show a wide two-host shot, a speaker close-up, a phrase card, or a shadowing-practice moment.
 - Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for The Two Takes.
@@ -369,8 +369,18 @@ Audience:
 A2-B1 and B1-B2 English learners worldwide, especially people who want to speak more naturally in everyday life.
 
 Hosts:
-Himel — calm, curious, friendly, quick-witted.
-Niha — warm, thoughtful, expressive.
+Himel — a friendly, curious young man with quick timing, gentle dry humor, honest reactions, and the confidence to admit when he is wrong. He sounds like a real person, not a presenter reading a lesson.
+Niha — warm, perceptive, expressive, and quietly witty. She notices small details, asks sharp follow-up questions, sometimes playfully challenges Himel, and can show real excitement or empathy without becoming theatrical.
+
+NATURAL HUMAN PERFORMANCE (IMPORTANT):
+- Write for the ear, not for an essay. Use contractions, varied sentence lengths, specific everyday details, and the occasional short sentence or unfinished thought where a real speaker would use one.
+- Make each reply respond to the exact thought before it. Hosts should remember details from each other's mini-stories, ask genuine follow-up questions, disagree gently sometimes, and change their minds when persuaded.
+- Give the conversation an emotional shape: curiosity at the start, discovery or a small surprise in the middle, then warmth and confidence near the end. Let the topic determine the feeling.
+- Add a few small, specific, kind moments of humor across the whole episode. Do not force a joke into every turn. Let the other host react naturally when a joke lands.
+- Avoid repetitive “That's interesting,” “Exactly,” “Absolutely,” fake enthusiasm, constant praise, generic laughter, motivational slogans, repeated summaries, and perfectly balanced textbook exchanges.
+- Do not make every sentence a complete polished explanation. Use natural spoken transitions, short reactions, occasional gentle teasing, and realistic pauses shown with normal punctuation. Do not write stage directions such as [laughs], [smiles], or [excited].
+- Make Himel and Niha sound distinct in word choice and conversational habits, while keeping both easy for A2-B1 learners to understand.
+- For every dialogue item, add a non-spoken "delivery" label chosen from: warm, curious, amused, surprised, thoughtful, reassuring, excited, emphatic, calm, playful, neutral. Choose the feeling that genuinely fits that line; do not label everything warm or neutral. This label guides subtle speaking pace only and must never appear in the spoken text.
 
 DO NOT reuse any topic that appears in RECENTLY PUBLISHED CONTENT below.
 RECENTLY PUBLISHED CONTENT:
@@ -433,8 +443,8 @@ RETURN ONLY VALID JSON:
   "hashtags": ["#...", "#...", "#..."],
   "description_hook": "...",
   "dialogue": [
-    {{"speaker": "Himel", "turn_type": "hook", "text": "..."}},
-    {{"speaker": "Niha", "turn_type": "reaction", "text": "..."}}
+    {{"speaker": "Himel", "turn_type": "hook", "delivery": "curious", "text": "..."}},
+    {{"speaker": "Niha", "turn_type": "reaction", "delivery": "amused", "text": "..."}}
   ]
 }}
 """
@@ -508,11 +518,19 @@ Do not reuse any previously published topic/title.
                 if speaker in {"Himel", "Niha"} and text_value:
                     if turn_type not in valid_types:
                         turn_type = "reaction"
+                    delivery = str(item.get("delivery", "neutral")).strip().lower()
+                    valid_deliveries = {
+                        "warm", "curious", "amused", "surprised", "thoughtful",
+                        "reassuring", "excited", "emphatic", "calm", "playful", "neutral",
+                    }
+                    if delivery not in valid_deliveries:
+                        delivery = "neutral"
                     beats.append({
                         "turn_index": len(beats),
                         "speaker": speaker,
                         "text": text_value,
                         "turn_type": turn_type,
+                        "delivery": delivery,
                     })
 
         if len(beats) < 24 or len(beats) > 60:
@@ -760,22 +778,58 @@ def split_for_kokoro(script, max_chars=420):
         speaker = "Himel" if match.group(1).lower() == "himel" else "Niha"
         source_text = match.group(2).strip()
         turn_type = "reaction"
+        delivery = "neutral"
         turn_index = meta_cursor
         if meta_cursor < len(metadata) and metadata[meta_cursor].get("speaker") == speaker:
             turn_type = metadata[meta_cursor].get("turn_type", "reaction")
+            delivery = metadata[meta_cursor].get("delivery", "neutral")
             turn_index = metadata[meta_cursor].get("turn_index", meta_cursor)
             meta_cursor += 1
         for sentence in split_sentences(source_text):
-            chunks.append((speaker, sentence, turn_index, turn_type))
+            chunks.append((speaker, sentence, turn_index, turn_type, delivery))
     return chunks
 
 
-def kokoro_segment(speaker, text, index, total):
+def delivery_speed(turn_type, delivery):
+    """Use small speed differences to support tone; Kokoro has no emotion-control input."""
+    delivery_speeds = {
+        "warm": 0.97,
+        "curious": 1.00,
+        "amused": 1.02,
+        "surprised": 1.02,
+        "thoughtful": 0.93,
+        "reassuring": 0.94,
+        "excited": 1.03,
+        "emphatic": 0.98,
+        "calm": 0.95,
+        "playful": 1.02,
+        "neutral": 0.98,
+    }
+    if delivery in delivery_speeds:
+        return delivery_speeds[delivery]
+    return {
+        "hook": 1.01,
+        "question": 1.00,
+        "story": 0.95,
+        "reaction": 1.01,
+        "follow_up": 1.00,
+        "clarification": 0.96,
+        "language_tip": 0.97,
+        "practice": 0.94,
+        "recap": 0.97,
+    }.get(turn_type, 0.98)
+
+
+def kokoro_segment(speaker, text, index, total, turn_type="reaction", delivery="neutral"):
     voice = KOKORO_HIMEL_VOICE if speaker == "Himel" else KOKORO_NIHA_VOICE
-    print(f"Kokoro TTS segment {index}/{total} — {speaker} / {voice} ({len(text)} chars)...")
+    speed = delivery_speed(turn_type, delivery)
+    print(
+        f"Kokoro TTS segment {index}/{total} — {speaker} / {voice} "
+        f"/ {delivery} / speed={speed:.2f} ({len(text)} chars)..."
+    )
     for attempt in range(1, 3):
         try:
-            generator = KOKORO_PIPELINE(text, voice=voice, speed=0.95)
+            generator = KOKORO_PIPELINE(text, voice=voice, speed=speed)
             audio_parts = [np.asarray(audio, dtype=np.float32) for _, _, audio in generator]
             if not audio_parts:
                 raise RuntimeError("Kokoro returned no audio")
@@ -783,7 +837,9 @@ def kokoro_segment(speaker, text, index, total):
         except Exception as exc:
             print(f"  Kokoro attempt {attempt}/2 failed: {exc}")
             if attempt == 2:
-                raise RuntimeError(f"Kokoro TTS failed for {speaker} segment {index}: {exc}") from exc
+                raise RuntimeError(
+                    f"Kokoro TTS failed for {speaker} segment {index}: {exc}"
+                ) from exc
     raise RuntimeError("Kokoro TTS failed unexpectedly")
 
 
@@ -794,8 +850,10 @@ def tts(script):
     timing = []
     cursor = 0.0
 
-    for i, (speaker, text, turn_index, turn_type) in enumerate(segments, 1):
-        audio = kokoro_segment(speaker, text, i, len(segments))
+    for i, (speaker, text, turn_index, turn_type, delivery) in enumerate(segments, 1):
+        audio = kokoro_segment(
+            speaker, text, i, len(segments), turn_type=turn_type, delivery=delivery
+        )
         seg_seconds = len(audio) / KOKORO_SAMPLE_RATE
 
         timing.append({
@@ -804,16 +862,28 @@ def tts(script):
             "start": cursor,
             "end": cursor + seg_seconds,
             "turn_index": turn_index,
-            "turn_type": turn_type
+            "turn_type": turn_type,
+            "delivery": delivery,
         })
         audio_parts.append(audio)
         cursor += seg_seconds
 
         if i < len(segments):
-            # A slightly longer pause when the speaker changes makes the exchange
-            # feel conversational instead of like two continuous readings.
-            next_speaker = segments[i][0]
-            pause = 0.28 if next_speaker != speaker else 0.16
+            next_speaker, next_text, next_turn_index, next_turn_type, next_delivery = segments[i]
+            # Natural timing: responses hand off more quickly; a new thought gets
+            # a little air, and ellipses are reserved for genuine hesitation.
+            if text.endswith("...") or text.endswith("…"):
+                pause = 0.34
+            elif next_turn_index != turn_index:
+                pause = 0.34 if next_speaker != speaker else 0.24
+            elif next_speaker != speaker:
+                pause = 0.29
+            elif text.endswith("?"):
+                pause = 0.22
+            elif text.endswith("!"):
+                pause = 0.20
+            else:
+                pause = 0.15
             silence = np.zeros(int(KOKORO_SAMPLE_RATE * pause), dtype=np.float32)
             audio_parts.append(silence)
             cursor += pause

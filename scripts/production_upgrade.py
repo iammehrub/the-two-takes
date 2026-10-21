@@ -497,7 +497,7 @@ def render_video(wav, clips, srt, title):
         "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
         "volume=1.12[voice];"
         "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
-        "alimiter=limit=0.95[aout]"
+        "alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
     )
     _run([
         "ffmpeg","-y","-i",str(base),"-i",str(wav),"-i",str(music_bed),
@@ -648,7 +648,7 @@ def render_shorts(wav, title, topic):
             "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
             "volume=1.12[voice];"
             "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
-            "alimiter=limit=0.95[aout]"
+            "alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
         )
         command = [
             "ffmpeg", "-y",

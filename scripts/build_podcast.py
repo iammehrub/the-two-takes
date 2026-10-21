@@ -1484,7 +1484,7 @@ def main():
     final = render_video(wav, clips, srt, title)
     print(f"Final video created: {final}")
 
-    print("\\nRunning free local production quality checks...")
+    print("\nRunning free local production quality checks...")
     from episode_qc import create_report
     create_report(ROOT, script, wav, final, srt)
 

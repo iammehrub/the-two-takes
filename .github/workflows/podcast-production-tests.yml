@@ -1,0 +1,119 @@
+name: Podcast Production Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/openai_pipeline.py"
+      - "scripts/build_podcast.py"
+      - "scripts/production_upgrade.py"
+      - "scripts/audio_enhancements.py"
+      - "scripts/episode_qc.py"
+      - ".github/workflows/daily-podcast.yml"
+      - ".github/workflows/podcast-production-tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: two-takes-production-tests
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install free local test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install numpy
+      - name: Compile production modules
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py
+      - name: Smoke-test original music and chapter generation
+        env:
+          PYTHONPATH: scripts
+        run: |
+          set -euo pipefail
+          mkdir -p work/smoke/repo/work
+          python - <<'PY'
+          import wave
+          from pathlib import Path
+          from audio_enhancements import generate_music_bed, build_chapters
+
+          out = Path("work/smoke/repo/work/test_music.wav")
+          generate_music_bed(18, out, sample_rate=24000)
+          with wave.open(str(out), "rb") as audio:
+              assert audio.getnchannels() == 2, "Music must be stereo"
+              assert audio.getframerate() == 24000, "Unexpected sample rate"
+              assert abs(audio.getnframes() / audio.getframerate() - 18) < 0.02
+
+          chapters = build_chapters([
+              {"turn_type": "hook", "start": 0},
+              {"turn_type": "question", "start": 30},
+              {"turn_type": "language_tip", "start": 120},
+              {"turn_type": "practice", "start": 240},
+              {"turn_type": "recap", "start": 540},
+          ], 600)
+          assert len(chapters) >= 3, f"Expected chapter markers, got {chapters}"
+          assert chapters[0].startswith("00:00"), chapters
+          print("Original music and chapter smoke tests passed.")
+          PY
+      - name: Smoke-test final media quality gate
+        env:
+          PYTHONPATH: scripts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+          from episode_qc import create_report
+
+          root = Path("work/smoke/repo")
+          work = root / "work"
+          work.mkdir(parents=True, exist_ok=True)
+          voice = work / "voice.wav"
+          video = work / "final.mp4"
+          captions = work / "captions.srt"
+
+          subprocess.run([
+              "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+              "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=24000:duration=15",
+              "-ac", "2", "-c:a", "pcm_s16le", str(voice)
+          ], check=True)
+          subprocess.run([
+              "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+              "-f", "lavfi", "-i", "color=c=black:s=1920x1080:r=5:d=15",
+              "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=24000:duration=15",
+              "-vf", "format=yuv420p", "-c:v", "libx264", "-preset", "ultrafast",
+              "-c:a", "aac", "-ac", "2", "-shortest", str(video)
+          ], check=True)
+          captions.write_text(
+              "".join(f"{i}\\n00:00:{i-1:02d},000 --> 00:00:{i:02d},500\\nPractice this useful English phrase.\\n\\n" for i in range(1, 11)),
+              encoding="utf-8",
+          )
+          (work / "chapters.txt").write_text(
+              "00:00 Hook and today's question\\n00:30 Real conversation and examples\\n02:00 Useful phrases explained\\n04:00 Speaking practice\\n09:00 Review and next step\\n",
+              encoding="utf-8",
+          )
+          (work / "youtube_metadata.json").write_text(json.dumps({"title":"Smoke test"}), encoding="utf-8")
+          phrase = "This is a short synthetic test sentence for verifying media timing, clear audio, balanced hosts, and readable captions."
+          script = "\\n".join(("Himel: " if i % 2 == 0 else "Niha: ") + phrase for i in range(120))
+          report = create_report(root, script, voice, video, captions)
+          assert report["status"] != "failed", report
+          assert report["audio_video_duration_difference_seconds"] <= 2.5, report
+          assert report["subtitle_cues"] == 10, report
+          print("Final media quality gate smoke test passed.")
+          PY

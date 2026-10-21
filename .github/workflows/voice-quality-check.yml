@@ -78,4 +78,26 @@ jobs:
                   raise SystemExit("Missing expected expressive voice feature: " + feature)
 
           print("Voice pipeline syntax and expressive pacing checks passed.")
+
+          production = Path("scripts/production_upgrade.py").read_text(encoding="utf-8")
+          builder = Path("scripts/build_podcast.py").read_text(encoding="utf-8")
+          pipeline = Path("scripts/openai_pipeline.py").read_text(encoding="utf-8")
+          production_features = [
+              "def render_shorts(",
+              "1080:1920",
+              "sidechaincompress",
+              "shorts_manifest.json",
+              "FULL EPISODE ON CHANNEL",
+          ]
+          for feature in production_features:
+              if feature not in production:
+                  raise SystemExit("Missing vertical Shorts feature: " + feature)
+          if 'shorts_renderer = globals().get("render_shorts")' not in builder:
+              raise SystemExit("The episode builder is not wired to render Shorts.")
+          if '"rendered_shorts": rendered_shorts' not in builder:
+              raise SystemExit("The growth pack does not include rendered Shorts.")
+          if "app.render_shorts = visual_upgrade.render_shorts" not in pipeline:
+              raise SystemExit("The main pipeline is not wired to the Shorts renderer.")
+
+          print("Vertical Shorts, mixed music, captions, and growth-pack integration checks passed.")
           PY

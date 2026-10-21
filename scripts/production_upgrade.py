@@ -337,7 +337,7 @@ def render_video(wav, clips, srt, title):
     chapter_lines = build_chapters(groups, audio_duration)
     chapter_path = Path(app.WORK) / "chapters.txt"
     chapter_path.write_text(
-        "\\n".join(chapter_lines) + ("\\n" if chapter_lines else ""),
+        "\n".join(chapter_lines) + ("\n" if chapter_lines else ""),
         encoding="utf-8",
     )
     print(f"Prepared {len(chapter_lines)} YouTube chapter markers.")
@@ -437,10 +437,10 @@ def render_video(wav, clips, srt, title):
     subtitle_path = str(srt).replace("\\","/").replace(":","\\:").replace("'","\\'")
     vf = (
         f"subtitles='{subtitle_path}':force_style="
-        "'FontName=DejaVu Sans,FontSize=30,Bold=1,"
+        "'FontName=DejaVu Sans,FontSize=36,Bold=1,"
         "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
         "BorderStyle=1,Outline=3,Shadow=1,"
-        "Alignment=2,MarginL=190,MarginR=190,MarginV=105,WrapStyle=2'"
+        "Alignment=2,MarginL=140,MarginR=140,MarginV=115,WrapStyle=2'"
     )
     # Original locally synthesised score, automatically ducked under the hosts' voices.
     music_bed = Path(app.WORK) / "original_music_bed.wav"

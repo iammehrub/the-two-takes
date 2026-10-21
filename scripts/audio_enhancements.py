@@ -103,6 +103,28 @@ def generate_music_bed(
             left += pluck * pan_left
             right += pluck * pan_right
 
+            # Original short signature motif for the hook-to-welcome sting and
+            # final music-only tail. It is synthesised locally; no music API or
+            # copyrighted recording is downloaded.
+            motif_notes = np.asarray((392.00, 440.00, 523.25, 392.00, 329.63, 392.00, 440.00, 587.33))
+            motif_step = 0.58
+            intro_active = (times >= 5.0) & (times < 15.5)
+            outro_start = max(0.0, duration_seconds - 7.0)
+            outro_active = (times >= outro_start) & (times < duration_seconds)
+            for active, origin in ((intro_active, 5.0), (outro_active, outro_start)):
+                if not np.any(active):
+                    continue
+                local = times[active] - origin
+                note_index = (local / motif_step).astype(np.int64) % len(motif_notes)
+                note_phase = np.mod(local, motif_step)
+                note = (
+                    np.sin(2.0 * math.pi * motif_notes[note_index] * note_phase)
+                    * np.exp(-4.0 * note_phase)
+                    * 0.010
+                )
+                left[active] += note * 0.78
+                right[active] += note * 0.72
+
             # Gentle movement and fades; keep the soundtrack safely below narration.
             swell = 0.88 + 0.12 * (0.5 + 0.5 * np.sin(2.0 * math.pi * times / 7.0))
             fade_in = np.clip(times / 1.6, 0.0, 1.0)

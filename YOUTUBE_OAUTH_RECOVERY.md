@@ -12,7 +12,7 @@ The analytics workflow separately checks that `YOUTUBE_ANALYTICS_REFRESH_TOKEN` 
    ```powershell
    git clone https://github.com/iammehrub/the-two-takes.git
    cd the-two-takes
-   python -m pip install -r requirements.txt
+   python -m pip install google-auth-oauthlib
    ```
 
 3. Download the OAuth client JSON for the same Google Cloud project used by this repository. Save it as `client_secret.json` in the repository root. This filename is ignored by Git, but do not upload it or share it.

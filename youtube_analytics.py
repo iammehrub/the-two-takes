@@ -325,14 +325,20 @@ def main() -> None:
 
         age_hours = max(0.0, (now - published).total_seconds() / 3600)
         sent = set(milestones.get(video_id, []))
-        checkpoint = next(
-            (
-                (key, label)
-                for key, threshold, label in checkpoints
-                if age_hours >= threshold and key not in sent
-            ),
-            None,
-        )
+        # Send only the latest eligible milestone that has not already been
+        # sent. Once a later checkpoint (24h or 7d) is recorded, never backfill
+        # older checkpoints on a future hourly run.
+        checkpoint = None
+        if age_hours >= 168:
+            if "7d" not in sent:
+                checkpoint = ("7d", "7-day")
+        elif age_hours >= 24:
+            if not ({"24h", "7d"} & sent):
+                checkpoint = ("24h", "24-hour")
+        elif age_hours >= 12:
+            if not ({"12h", "24h", "7d"} & sent):
+                checkpoint = ("12h", "12-hour")
+
         if checkpoint:
             due.append((published, video, age_hours, checkpoint[0], checkpoint[1]))
 

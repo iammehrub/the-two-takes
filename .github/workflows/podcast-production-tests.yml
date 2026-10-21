@@ -101,16 +101,16 @@ jobs:
               "-c:a", "aac", "-ac", "2", "-shortest", str(video)
           ], check=True)
           captions.write_text(
-              "".join(f"{i}\\n00:00:{i-1:02d},000 --> 00:00:{i:02d},500\\nPractice this useful English phrase.\\n\\n" for i in range(1, 11)),
+              "".join(f"{i}\n00:00:{i-1:02d},000 --> 00:00:{i:02d},500\nPractice this useful English phrase.\n\n" for i in range(1, 11)),
               encoding="utf-8",
           )
           (work / "chapters.txt").write_text(
-              "00:00 Hook and today's question\\n00:30 Real conversation and examples\\n02:00 Useful phrases explained\\n04:00 Speaking practice\\n09:00 Review and next step\\n",
+              "00:00 Hook and today's question\n00:30 Real conversation and examples\n02:00 Useful phrases explained\n04:00 Speaking practice\n09:00 Review and next step\n",
               encoding="utf-8",
           )
           (work / "youtube_metadata.json").write_text(json.dumps({"title":"Smoke test"}), encoding="utf-8")
           phrase = "This is a short synthetic test sentence for verifying media timing, clear audio, balanced hosts, and readable captions."
-          script = "\\n".join(("Himel: " if i % 2 == 0 else "Niha: ") + phrase for i in range(120))
+          script = "\n".join(("Himel: " if i % 2 == 0 else "Niha: ") + phrase for i in range(120))
           report = create_report(root, script, voice, video, captions)
           assert report["status"] != "failed", report
           assert report["audio_video_duration_difference_seconds"] <= 2.5, report

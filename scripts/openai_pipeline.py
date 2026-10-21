@@ -953,6 +953,7 @@ import production_upgrade as visual_upgrade
 app.pexels_videos = visual_upgrade.pexels_videos
 app.make_srt = visual_upgrade.make_srt
 app.render_video = visual_upgrade.render_video
+app.render_shorts = visual_upgrade.render_shorts
 app.make_thumbnail = visual_upgrade.make_thumbnail
 
 print("=== ENGLISH-LEARNING STUDIO PRODUCTION ENABLED ===")

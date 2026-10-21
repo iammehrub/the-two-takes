@@ -158,3 +158,118 @@ def build_chapters(turns: Iterable[dict], duration_seconds: float) -> list[str]:
         accepted.append((start, label))
 
     return [f"{_chapter_timestamp(start)} {label}" for start, label in accepted]
+
+def select_short_windows(
+    segments: Iterable[dict],
+    duration_seconds: float,
+    max_clips: int = 3,
+    target_seconds: float = 30.0,
+    min_seconds: float = 18.0,
+    max_seconds: float = 35.0,
+    min_gap_seconds: float = 35.0,
+) -> list[dict]:
+    """Choose short-video excerpts that start/end on spoken segment boundaries."""
+    duration_seconds = float(duration_seconds)
+    if duration_seconds <= 0 or max_clips <= 0:
+        return []
+
+    valid_segments = []
+    for item in segments:
+        try:
+            start = float(item.get("start", 0))
+            end = float(item.get("end", 0))
+            turn_index = int(item.get("turn_index", -1))
+        except (TypeError, ValueError):
+            continue
+        if turn_index < 0 or start < 0 or end <= start or start >= duration_seconds:
+            continue
+        valid_segments.append({
+            **item,
+            "start": start,
+            "end": min(end, duration_seconds),
+            "turn_index": turn_index,
+            "turn_type": str(item.get("turn_type", "reaction")).lower(),
+            "text": str(item.get("text", "")).strip(),
+        })
+
+    if not valid_segments:
+        return []
+
+    turns: dict[int, dict] = {}
+    for item in valid_segments:
+        turn_id = item["turn_index"]
+        if turn_id not in turns:
+            turns[turn_id] = {
+                "start": item["start"],
+                "end": item["end"],
+                "turn_type": item["turn_type"],
+                "text": item["text"],
+            }
+        else:
+            turns[turn_id]["start"] = min(turns[turn_id]["start"], item["start"])
+            turns[turn_id]["end"] = max(turns[turn_id]["end"], item["end"])
+            if item["text"]:
+                turns[turn_id]["text"] += " " + item["text"]
+
+    priorities = ("hook", "language_tip", "practice", "story", "question", "follow_up")
+    selected = []
+
+    def candidate_for(anchor: dict) -> dict | None:
+        start = float(anchor["start"])
+        limit = min(duration_seconds, start + max_seconds)
+        ends = sorted({
+            float(item["end"])
+            for item in valid_segments
+            if float(item["start"]) >= start - 0.02
+            and float(item["end"]) > start
+            and float(item["end"]) <= limit + 0.02
+        })
+        viable = [end for end in ends if min_seconds <= end - start <= max_seconds]
+        if not viable:
+            return None
+        end = min(viable, key=lambda value: abs((value - start) - target_seconds))
+        return {
+            "start": round(start, 3),
+            "end": round(end, 3),
+            "duration": round(end - start, 3),
+            "turn_type": str(anchor["turn_type"]),
+            "hook_text": str(anchor["text"])[:300],
+        }
+
+    ordered_turns = sorted(turns.values(), key=lambda item: item["start"])
+    for turn_type in priorities:
+        if len(selected) >= max_clips:
+            break
+        for anchor in ordered_turns:
+            if anchor["turn_type"] != turn_type:
+                continue
+            candidate = candidate_for(anchor)
+            if candidate is None:
+                continue
+            if any(
+                abs(candidate["start"] - existing["start"]) < min_gap_seconds
+                for existing in selected
+            ):
+                continue
+            selected.append(candidate)
+            break
+
+    # If the draft has fewer named beats than expected, find other clean
+    # excerpts instead of silently producing fewer usable short-video assets.
+    if len(selected) < max_clips:
+        for anchor in ordered_turns:
+            candidate = candidate_for(anchor)
+            if candidate is None:
+                continue
+            if any(
+                abs(candidate["start"] - existing["start"]) < min_gap_seconds
+                for existing in selected
+            ):
+                continue
+            selected.append(candidate)
+            if len(selected) >= max_clips:
+                break
+
+    selected.sort(key=lambda item: item["start"])
+    return selected[:max_clips]
+

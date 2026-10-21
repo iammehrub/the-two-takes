@@ -187,16 +187,22 @@ def youtube_demand_snapshot():
         from google.auth.transport.requests import Request
         from googleapiclient.discovery import build
 
+        # Search/read-only discovery needs a read-scoped credential. The
+        # upload token may have only youtube.upload and then fails invalid_scope.
+        demand_refresh = (
+            os.environ.get("YOUTUBE_ANALYTICS_REFRESH_TOKEN", "").strip()
+            or getattr(app, "YT_REFRESH", None)
+        )
         if not all([
             getattr(app, "YT_CLIENT_ID", None),
             getattr(app, "YT_CLIENT_SECRET", None),
-            getattr(app, "YT_REFRESH", None),
+            demand_refresh,
         ]):
             return []
 
         creds = Credentials(
             None,
-            refresh_token=app.YT_REFRESH,
+            refresh_token=demand_refresh,
             token_uri="https://oauth2.googleapis.com/token",
             client_id=app.YT_CLIENT_ID,
             client_secret=app.YT_CLIENT_SECRET,
@@ -505,6 +511,70 @@ Do not reuse any previously published topic/title.
         obj = parse_json(raw) or {}
         script = extract_dialogue(raw)
         word_count = len(script.split())
+
+        # Gemini can return a structurally sound but undersized first draft.
+        # Ask it to expand that same episode before discarding the topic and
+        # spending another generation attempt. This preserves the topic and
+        # improves reliability without opting into a paid provider.
+        if (
+            script
+            and word_count < 1250
+            and isinstance(obj, dict)
+            and isinstance(obj.get("dialogue"), list)
+        ):
+            print(
+                f"Short draft ({word_count} words); requesting a focused "
+                "expansion before retrying the topic..."
+            )
+            expansion_prompt = f"""
+Rewrite and expand the podcast draft below. Return ONLY valid JSON, using
+the exact same top-level field names and dialogue item structure.
+
+MANDATORY TOPIC: {forced_topic}
+TARGET: 1,350–1,500 words in the spoken dialogue, enough for a roughly
+9–11 minute educational English conversation at a natural pace.
+Do not count JSON keys, metadata, or speaker labels as spoken content.
+
+Keep Himel and Niha's voices conversational, warm, witty, and distinct.
+Preserve the required flow: hook, branded welcome, real conversation,
+six useful phrases with simple meanings and examples, a quick practical
+tip, five short shadowing/practice patterns, recap, one specific question
+for comments, and a concise natural sign-off.
+Use 30–45 short, natural turns; no more than three consecutive turns by
+the same host. Give the real conversation most of the time. Expand with
+specific mini-stories, realistic reactions, helpful examples, clarifying
+questions, and natural back-and-forth—not filler or repeated explanations.
+Keep the first turn as "hook", include "welcome" within the first five
+turns, include at least three "language_tip" turns, at least three
+"practice" turns, at least one "recap", and finish with "outro".
+The topic must stay the mandatory topic. Keep metadata accurate to the
+rewritten dialogue. Do not invent facts, statistics, citations, or research.
+
+CURRENT DRAFT JSON:
+{json.dumps(obj, ensure_ascii=False)}
+"""
+            try:
+                expanded_raw = openai_generate(expansion_prompt)
+                expanded_obj = parse_json(expanded_raw)
+                expanded_script = extract_dialogue(expanded_raw)
+                expanded_word_count = len(expanded_script.split())
+                if (
+                    isinstance(expanded_obj, dict)
+                    and expanded_script
+                    and expanded_word_count > word_count
+                ):
+                    raw = expanded_raw
+                    obj = expanded_obj
+                    script = expanded_script
+                    word_count = expanded_word_count
+                    print(f"Expanded draft length: {word_count} words")
+                else:
+                    print(
+                        "Expansion did not improve the draft; retaining the "
+                        f"original {word_count}-word version."
+                    )
+            except Exception as exc:
+                print(f"Draft expansion failed safely: {exc}")
 
         if not script or word_count < 1250:
             last_problem = f"dialogue too short ({word_count} words)"

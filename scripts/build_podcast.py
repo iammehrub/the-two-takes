@@ -1465,6 +1465,10 @@ def main():
     final = render_video(wav, clips, srt, title)
     print(f"Final video created: {final}")
 
+    print("\\nRunning free local production quality checks...")
+    from episode_qc import create_report
+    create_report(ROOT, script, wav, final, srt)
+
     # Optional promotion assets must never block the main episode upload.
     shorts_renderer = globals().get("render_shorts")
     if callable(shorts_renderer):

@@ -1351,8 +1351,21 @@ def create_growth_pack(title, topic, script, hook):
     except OSError:
         chapter_lines = []
 
+    rendered_shorts = []
+    shorts_manifest_path = WORK / "shorts" / "shorts_manifest.json"
+    try:
+        raw_manifest = json.loads(shorts_manifest_path.read_text(encoding="utf-8"))
+        if isinstance(raw_manifest, list):
+            rendered_shorts = [
+                item for item in raw_manifest
+                if isinstance(item, dict) and item.get("file")
+            ][:3]
+    except (OSError, json.JSONDecodeError):
+        rendered_shorts = []
+
     pack = {
         "episode_title": title,
+        "rendered_shorts": rendered_shorts,
         "title_options": title_options,
         "topic": topic,
         "hook": hook,
@@ -1406,7 +1419,13 @@ def create_growth_pack(title, topic, script, hook):
         pack["next_video_cta"] +
         "\n\nYouTube chapters:\n" +
         ("\n".join(chapter_lines) if chapter_lines else "No chapter markers available.") +
-        "\n\nShorts candidates:\n" +
+        "\n\nRendered Shorts files:\n" +
+        ("\n".join(
+            f"- {item.get('file')}: {item.get('title')} "
+            f"({item.get('duration_seconds', 0):.1f}s)"
+            for item in rendered_shorts
+        ) if rendered_shorts else "No vertical Shorts were rendered; review the workflow artifact.") +
+        "\n\nShorts candidate moments:\n" +
         "\n".join(
             f"- {item.get('title', item.get('hook', 'Clip'))} "
             f"[{item.get('start', 'check timing')}–{item.get('end', 'check timing')}]"

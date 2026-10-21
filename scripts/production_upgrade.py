@@ -13,7 +13,7 @@ import requests
 import time
 from pathlib import Path
 
-from audio_enhancements import build_chapters, generate_music_bed
+from audio_enhancements import build_chapters, generate_music_bed, select_short_windows
 
 VIDEO_W = 1920
 VIDEO_H = 1080
@@ -507,6 +507,190 @@ def render_video(wav, clips, srt, title):
     quality_check(final)
     print(f"=== SEMANTIC RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
     return final
+
+
+def _write_short_captions(timing, start_seconds, end_seconds, output_path):
+    """Write subtitles relative to a selected excerpt, keeping captions on speech boundaries."""
+    rows = []
+    for segment in timing:
+        try:
+            segment_start = float(segment["start"])
+            segment_end = float(segment["end"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        text = str(segment.get("text", "")).strip()
+        if not text or segment_end <= start_seconds or segment_start >= end_seconds:
+            continue
+
+        clipped_start = max(start_seconds, segment_start) - start_seconds
+        clipped_end = min(end_seconds, segment_end) - start_seconds
+        if clipped_end <= clipped_start:
+            continue
+
+        chunks = _caption_chunks(text, max_words=5)
+        total_words = sum(len(chunk.split()) for chunk in chunks) or 1
+        cursor = clipped_start
+        for index, chunk in enumerate(chunks):
+            duration = (clipped_end - clipped_start) * len(chunk.split()) / total_words
+            row_start = cursor
+            row_end = clipped_end if index == len(chunks) - 1 else cursor + duration
+            rows.append((row_start, row_end, chunk))
+            cursor = row_end
+
+    with Path(output_path).open("w", encoding="utf-8") as file:
+        for index, (start, end, text) in enumerate(rows, 1):
+            start = max(0.0, start - 0.02)
+            end = max(start + 0.05, end + 0.03)
+            file.write(f"{index}\n{_ts(start)} --> {_ts(end)}\n{text}\n\n")
+    return len(rows)
+
+
+def render_shorts(wav, title, topic):
+    """Render up to three original, vertical Shorts excerpts from the finished episode."""
+    print("=== CREATING VERTICAL SHORTS ASSETS ===")
+    started = time.time()
+    work = Path(app.WORK)
+    base = work / "base_video.mp4"
+    music = work / "original_music_bed.wav"
+    timing_path = work / "tts_segments.json"
+
+    if not base.exists() or not Path(wav).exists() or not timing_path.exists():
+        raise RuntimeError("Cannot render Shorts: base video, voice WAV, or TTS timings are missing.")
+
+    try:
+        timing = json.loads(timing_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Could not read TTS timings for Shorts: {exc}") from exc
+    if not isinstance(timing, list) or not timing:
+        raise RuntimeError("Cannot render Shorts: the TTS timing file contains no segments.")
+
+    audio_duration = app.duration(wav)
+    windows = select_short_windows(timing, audio_duration, max_clips=3)
+    if not windows:
+        print("No clean 18–35 second Shorts excerpts met the timing rules.")
+        return []
+
+    if not music.exists():
+        generate_music_bed(audio_duration, music, sample_rate=24000)
+
+    output_dir = work / "shorts"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for old_file in output_dir.glob("short_*.mp4"):
+        old_file.unlink()
+    manifest = []
+
+    label_map = {
+        "hook": "Stop Making This English Mistake",
+        "language_tip": "One Useful English Phrase",
+        "practice": "Practice This English Pattern",
+        "story": "Real-Life English Conversation",
+        "question": "Ask Better Questions in English",
+        "follow_up": "Keep the English Conversation Going",
+    }
+
+    for number, window in enumerate(windows, 1):
+        clip_start = float(window["start"])
+        clip_end = float(window["end"])
+        clip_duration = clip_end - clip_start
+        if clip_duration < 18 or clip_duration > 35:
+            print(f"Skipping Shorts candidate {number}: invalid duration {clip_duration:.1f}s.")
+            continue
+
+        anchor_type = str(window.get("turn_type", "conversation")).lower()
+        label = label_map.get(anchor_type, "Everyday English Tip")
+        short_title = f"{label} | {topic}".strip(" |")[:95]
+        slug = re.sub(r"[^a-z0-9]+", "_", anchor_type.lower()).strip("_") or "clip"
+        stem = f"short_{number:02d}_{slug}"
+        output_video = output_dir / f"{stem}.mp4"
+        subtitle_file = output_dir / f"{stem}.srt"
+        caption_count = _write_short_captions(
+            timing, clip_start, clip_end, subtitle_file
+        )
+        if caption_count < 3:
+            print(f"Skipping Shorts candidate {number}: too few timed captions.")
+            continue
+
+        subtitle_path = (
+            str(subtitle_file.resolve())
+            .replace("\\", "/")
+            .replace(":", "\\:")
+            .replace("'", "\\'")
+        )
+        font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        video_and_caption_filter = (
+            "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
+            "crop=1080:1920,boxblur=24:10,eq=brightness=-0.18[bg];"
+            "[0:v]scale=1080:-2[fg];"
+            "[bg][fg]overlay=(W-w)/2:(H-h)/2-140,"
+            "drawbox=x=48:y=50:w=984:h=124:color=0x211914@0.90:t=fill,"
+            f"drawtext=fontfile={font}:text='THE TWO TAKES':"
+            "x=(w-text_w)/2:y=88:fontsize=42:fontcolor=white,"
+            "drawbox=x=48:y=1710:w=984:h=132:color=0x211914@0.90:t=fill,"
+            f"drawtext=fontfile={font}:text='FULL EPISODE ON CHANNEL':"
+            "x=(w-text_w)/2:y=1750:fontsize=34:fontcolor=white,"
+            f"subtitles='{subtitle_path}':force_style="
+            "'FontName=DejaVu Sans,FontSize=46,Bold=1,"
+            "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
+            "BorderStyle=1,Outline=4,Shadow=1,"
+            "Alignment=2,MarginL=70,MarginR=70,MarginV=335,WrapStyle=2'"
+            "[v]"
+        )
+        audio_filter = (
+            "[1:a]asplit=2[voice_sc][voice_raw];"
+            "[2:a]volume=0.85[music];"
+            "[music][voice_sc]sidechaincompress="
+            "threshold=0.025:ratio=8:attack=20:release=450[ducked_music];"
+            "[voice_raw]highpass=f=70,lowpass=f=12000,"
+            "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
+            "volume=1.12[voice];"
+            "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
+            "alimiter=limit=0.95[aout]"
+        )
+        command = [
+            "ffmpeg", "-y",
+            "-ss", f"{clip_start:.3f}", "-i", str(base),
+            "-ss", f"{clip_start:.3f}", "-i", str(wav),
+            "-ss", f"{clip_start:.3f}", "-i", str(music),
+            "-t", f"{clip_duration:.3f}",
+            "-filter_complex", video_and_caption_filter + ";" + audio_filter,
+            "-map", "[v]", "-map", "[aout]",
+            "-r", str(FPS),
+            "-c:v", "libx264", "-preset", ENCODE_PRESET, "-crf", "22",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "160k",
+            "-shortest", "-movflags", "+faststart",
+            str(output_video),
+        ]
+        _run(command, label=f"Vertical Short {number}")
+        manifest.append({
+            "file": output_video.name,
+            "title": short_title,
+            "description": (
+                "Practice everyday English with The Two Takes. "
+                "Watch the full conversation on the channel and try the phrase yourself."
+            ),
+            "hashtag_suggestions": ["#Shorts", "#EnglishLearning", "#SpeakEnglish"],
+            "source_episode_title": title,
+            "topic": topic,
+            "excerpt_type": anchor_type,
+            "start_seconds": clip_start,
+            "end_seconds": clip_end,
+            "duration_seconds": round(clip_duration, 2),
+            "captions_file": subtitle_file.name,
+            "note": "Review the excerpt and title before publishing; no views are guaranteed.",
+        })
+        print(f"Created vertical Short: {output_video}")
+
+    manifest_path = output_dir / "shorts_manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(
+        f"=== SHORTS COMPLETE: {len(manifest)} ready-to-review files "
+        f"in {(time.time() - started) / 60:.1f} min ==="
+    )
+    return manifest
 
 
 

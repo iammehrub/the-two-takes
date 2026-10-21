@@ -453,7 +453,7 @@ def main() -> None:
                 f"{analysis['views']} total views, {analysis['likes']} likes, and "
                 f"{analysis['comments']} comments. Like rate: {analysis['like_rate']:.2f}%. "
                 f"{change_text} These are public totals at the time of this report, not exact "
-                "hour-by-hour historical totals."
+                f"hour-by-hour historical totals. Next step: {recommendation}"
             )
 
             if notify_youtube_analytics(analysis):

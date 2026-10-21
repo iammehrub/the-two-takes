@@ -13,6 +13,8 @@ import requests
 import time
 from pathlib import Path
 
+from audio_enhancements import build_chapters, generate_music_bed
+
 VIDEO_W = 1920
 VIDEO_H = 1080
 FPS = 30
@@ -331,6 +333,15 @@ def render_video(wav, clips, srt, title):
     if not groups:
         raise RuntimeError("No timed conversation turns were available for rendering.")
 
+    # Generate navigation chapters from actual timed dialogue sections.
+    chapter_lines = build_chapters(groups, audio_duration)
+    chapter_path = Path(app.WORK) / "chapters.txt"
+    chapter_path.write_text(
+        "\\n".join(chapter_lines) + ("\\n" if chapter_lines else ""),
+        encoding="utf-8",
+    )
+    print(f"Prepared {len(chapter_lines)} YouTube chapter markers.")
+
     camera_by_type = {
         "hook": "wide",
         "question": "himel",
@@ -428,17 +439,33 @@ def render_video(wav, clips, srt, title):
         f"subtitles='{subtitle_path}':force_style="
         "'FontName=DejaVu Sans,FontSize=30,Bold=1,"
         "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
-        "BorderStyle=1,Outline=3,Shadow=0,"
+        "BorderStyle=1,Outline=3,Shadow=1,"
         "Alignment=2,MarginL=190,MarginR=190,MarginV=105,WrapStyle=2'"
     )
+    # Original locally synthesised score, automatically ducked under the hosts' voices.
+    music_bed = Path(app.WORK) / "original_music_bed.wav"
+    generate_music_bed(audio_duration, music_bed, sample_rate=24000)
+    audio_filter = (
+        "[1:a]asplit=2[voice_sc][voice_raw];"
+        "[2:a]volume=0.85[music];"
+        "[music][voice_sc]sidechaincompress="
+        "threshold=0.025:ratio=8:attack=20:release=450[ducked_music];"
+        "[voice_raw]highpass=f=70,lowpass=f=12000,"
+        "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
+        "volume=1.12[voice];"
+        "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
+        "alimiter=limit=0.95[aout]"
+    )
     _run([
-        "ffmpeg","-y","-i",str(base),"-i",str(wav),"-t",str(audio_duration),
-        "-vf",vf,"-map","0:v:0","-map","1:a:0","-r",str(FPS),
+        "ffmpeg","-y","-i",str(base),"-i",str(wav),"-i",str(music_bed),
+        "-t",str(audio_duration),
+        "-vf",vf,"-filter_complex",audio_filter,
+        "-map","0:v:0","-map","[aout]","-r",str(FPS),
         "-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
-        "-pix_fmt","yuv420p","-c:a","aac","-b:a","160k",
-        "-af","highpass=f=70,lowpass=f=12000,acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,volume=1.25",
+        "-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
         "-shortest","-movflags","+faststart",str(final)
-    ], label="FINAL SEMANTIC MIXED VIDEO")
+    ], label="FINAL VIDEO WITH VOICE-DUCKED ORIGINAL MUSIC")
+    quality_check(final)
     print(f"=== SEMANTIC RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
     return final
 
@@ -560,8 +587,25 @@ def quality_check(video):
     height = int(stream.get("height", 0))
     codec = stream.get("codec_name")
     if width < 1920 or height < 1080 or codec != "h264":
-        raise RuntimeError(f"Quality check failed: {width}x{height}, codec={codec}")
-    print(f"Quality check passed: {width}x{height} H.264")
+        raise RuntimeError(f"Video quality check failed: {width}x{height}, codec={codec}")
+
+    audio_probe = subprocess.run([
+        "ffprobe", "-v", "error", "-select_streams", "a:0",
+        "-show_entries", "stream=codec_name,channels,sample_rate",
+        "-of", "json", str(video)
+    ], capture_output=True, text=True, check=True)
+    audio_streams = json.loads(audio_probe.stdout).get("streams", [])
+    if not audio_streams:
+        raise RuntimeError("Audio quality check failed: no final audio stream found.")
+    audio = audio_streams[0]
+    if audio.get("codec_name") != "aac":
+        raise RuntimeError(f"Audio quality check failed: expected AAC, got {audio.get('codec_name')}")
+    if int(audio.get("channels", 0)) < 2:
+        raise RuntimeError("Audio quality check failed: expected stereo audio.")
+    print(
+        f"Quality check passed: {width}x{height} H.264 + "
+        f"{audio.get('codec_name')} stereo audio at {audio.get('sample_rate')} Hz."
+    )
 
 
 import build_podcast as app

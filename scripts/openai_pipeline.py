@@ -411,17 +411,20 @@ TITLE/PACKAGING RULES:
 
 CONTENT / RETENTION RULES:
 - Write an original 1,500–1,750 word two-host conversation.
-- Start with a strong learner problem/question and concrete payoff in the first 15 seconds.
+- Start with a specific, relatable learner problem and a clear payoff in the first 5–8 seconds. Skip a long channel introduction; give the viewer a useful phrase or insight within the first 30–45 seconds.
 - Use this flow: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Speaking/Shadowing Practice -> Recap.
 - The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
 - Phrase Tour: include 6 useful everyday phrases/words that were either used earlier or clearly fit the topic; give a simple meaning and one natural example for each.
 - Speaking/Shadowing Practice: include 5 short sentence patterns. Model each one naturally and invite the learner to repeat or personalize it.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences.
 - Add natural follow-up questions, examples, disagreement, clarification, personal mini-stories, and small moments of humor.
-- Every 45–90 seconds, introduce a fresh example, question, mini-challenge, or change of angle so the conversation does not flatten.
+- Every 25–45 seconds, introduce a fresh example, question, mini-challenge, useful phrase, or change of angle so the conversation does not flatten. Use a natural curiosity loop, then answer it honestly; never promise a reveal the episode does not deliver.
 - Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip for the phrase tour, practice for shadowing, and recap for the ending.
 - End with a concise recap and a natural reason to practice again.
 - Do not pad the episode just to reach a length target.
+- Include one natural mid-episode question that invites viewers to compare the idea with their own experience, plus one specific comment question at the end.
+- Make the title and thumbnail promise the same clear viewer benefit; keep thumbnail text at 2–4 readable words and avoid vague clickbait.
+- Use a strong opening, quick first payoff, clear chapter changes, and a concrete final practice task to support retention.
 - Avoid repetitive openings, repetitive outro lines, or the same conversation pattern as recent episodes.
 - No copied scripts, quotes, statistics, or invented research.
 - No stage directions or narration in the spoken dialogue.

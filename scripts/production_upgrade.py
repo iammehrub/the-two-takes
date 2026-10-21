@@ -499,15 +499,35 @@ def render_video(wav, clips, srt, title):
         "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
         "alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
     )
+    # Show the same branded studio artwork for the first four seconds of the video.
+    # This is an overlay, not an inserted timeline segment, so narration and subtitle
+    # timing do not shift.
+    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.jpg"
+    input_args = ["-i", str(base), "-i", str(wav), "-i", str(music_bed)]
+    if branded_asset.is_file():
+        input_args.extend(["-loop", "1", "-framerate", str(FPS), "-i", str(branded_asset)])
+        print("Using the channel studio artwork as the 4-second video opener.")
+        video_filter = (
+            "[3:v]scale=1920:1080:flags=lanczos,format=yuv420p[poster];"
+            "[0:v][poster]overlay=0:0:enable='between(t,0,4)'[branded];"
+            f"[branded]{vf}[vout]"
+        )
+    else:
+        # Safe fallback: do not break scheduled runs if the brand image has not yet
+        # been uploaded into assets/two_takes_podcast_studio.jpg.
+        video_filter = f"[0:v:0]{vf}[vout]"
+
+    full_filter = video_filter + ";" + audio_filter
     _run([
-        "ffmpeg","-y","-i",str(base),"-i",str(wav),"-i",str(music_bed),
+        "ffmpeg","-y",*input_args,
         "-t",str(audio_duration),
-        "-vf",vf,"-filter_complex",audio_filter,
-        "-map","0:v:0","-map","[aout]","-r",str(FPS),
+        "-filter_complex",full_filter,
+        "-map","[vout]","-map","[aout]","-r",str(FPS),
         "-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
         "-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
         "-shortest","-movflags","+faststart",str(final)
     ], label="FINAL VIDEO WITH VOICE-DUCKED ORIGINAL MUSIC")
+
     quality_check(final)
     print(f"=== SEMANTIC RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
     return final
@@ -701,7 +721,7 @@ def render_shorts(wav, title, topic):
 # VISUAL REFERENCE STYLE
 # Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
-    "thumbnail": "warm cream paper background; orange-red lesson headline; illustrated two-host focus; small English Podcast label; clean educational typography; minimal clutter",
+    "thumbnail": "16:9 vibrant 2D cartoon podcast studio; bold white and yellow ENGLISH PODCAST / with TWO HOSTS! headline; bright blue LEARN DAILY DIALOGUES banner; Two Takes Podcast channel name; high contrast and clean outlines",
     "video": "warm illustrated learning-podcast studio; two-host wide shot and speaker close-ups; section labels for conversation, phrase tour, shadowing practice and recap; readable subtitles; B-roll only for stories",
     "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
@@ -723,6 +743,17 @@ def _short_thumbnail_title(title, topic):
 
 def make_thumbnail(title, topic):
     """Warm educational thumbnail: large lesson phrase + original illustrated hosts."""
+    # Prefer the channel's permanent studio artwork so every episode has consistent branding.
+    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.jpg"
+    if branded_asset.is_file():
+        jpg = Path(app.WORK) / "thumbnail.jpg"
+        _run(
+            ["convert", str(branded_asset), "-resize", "1280x720!", "-strip", "-quality", "92", str(jpg)],
+            label="Permanent Two Takes channel thumbnail",
+        )
+        print("Using the permanent Two Takes studio artwork for the YouTube thumbnail.")
+        return jpg
+
     headline = _short_thumbnail_title(title, topic)
     lines = textwrap.wrap(headline, width=15)[:2]
 

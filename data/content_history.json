@@ -93,8 +93,17 @@
     "video_id": "px4P_tmuFkg",
     "title": "Sound More Natural: Everyday English Phrases for Real Talk",
     "topic": "English Phrases You Can Use in Real Conversations",
+    "link": "https://youtu.be/px4P_tmuFkg",
     "kind": "Podcast",
     "published": "2026-10-13T20:42:58.334451+00:00",
-    "script_sha256": "8b4e2dbd494c5397e391f591b73502ca48fb50bc46f5a47d52f7b4ce48b10e2a"
+    "notified_at": "2026-10-13T20:42:59.761157+00:00"
+  },
+  {
+    "video_id": "Bfzmt-DjTf4",
+    "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+    "topic": "How to Remember New English Words and Actually Use Them",
+    "kind": "Podcast",
+    "published": "2026-10-21T03:10:57.841278+00:00",
+    "script_sha256": "f604d8a0d1e0acd8cdea4bddb07b83783d25f8725d57ebecc4df0f22d0a38f63"
   }
 ]

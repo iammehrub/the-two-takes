@@ -25,6 +25,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Re-runs must read the latest committed analytics state, not the original event SHA.
+          ref: main
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"

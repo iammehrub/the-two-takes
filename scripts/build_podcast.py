@@ -1087,21 +1087,34 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 
     description_parts = [
         hook.strip(),
-        "Practice English with Himel and Niha through a calm, natural conversation "
-        "designed for listening, speaking, and everyday communication.",
+        "Practice English with Himel and Niha through a lively, friendly conversation "
+        "with natural reactions, useful everyday phrases, and guided speaking practice.",
         f"Topic: {topic.strip()}",
-        "The episode moves from real conversation to useful phrases, "
-        "then short speaking and shadowing practice.",
+        "Listen for practical phrases, then practise speaking with the hosts.",
+        "Question for you: Which phrase will you try today? Leave one example in the comments.",
     ]
     if search_phrases:
         description_parts.append(
-            "This episode explores: " + ", ".join(search_phrases[:5]) + "."
+            "In this episode: " + ", ".join(search_phrases[:5]) + "."
         )
+
+    chapters_path = WORK / "chapters.txt"
+    if chapters_path.exists():
+        try:
+            chapter_lines = [
+                line.strip()
+                for line in chapters_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            # YouTube chapters are useful only when there are several valid markers.
+            if len(chapter_lines) >= 3 and chapter_lines[0].startswith("00:00"):
+                description_parts.append("CHAPTERS\n" + "\n".join(chapter_lines))
+        except OSError as exc:
+            print(f"Could not include chapters in description: {exc}")
+
     if hashtags:
         description_parts.append(" ".join(hashtags))
-    description_parts.append(
-        "Visual credits: Pexels (used via the Pexels API)."
-    )
+    description_parts.append("Visual credits: Pexels (used via the Pexels API).")
     description = "\n\n".join(
         part for part in description_parts if part
     )

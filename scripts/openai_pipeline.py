@@ -805,7 +805,7 @@ def delivery_speed(turn_type, delivery):
         "playful": 1.02,
         "neutral": 0.98,
     }
-    if delivery in delivery_speeds:
+    if delivery in delivery_speeds and delivery != "neutral":
         return delivery_speeds[delivery]
     return {
         "hook": 1.01,

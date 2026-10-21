@@ -189,23 +189,27 @@ def youtube_demand_snapshot():
 
         # Search/read-only discovery needs a read-scoped credential. The
         # upload token may have only youtube.upload and then fails invalid_scope.
+        demand_client_id = (
+            os.environ.get("YOUTUBE_ANALYTICS_CLIENT_ID", "").strip()
+            or getattr(app, "YT_CLIENT_ID", None)
+        )
+        demand_client_secret = (
+            os.environ.get("YOUTUBE_ANALYTICS_CLIENT_SECRET", "").strip()
+            or getattr(app, "YT_CLIENT_SECRET", None)
+        )
         demand_refresh = (
             os.environ.get("YOUTUBE_ANALYTICS_REFRESH_TOKEN", "").strip()
             or getattr(app, "YT_REFRESH", None)
         )
-        if not all([
-            getattr(app, "YT_CLIENT_ID", None),
-            getattr(app, "YT_CLIENT_SECRET", None),
-            demand_refresh,
-        ]):
+        if not all([demand_client_id, demand_client_secret, demand_refresh]):
             return []
 
         creds = Credentials(
             None,
             refresh_token=demand_refresh,
             token_uri="https://oauth2.googleapis.com/token",
-            client_id=app.YT_CLIENT_ID,
-            client_secret=app.YT_CLIENT_SECRET,
+            client_id=demand_client_id,
+            client_secret=demand_client_secret,
             scopes=["https://www.googleapis.com/auth/youtube.readonly"],
         )
         creds.refresh(Request())

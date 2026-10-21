@@ -9,7 +9,8 @@ on:
         default: Manual
         type: string
   schedule:
-    - cron: '0 2 * * *'
+    # Start production before Bangladesh evening viewing hours; upload occurs after the build completes.
+    - cron: '0 17 * * *'
       timezone: "Asia/Dhaka"
 
 permissions:

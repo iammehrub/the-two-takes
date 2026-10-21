@@ -196,5 +196,7 @@ jobs:
             work/youtube_metadata.json
             work/title_options.json
             work/thumbnail_text.txt
+            work/chapters.txt
+            work/original_music_bed.wav
           if-no-files-found: ignore
           retention-days: 14

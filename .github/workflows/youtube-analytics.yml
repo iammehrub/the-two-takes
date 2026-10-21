@@ -2,6 +2,12 @@ name: YouTube 12-Hour Analytics
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "youtube_analytics.py"
+      - "discord_notify.py"
+      - ".github/workflows/youtube-analytics.yml"
   schedule:
     - cron: "45 * * * *"
       timezone: "Asia/Dhaka"

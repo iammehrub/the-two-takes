@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - "scripts/openai_pipeline.py"
+      - "scripts/build_podcast.py"
+      - "scripts/production_upgrade.py"
+      - "scripts/audio_enhancements.py"
+      - "scripts/test_audio_enhancements.py"
       - ".github/workflows/voice-quality-check.yml"
 
 permissions:
@@ -18,7 +22,7 @@ concurrency:
 jobs:
   syntax-and-behavior:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -28,10 +32,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Compile voice pipeline
+      - name: Install lightweight audio-test dependency
+        run: python -m pip install numpy
+
+      - name: Compile voice and production pipeline
         run: |
           set -euo pipefail
-          python -m py_compile scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py
+          python -m py_compile scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/test_audio_enhancements.py
+
+      - name: Test original music bed and chapter generation
+        run: python -m unittest scripts.test_audio_enhancements
 
       - name: Check expressive voice features
         run: |

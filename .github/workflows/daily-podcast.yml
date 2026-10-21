@@ -201,6 +201,7 @@ jobs:
             work/chapters.txt
             work/original_music_bed.wav
             work/shorts/
+            work/youtube_shorts.json
             work/production_report.json
             work/production_report.txt
             work/captions.srt

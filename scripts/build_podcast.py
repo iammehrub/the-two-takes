@@ -1465,6 +1465,17 @@ def main():
     final = render_video(wav, clips, srt, title)
     print(f"Final video created: {final}")
 
+    # Optional promotion assets must never block the main episode upload.
+    shorts_renderer = globals().get("render_shorts")
+    if callable(shorts_renderer):
+        try:
+            shorts_manifest = shorts_renderer(wav, title, topic)
+            print(f"Vertical Shorts ready for review: {len(shorts_manifest)}")
+        except Exception as exc:
+            print(f"Shorts rendering failed; continuing with the full episode: {exc}")
+    else:
+        print("Shorts renderer is not configured; continuing with the full episode.")
+
     print("\nCreating thumbnail...")
     thumb = make_thumbnail(title, topic)
 

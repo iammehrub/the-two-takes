@@ -13,7 +13,8 @@
     "rH53hhSTjKY",
     "L8XragzyKMs",
     "px4P_tmuFkg",
-    "Bfzmt-DjTf4"
+    "Bfzmt-DjTf4",
+    "MGOITKFdj0k"
   ],
   "history": [
     {
@@ -861,6 +862,48 @@
       "comments_since_previous_report": 0,
       "recommendation": "No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself.",
       "summary": "12-hour checkpoint, about 187.3 hours after publication: 2 total views, 0 likes, and 0 comments. Like rate: 0.00%.  Since the previous report: +0 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself."
+    },
+    {
+      "analyzed_at": "2026-10-22T07:58:19.353306+00:00",
+      "age_hours": 28.79,
+      "checkpoint": "24-hour",
+      "checkpoint_key": "24h",
+      "video_id": "Bfzmt-DjTf4",
+      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+      "kind": "Podcast",
+      "views": 18,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 5.555555555555555,
+      "link": "https://youtu.be/Bfzmt-DjTf4",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 6,
+      "views_since_previous_report": 12,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "24-hour checkpoint, about 28.8 hours after publication: 18 total views, 1 likes, and 0 comments. Like rate: 5.56%.  Since the previous report: +12 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-22T07:58:19.353306+00:00",
+      "age_hours": 14.64,
+      "checkpoint": "12-hour",
+      "checkpoint_key": "12h",
+      "video_id": "MGOITKFdj0k",
+      "title": "How to Agree & Disagree Politely | English Conversation Practice",
+      "kind": "Podcast",
+      "views": 7,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 14.285714285714285,
+      "link": "https://youtu.be/MGOITKFdj0k",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "12-hour checkpoint, about 14.6 hours after publication: 7 total views, 1 likes, and 0 comments. Like rate: 14.29%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -930,6 +973,10 @@
       "12h"
     ],
     "Bfzmt-DjTf4": [
+      "12h",
+      "24h"
+    ],
+    "MGOITKFdj0k": [
       "12h"
     ]
   }

@@ -12,6 +12,7 @@ on:
       - "scripts/episode_qc.py"
       - ".github/workflows/daily-podcast.yml"
       - ".github/workflows/podcast-production-tests.yml"
+      - "assets/two_takes_podcast_studio.avif"
 
 permissions:
   contents: read
@@ -41,6 +42,48 @@ jobs:
         run: |
           set -euo pipefail
           python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py
+      - name: Validate branded artwork exports
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          asset = Path("assets/two_takes_podcast_studio.avif")
+          if not asset.is_file() or asset.stat().st_size < 1000:
+              raise SystemExit("Branded studio artwork is missing or unexpectedly small.")
+
+          outputs = [
+              (1280, 720, Path("work/ci-thumbnail-poster.png")),
+              (1920, 1080, Path("work/ci-video-opener.png")),
+          ]
+          for width, height, output in outputs:
+              output.parent.mkdir(parents=True, exist_ok=True)
+              subprocess.run(
+                  [
+                      "ffmpeg", "-v", "error", "-y", "-i", str(asset),
+                      "-vf", f"scale={width}:{height}:flags=lanczos",
+                      "-frames:v", "1", "-update", "1", str(output),
+                  ],
+                  check=True,
+              )
+              result = subprocess.run(
+                  [
+                      "ffprobe", "-v", "error", "-select_streams", "v:0",
+                      "-show_entries", "stream=width,height", "-of", "json",
+                      str(output),
+                  ],
+                  check=True, capture_output=True, text=True,
+              )
+              streams = json.loads(result.stdout).get("streams", [])
+              if not streams or streams[0].get("width") != width or streams[0].get("height") != height:
+                  raise SystemExit(
+                      f"Branded artwork export has the wrong dimensions: {output}"
+                  )
+              print(f"Branded artwork OK: {output} ({width}x{height})")
+          PY
+
       - name: Smoke-test original music and chapter generation
         env:
           PYTHONPATH: scripts

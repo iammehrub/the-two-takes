@@ -502,19 +502,30 @@ def render_video(wav, clips, srt, title):
     # Show the same branded studio artwork for the first four seconds of the video.
     # This is an overlay, not an inserted timeline segment, so narration and subtitle
     # timing do not shift.
-    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.jpg"
+    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
     input_args = ["-i", str(base), "-i", str(wav), "-i", str(music_bed)]
     if branded_asset.is_file():
-        input_args.extend(["-loop", "1", "-framerate", str(FPS), "-i", str(branded_asset)])
+        # Decode AVIF to PNG once per episode so FFmpeg can safely loop the poster
+        # while preserving the original narration/subtitle timeline.
+        poster_png = Path(app.WORK) / "two_takes_podcast_studio_video_poster.png"
+        _run(
+            [
+                "ffmpeg", "-y", "-i", str(branded_asset),
+                "-vf", "scale=1920:1080:flags=lanczos",
+                "-frames:v", "1", "-update", "1", str(poster_png),
+            ],
+            label="Prepare Two Takes video opener",
+        )
+        input_args.extend(["-loop", "1", "-framerate", str(FPS), "-i", str(poster_png)])
         print("Using the channel studio artwork as the 4-second video opener.")
         video_filter = (
-            "[3:v]scale=1920:1080:flags=lanczos,format=yuv420p[poster];"
+            "[3:v]format=yuv420p[poster];"
             "[0:v][poster]overlay=0:0:enable='between(t,0,4)'[branded];"
             f"[branded]{vf}[vout]"
         )
     else:
         # Safe fallback: do not break scheduled runs if the brand image has not yet
-        # been uploaded into assets/two_takes_podcast_studio.jpg.
+        # been uploaded into assets/two_takes_podcast_studio.avif.
         video_filter = f"[0:v:0]{vf}[vout]"
 
     full_filter = video_filter + ";" + audio_filter
@@ -744,11 +755,22 @@ def _short_thumbnail_title(title, topic):
 def make_thumbnail(title, topic):
     """Warm educational thumbnail: large lesson phrase + original illustrated hosts."""
     # Prefer the channel's permanent studio artwork so every episode has consistent branding.
-    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.jpg"
+    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
     if branded_asset.is_file():
+        # Decode AVIF with FFmpeg first: ImageMagick builds on some runners do not
+        # include an AVIF delegate. The final YouTube thumbnail remains JPEG.
+        poster = Path(app.WORK) / "two_takes_podcast_studio_poster.png"
+        _run(
+            [
+                "ffmpeg", "-y", "-i", str(branded_asset),
+                "-vf", "scale=1280:720:flags=lanczos",
+                "-frames:v", "1", "-update", "1", str(poster),
+            ],
+            label="Decode permanent Two Takes AVIF artwork",
+        )
         jpg = Path(app.WORK) / "thumbnail.jpg"
         _run(
-            ["convert", str(branded_asset), "-resize", "1280x720!", "-strip", "-quality", "92", str(jpg)],
+            ["convert", str(poster), "-resize", "1280x720!", "-strip", "-quality", "92", str(jpg)],
             label="Permanent Two Takes channel thumbnail",
         )
         print("Using the permanent Two Takes studio artwork for the YouTube thumbnail.")

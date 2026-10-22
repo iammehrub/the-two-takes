@@ -1,17 +1,17 @@
 {
-  "window": "2026-09-21 to 2026-10-18",
+  "window": "2026-09-22 to 2026-10-19",
   "countries": [],
   "age_gender": [],
   "traffic_sources": [
     {
-      "source": "YT_SEARCH",
-      "views": 3,
-      "minutes": 0.0
-    },
-    {
       "source": "YT_CHANNEL",
       "views": 2,
       "minutes": 3.0
+    },
+    {
+      "source": "YT_SEARCH",
+      "views": 2,
+      "minutes": 0.0
     },
     {
       "source": "SUBSCRIBER",

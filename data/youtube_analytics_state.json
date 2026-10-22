@@ -904,6 +904,29 @@
       "metric_source": "YouTube Data API public totals; not watch-time or retention data",
       "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
       "summary": "12-hour checkpoint, about 14.6 hours after publication: 7 total views, 1 likes, and 0 comments. Like rate: 14.29%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-22T18:51:21.458451+00:00",
+      "age_hours": 25.53,
+      "checkpoint": "24-hour",
+      "checkpoint_key": "24h",
+      "video_id": "MGOITKFdj0k",
+      "title": "How to Agree & Disagree Politely | English Conversation Practice",
+      "kind": "Podcast",
+      "views": 8,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 12.5,
+      "link": "https://youtu.be/MGOITKFdj0k",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 7,
+      "views_since_previous_report": 1,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "24-hour checkpoint, about 25.5 hours after publication: 8 total views, 1 likes, and 0 comments. Like rate: 12.50%.  Since the previous report: +1 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -977,7 +1000,8 @@
       "24h"
     ],
     "MGOITKFdj0k": [
-      "12h"
+      "12h",
+      "24h"
     ]
   }
 }

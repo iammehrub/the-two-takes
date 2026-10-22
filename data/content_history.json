@@ -120,8 +120,17 @@
     "video_id": "MGOITKFdj0k",
     "title": "How to Agree & Disagree Politely | English Conversation Practice",
     "topic": "How to Agree and Disagree Politely in English",
+    "link": "https://youtu.be/MGOITKFdj0k",
     "kind": "Podcast",
     "published": "2026-10-21T17:19:38.714944+00:00",
-    "script_sha256": "33d0ac5b20521208396e4cfd65b57098e3cf5df6ead54762812d68e5525da40f"
+    "notified_at": "2026-10-21T17:19:41.697752+00:00"
+  },
+  {
+    "video_id": "HbIvQ1vbgTE",
+    "title": "Explain Your Opinion Clearly | English Conversation Practice",
+    "topic": "How to Explain Your Opinion Clearly in English",
+    "kind": "Podcast",
+    "published": "2026-10-22T12:40:52.175236+00:00",
+    "script_sha256": "ae3f3e898b8c80c81e3d40863c13af3e5a4f81a3c0953ac2968eb37f65434d70"
   }
 ]

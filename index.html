@@ -8,19 +8,91 @@
 <style>
 :root{color-scheme:dark;--bg:#0b0d16;--panel:#141827;--panel2:#1a2032;--text:#eef1ff;--muted:#9ca6c5;--line:#2b334b;--accent:#a8f0d0;--blue:#9dbbff;--orange:#ffc98d;--red:#ff9eab}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#18223a 0,transparent 45%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:11px;background:#242d45;color:var(--text);padding:9px 12px}button:hover{filter:brightness(1.12)}a{color:var(--blue)}.wrap{max-width:1200px;margin:auto;padding:22px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:800}.title{font-size:clamp(27px,4vw,40px);letter-spacing:-.04em;line-height:1.1;margin:5px 0}.muted{color:var(--muted)}.top-actions{display:flex;gap:8px;flex-wrap:wrap}.primary{background:var(--accent);color:#0d1b19;border-color:transparent;font-weight:800}.grid{display:grid;grid-template-columns:1.05fr 1fr 1fr;gap:14px}.card{background:linear-gradient(150deg,rgba(25,31,49,.97),rgba(17,21,34,.97));border:1px solid var(--line);border-radius:18px;padding:17px;min-width:0;box-shadow:0 12px 35px #0002}.span2{grid-column:span 2}.full{grid-column:1/-1}.cardhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.card h2{font-size:17px;margin:0;letter-spacing:-.02em}.tag{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:4px 8px;color:var(--muted);white-space:nowrap}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:15px}.clock{font-size:27px;font-weight:750;letter-spacing:-.04em}.events{display:flex;flex-direction:column;gap:9px}.event{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:#ffffff04}.eventtime{font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}.eventname{font-weight:650;overflow-wrap:anywhere}.eventnote{font-size:12px;color:var(--muted)}.event.done{opacity:.5}.event.done .eventname{text-decoration:line-through}.smallbtn{padding:5px 8px;font-size:12px}.formrow{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:8px;margin-top:12px}.field{width:100%;min-width:0;background:#0d1120;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px}.newslist{display:flex;flex-direction:column;gap:11px}.newsitem{padding-bottom:10px;border-bottom:1px solid var(--line)}.newsitem:last-child{border:0;padding:0}.newsitem a{font-weight:650;text-decoration:none}.newsitem a:hover{text-decoration:underline}.newsmeta{font-size:11px;color:var(--muted);margin-top:4px}.metricgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:12px}.metriclabel{font-size:11px;color:var(--muted)}.metricvalue{font-size:21px;font-weight:800;margin-top:4px}.status{display:flex;gap:9px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}.status:last-child{border:0}.dot{width:8px;height:8px;border-radius:50%;background:var(--orange);margin-top:7px;flex-shrink:0}.notice{background:#252238;border:1px solid #4a4165;padding:12px;border-radius:12px;color:#d9d2ff;font-size:13px}.foot{padding:22px 3px;color:var(--muted);font-size:12px}.empty{color:var(--muted);font-size:13px;padding:12px 0}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{font-size:12px}.tabs button.active{background:var(--accent);color:#0d1b19}.loading{color:var(--muted);font-size:13px}@media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.span2{grid-column:span 2}.metricgrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:570px){.wrap{padding:13px}.grid{grid-template-columns:1fr}.span2,.full{grid-column:auto}.formrow{grid-template-columns:1fr 1fr}.formrow input:nth-child(2){grid-column:span 2}.hero{align-items:flex-start;flex-direction:column}.event{grid-template-columns:67px 1fr auto}.metricvalue{font-size:19px}}
+
+.repo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.repo-card,.run-row,.video-row{border:1px solid var(--line);border-radius:13px;background:#ffffff03;padding:12px;min-width:0}
+.repo-top,.run-top,.video-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.repo-name,.run-name,.video-name{font-weight:750;overflow-wrap:anywhere;text-decoration:none}
+.repo-desc,.run-meta,.video-meta{font-size:12px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
+.repo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px}
+.status-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:99px;padding:4px 8px;font-size:11px;white-space:nowrap}
+.status-pill.success{border-color:#356b5c;color:#a8f0d0;background:#14332b}
+.status-pill.failure{border-color:#78414d;color:#ff9eab;background:#351923}
+.status-pill.running{border-color:#7d6938;color:#ffc98d;background:#302818}
+.status-pill.neutral{color:var(--muted)}
+.run-list,.video-list{display:flex;flex-direction:column;gap:9px}
+.run-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.run-title{font-weight:700;overflow-wrap:anywhere}
+.run-action{font-size:12px;white-space:nowrap}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.filter-row button{font-size:12px}
+.filter-row button.active{background:var(--accent);color:#0d1b19;border-color:transparent}
+.video-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}
+.video-numbers{font-size:12px;color:var(--muted);margin-top:7px}
+.video-recommendation{font-size:12px;margin-top:7px;color:#d9d2ff;overflow-wrap:anywhere}
+.ops-notice{margin-top:12px}
+.last-updated{font-size:12px;color:var(--muted);margin:0 0 12px}
+.metricvalue.compact{font-size:18px}
+@media(max-width:570px){.repo-grid{grid-template-columns:1fr}.run-row,.video-row{grid-template-columns:1fr}.run-action{white-space:normal}}
+
 </style>
 </head>
 <body><main class="wrap">
-<header class="top"><div><div class="eyebrow">Personal command center · Bangladesh time</div><h1 class="title">My Daily HQ</h1><div class="muted" id="dateLine">Your routine, news and creator stats in one place.</div></div><div class="top-actions"><button id="notifyBtn">🔔 Enable reminders</button><button class="primary" id="addFocus">＋ Add routine</button></div></header>
+<header class="top"><div><div class="eyebrow">Personal command center · Bangladesh time</div><h1 class="title">My Daily HQ</h1><div class="muted" id="dateLine">Your routine, news and creator stats in one place.</div></div><div class="top-actions"><button id="refreshAll">↻ Refresh data</button><button id="notifyBtn">🔔 Enable reminders</button><button class="primary" id="addFocus">＋ Add routine</button></div></header>
 <section class="grid">
 <article class="card span2"><div class="cardhead"><h2>🗓️ Today's routine</h2><span class="tag" id="eventCount">0 events</span></div><div class="hero"><div><div class="clock" id="clock">--:--:--</div><div class="muted" id="nextEvent">Add your first event below.</div></div><button id="clearDone" class="smallbtn">Clear completed</button></div><div class="events" id="events" style="margin-top:14px"></div><form id="eventForm" hidden><div class="formrow"><input class="field" type="time" id="eventTime" required aria-label="Event time"><input class="field" id="eventTitle" maxlength="100" placeholder="e.g. Upload: Video title" required><input class="field" id="eventNote" maxlength="100" placeholder="Note (optional)"><button class="primary" type="submit">Save event</button></div></form><div class="muted" style="font-size:12px;margin-top:10px">Routine is saved on this device in this browser. Keep the page open for on-screen reminders.</div></article>
-<article class="card"><div class="cardhead"><h2>▶️ YouTube center</h2><span class="tag">Two Takes Podcast</span></div><div class="metricgrid" style="grid-template-columns:1fr 1fr"><div class="metric"><div class="metriclabel">Views</div><div class="metricvalue">—</div></div><div class="metric"><div class="metriclabel">Impressions</div><div class="metricvalue">—</div></div><div class="metric"><div class="metriclabel">CTR</div><div class="metricvalue">—</div></div><div class="metric"><div class="metriclabel">Watch time</div><div class="metricvalue">—</div></div></div><div class="notice" style="margin-top:12px">Live channel metrics are not connected yet. This page will not invent numbers.</div><p><a href="https://studio.youtube.com/" target="_blank" rel="noopener">Open YouTube Studio ↗</a></p><div class="tabs"><button data-range="12h" class="active">12 hours</button><button data-range="24h">24 hours</button><button data-range="7d">7 days</button></div><p class="muted" id="analyticsRange" style="font-size:12px">Choose a report range after the analytics feed is connected.</p><div class="status"><span class="dot"></span><div><b>Upload notifications</b><div class="muted" style="font-size:12px">Not connected to this website yet.</div></div></div></article>
+<article class="card"><div class="cardhead"><h2>▶️ YouTube analytics</h2><span class="tag">Saved report</span></div><div class="metricgrid" style="grid-template-columns:1fr 1fr"><div class="metric"><div class="metriclabel">Views · report window</div><div class="metricvalue" id="ytViews">—</div></div><div class="metric"><div class="metriclabel">Estimated minutes watched</div><div class="metricvalue" id="ytMinutes">—</div></div><div class="metric"><div class="metriclabel">Average view %</div><div class="metricvalue" id="ytAvgPct">—</div></div><div class="metric"><div class="metriclabel">Subscribers gained</div><div class="metricvalue" id="ytSubs">—</div></div><div class="metric"><div class="metriclabel">Likes</div><div class="metricvalue" id="ytLikes">—</div></div><div class="metric"><div class="metriclabel">Comments</div><div class="metricvalue" id="ytComments">—</div></div></div><p class="muted" id="ytWindow" style="font-size:12px;margin-top:12px">Loading the latest saved channel report…</p><p class="muted" id="ytDataNote" style="font-size:12px">Metrics come from the last saved report, not a live YouTube Studio session.</p><p><a href="https://studio.youtube.com/" target="_blank" rel="noopener">Open YouTube Studio ↗</a></p></article>
+
+<article class="card full" id="repoPanel">
+  <div class="cardhead"><h2>🧭 Repositories & automation health</h2><span class="tag">Public GitHub data</span></div>
+  <p id="opsUpdated" class="last-updated">Connecting to GitHub…</p>
+  <div class="metricgrid" id="opsMetrics">
+    <div class="metric"><div class="metriclabel">Public repositories</div><div class="metricvalue" id="publicRepoCount">—</div></div>
+    <div class="metric"><div class="metriclabel">Successful recent runs</div><div class="metricvalue" id="successCount">—</div></div>
+    <div class="metric"><div class="metriclabel">Failed recent runs</div><div class="metricvalue" id="failureCount">—</div></div>
+    <div class="metric"><div class="metriclabel">In progress / queued</div><div class="metricvalue" id="activeCount">—</div></div>
+  </div>
+  <div id="repoGrid" class="repo-grid" style="margin-top:12px"><div class="loading">Loading public repositories and their latest workflow states…</div></div>
+  <p class="muted" style="font-size:12px;margin-top:12px">All public repositories are listed. Workflow history is checked for up to the 12 most recently updated active repositories to respect GitHub’s public API limits. Private repositories are intentionally not exposed on this public page.</p>
+</article>
+
+<article class="card full" id="workflowPanel">
+  <div class="cardhead"><h2>⚙️ Workflow activity</h2><span class="tag" id="runCount">Loading runs…</span></div>
+  <div class="filter-row" id="runFilters">
+    <button class="active" data-run-filter="all">All</button>
+    <button data-run-filter="failure">Failed</button>
+    <button data-run-filter="success">Succeeded</button>
+    <button data-run-filter="running">Running / queued</button>
+    <button data-run-filter="other">Skipped / cancelled / other</button>
+  </div>
+  <div id="workflowList" class="run-list"><div class="loading">Loading latest workflow activity…</div></div>
+  <div id="autoTriage" class="notice ops-notice">Automatic failure triage will appear here after workflow data loads.</div>
+</article>
+
+<article class="card full" id="videoPanel">
+  <div class="cardhead"><h2>🎬 Video snapshots & analysis</h2><span class="tag">Two Takes Podcast</span></div>
+  <div class="metricgrid" id="trackedVideoMetrics">
+    <div class="metric"><div class="metriclabel">Tracked videos</div><div class="metricvalue" id="trackedVideoCount">—</div></div>
+    <div class="metric"><div class="metriclabel">Views in latest saved snapshots</div><div class="metricvalue" id="trackedVideoViews">—</div></div>
+    <div class="metric"><div class="metriclabel">Likes in latest saved snapshots</div><div class="metricvalue" id="trackedVideoLikes">—</div></div>
+    <div class="metric"><div class="metriclabel">Comments in latest saved snapshots</div><div class="metricvalue" id="trackedVideoComments">—</div></div>
+  </div>
+  <div class="filter-row" id="videoFilters">
+    <button class="active" data-range="12h">Reports saved in last 12 hours</button>
+    <button data-range="24h">Last 24 hours</button>
+    <button data-range="7d">Last 7 days</button>
+  </div>
+  <p id="analyticsRange" class="last-updated">Loading recorded reports…</p>
+  <div id="videoList" class="video-list"><div class="loading">Loading YouTube snapshot history…</div></div>
+  <p class="muted" style="font-size:12px;margin-top:12px">These are stored snapshots of public video totals at the recorded time, not exact hourly view changes. The channel-level metrics above use the saved Analytics API reporting window. Impressions and click-through rate are not available in the current saved report.</p>
+</article>
+
 <article class="card"><div class="cardhead"><h2>🇧🇩 Bangladesh news</h2><button class="smallbtn refresh" data-news="bd">Refresh</button></div><div class="newslist" id="news-bd"><div class="loading">Loading headlines…</div></div></article>
 <article class="card"><div class="cardhead"><h2>🤖 AI & technology</h2><button class="smallbtn refresh" data-news="ai">Refresh</button></div><div class="newslist" id="news-ai"><div class="loading">Loading headlines…</div></div></article>
 <article class="card"><div class="cardhead"><h2>🌍 World news</h2><button class="smallbtn refresh" data-news="world">Refresh</button></div><div class="newslist" id="news-world"><div class="loading">Loading headlines…</div></div></article>
-<article class="card span2"><div class="cardhead"><h2>⚙️ Connection status</h2><span class="tag">Setup checklist</span></div><div class="status"><span class="dot"></span><div><b>Routine</b><div class="muted" style="font-size:12px">Working locally in this browser. It does not sync across devices yet.</div></div></div><div class="status"><span class="dot"></span><div><b>News feeds</b><div class="muted" style="font-size:12px">Live headlines load from GDELT when the public feed is reachable; sources are linked.</div></div></div><div class="status"><span class="dot"></span><div><b>YouTube analytics and upload alerts</b><div class="muted" style="font-size:12px">Needs a secure GitHub Actions data feed using your existing YouTube API/Analytics workflow. Never put OAuth secrets in this page.</div></div></div><div class="status"><span class="dot"></span><div><b>Reliable reminders</b><div class="muted" style="font-size:12px">Browser notifications work only when permission is granted and the page/browser can run. Reminders while fully closed need a separate scheduled notification service.</div></div></div></article>
+<article class="card span2"><div class="cardhead"><h2>⚙️ Connection status</h2><span class="tag">Setup checklist</span></div><div class="status"><span class="dot"></span><div><b>Routine</b><div class="muted" style="font-size:12px">Working locally in this browser. It does not sync across devices yet.</div></div></div><div class="status"><span class="dot"></span><div><b>News feeds</b><div class="muted" style="font-size:12px">Live headlines load from GDELT when the public feed is reachable; sources are linked.</div></div></div><div class="status"><span class="dot"></span><div><b>GitHub workflow monitor</b><div class="muted" style="font-size:12px">Live public workflow status loads from GitHub. The dashboard does not receive private repository data or store access tokens.</div></div></div><div class="status"><span class="dot"></span><div><b>YouTube analytics feed</b><div class="muted" style="font-size:12px">Reads the analytics snapshots already written by your existing GitHub Actions workflow. Never put OAuth refresh tokens or Discord webhooks in this page.</div></div></div><div class="status"><span class="dot"></span><div><b>Reliable reminders</b><div class="muted" style="font-size:12px">Browser notifications work only when permission is granted and the page/browser can run. Reminders while fully closed need a separate scheduled notification service.</div></div></div></article>
 <article class="card"><div class="cardhead"><h2>📚 English word of the day</h2><span class="tag">A2–B1</span></div><div id="wordTitle" style="font-size:22px;font-weight:800">Reliable</div><p id="wordDef" class="muted">Something you can trust or depend on.</p><p><b>Example:</b> <span id="wordExample">A reliable schedule helps me finish my work.</span></p><button class="smallbtn" id="nextWord">Next word ↗</button></article>
-</section><footer class="foot">My Daily HQ · Times shown in Asia/Dhaka · News articles belong to their original publishers. Routine data stays in this browser. This dashboard is a starter version; YouTube metrics and upload alerts need a secure integration before they become live.</footer>
+</section><footer class="foot">My Daily HQ · Times shown in Asia/Dhaka · Public repository and workflow activity is loaded from GitHub; YouTube figures are the latest saved reports in this repository. Private repository data and secure AI log diagnosis require a private backend and are not exposed in this public page.</footer>
 </main>
 <script>
 const TZ='Asia/Dhaka';
@@ -32,9 +104,229 @@ function nowParts(){const p=new Intl.DateTimeFormat('en-GB',{timeZone:TZ,hour:'2
 function renderEvents(){events.sort((a,b)=>a.time.localeCompare(b.time));$('events').innerHTML='';$('eventCount').textContent=events.length+' event'+(events.length===1?'':'s');if(!events.length){$('events').innerHTML='<div class="empty">No events yet. Tap “Add routine” to plan your day.</div>';return}events.forEach((e,i)=>{const el=document.createElement('div');el.className='event'+(e.done?' done':'');const time=document.createElement('div');time.className='eventtime';time.textContent=e.time;const details=document.createElement('div');const title=document.createElement('div');title.className='eventname';title.textContent=e.title;const note=document.createElement('div');note.className='eventnote';note.textContent=e.note||'';details.append(title,note);const actions=document.createElement('div');actions.style.display='flex';actions.style.gap='4px';const done=document.createElement('button');done.className='smallbtn';done.textContent=e.done?'↶':'✓';done.title=e.done?'Mark incomplete':'Mark completed';done.onclick=()=>{events[i].done=!events[i].done;save();renderEvents()};const del=document.createElement('button');del.className='smallbtn';del.textContent='×';del.title='Delete event';del.onclick=()=>{events.splice(i,1);save();renderEvents()};actions.append(done,del);el.append(time,details,actions);$('events').append(el)})}
 function tick(){const p=nowParts();$('clock').textContent=p.hour+':'+p.minute+':'+p.second;$('dateLine').textContent=new Intl.DateTimeFormat('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:TZ}).format(new Date())+' · '+p.hour+':'+p.minute+' Bangladesh time';const next=events.find(e=>!e.done&&e.time>=p.hour+':'+p.minute);$('nextEvent').textContent=next?'Next: '+next.time+' — '+next.title:'No more planned events today.';const day=new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());events.forEach(e=>{const key='dailyhq-alert-'+day+'-'+e.time+'-'+e.title;if(e.time===p.hour+':'+p.minute&&!e.done&&!sessionStorage.getItem(key)){if(Notification.permission==='granted')new Notification('Routine reminder',{body:e.time+' — '+e.title});sessionStorage.setItem(key,'1')}})}
 $('addFocus').onclick=()=>{$('eventForm').hidden=!$('eventForm').hidden;if(!$('eventForm').hidden)$('eventTime').focus()};$('eventForm').onsubmit=e=>{e.preventDefault();events.push({time:$('eventTime').value,title:$('eventTitle').value.trim(),note:$('eventNote').value.trim(),done:false});save();renderEvents();e.target.reset();e.target.hidden=true};$('clearDone').onclick=()=>{events=events.filter(e=>!e.done);save();renderEvents()};$('notifyBtn').onclick=async()=>{if(!('Notification'in window)){alert('This browser does not support notifications.');return}const p=await Notification.requestPermission();$('notifyBtn').textContent=p==='granted'?'🔔 Reminders enabled':'🔔 Enable reminders'};
-$('analyticsRange').textContent='Selected: last 12 hours · Waiting for secure analytics data feed.';document.querySelectorAll('[data-range]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-range]').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('analyticsRange').textContent='Selected: '+({'12h':'last 12 hours','24h':'last 24 hours','7d':'last 7 days'}[b.dataset.range])+' · Waiting for secure analytics data feed.'});
+// Video snapshot range controls are wired by the dashboard functions below.
 async function loadNews(key){const box=$('news-'+key);box.innerHTML='<div class="loading">Loading headlines…</div>';const q={bd:'Bangladesh',ai:'artificial intelligence OR AI technology',world:'world news'}[key];try{const url='https://api.gdeltproject.org/api/v2/doc/doc?query='+encodeURIComponent(q)+'&mode=ArtList&format=json&maxrecords=6&sort=DateDesc';const r=await fetch(url,{headers:{Accept:'application/json'}});if(!r.ok)throw Error('Feed unavailable');const data=await r.json();const arts=(data.articles||[]).filter(a=>a.title&&a.url).slice(0,6);if(!arts.length)throw Error('No articles');box.innerHTML='';arts.forEach(a=>{const item=document.createElement('div');item.className='newsitem';const link=document.createElement('a');link.href=a.url;link.target='_blank';link.rel='noopener';link.textContent=a.title;const meta=document.createElement('div');meta.className='newsmeta';meta.textContent=(a.domain||'News source')+(a.seendate?' · '+String(a.seendate).replace('T',' ').slice(0,16):'');item.append(link,meta);box.append(item)})}catch(err){box.innerHTML='<div class="empty">Could not load live headlines right now. Try Refresh, or open <a href="https://www.google.com/search?q='+encodeURIComponent(q)+'&tbm=nws" target="_blank" rel="noopener">news search ↗</a>.</div>'}}
 document.querySelectorAll('.refresh').forEach(b=>b.onclick=()=>loadNews(b.dataset.news));['bd','ai','world'].forEach(loadNews);
 const words=[['Reliable','Something you can trust or depend on.','A reliable schedule helps me finish my work.'],['Improve','To make something better.','I want to improve my video titles.'],['Current','Happening or existing now.','I read the current news every morning.'],['Avoid','To stay away from something.','Avoid sharing news before checking the source.'],['Compare','To look at two or more things and notice differences.','I compare this week’s views with last week’s views.'],['Schedule','A plan that shows when things will happen.','My schedule includes study time and uploads.'],['Source','The place where information comes from.','Check the source before trusting a headline.']];let wi=0;$('nextWord').onclick=()=>{wi=(wi+1)%words.length;$('wordTitle').textContent=words[wi][0];$('wordDef').textContent=words[wi][1];$('wordExample').textContent=words[wi][2]};
+
+const OWNER='iammehrub';
+const ROOT_REPO='iammehrub/the-two-takes';
+const RAW_DATA='https://raw.githubusercontent.com/iammehrub/the-two-takes/main/data/';
+const fmtNum=(v,d=0)=>Number.isFinite(Number(v))?new Intl.NumberFormat('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}).format(Number(v)):'—';
+const bdDate=value=>{if(!value)return 'Time unavailable';const date=new Date(value);if(Number.isNaN(date.getTime()))return 'Time unavailable';return new Intl.DateTimeFormat('en-GB',{timeZone:TZ,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date)+' BDT'};
+async function getJson(url){const response=await fetch(url,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!response.ok)throw new Error('HTTP '+response.status);return await response.json()}
+function safeHref(value,allowedHosts){try{const url=new URL(value);if(url.protocol!=='https:')return null;if(allowedHosts&&!allowedHosts.includes(url.hostname))return null;return url.href}catch{return null}}
+function node(tag,className,text){const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined&&text!==null)n.textContent=String(text);return n}
+function externalLink(url,text,allowedHosts){const safe=safeHref(url,allowedHosts);if(!safe)return node('span','muted',text);const a=node('a','',text);a.href=safe;a.target='_blank';a.rel='noopener noreferrer';return a}
+function stateOf(run){const status=String(run.status||'').toLowerCase();if(status&&status!=='completed')return ['queued','requested','waiting','pending','in_progress'].includes(status)?'running':status;return String(run.conclusion||'unknown').toLowerCase()}
+function badgeClass(status){if(status==='success')return 'success';if(['failure','timed_out','action_required','startup_failure','stale'].includes(status))return 'failure';if(['running','queued','in_progress','waiting','pending','requested'].includes(status))return 'running';return 'neutral'}
+function statusText(status){const labels={success:'Succeeded',failure:'Failed',timed_out:'Timed out',action_required:'Action required',startup_failure:'Startup failure',stale:'Stale',running:'Running',queued:'Queued',in_progress:'In progress',waiting:'Waiting',pending:'Pending',requested:'Requested',cancelled:'Cancelled',skipped:'Skipped',neutral:'Unknown',unknown:'Unknown'};return labels[status]||status.replace(/_/g,' ')}
+function statusBadge(status){return node('span','status-pill '+badgeClass(status),statusText(status))}
+const isFailure=run=>['failure','timed_out','action_required','startup_failure','stale'].includes(stateOf(run));
+const isSuccess=run=>stateOf(run)==='success';
+const isActive=run=>stateOf(run)==='running';
+let opsRepos=[];
+let opsRepoInfo={};
+let opsRuns=[];
+let activeRunFilter='all';
+let opsLoadedAt=0;
+let activeVideoRange='12h';
+let videoHistory=[];
+
+function renderRepoCards(){
+  const grid=$('repoGrid');grid.replaceChildren();
+  if(!opsRepos.length){grid.append(node('div','empty','No public repositories were returned by GitHub. Check the public profile endpoint or API rate limit.'));return}
+  for(const repo of opsRepos){
+    const info=opsRepoInfo[repo.full_name]||{runs:[],error:'Workflow history not loaded for this repository'};
+    const recent=(info.runs||[]).slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))[0];
+    const card=node('div','repo-card');
+    const top=node('div','repo-top');
+    top.append(externalLink(repo.html_url,repo.full_name,['github.com']));
+    top.append(statusBadge(recent?stateOf(recent):'unknown'));
+    card.append(top);
+    card.append(node('div','repo-desc',repo.description||'No repository description.'));
+    const updated=repo.pushed_at||repo.updated_at;
+    card.append(node('div','repo-desc','Last repository update: '+bdDate(updated)));
+    if(recent){
+      card.append(node('div','repo-desc','Latest workflow: '+(recent.name||recent.path||'Workflow')+' · '+bdDate(recent.created_at)));
+      const title=node('div','repo-desc',recent.display_title||recent.head_commit?.message||'Latest workflow run');
+      card.append(title);
+    }else{
+      card.append(node('div','repo-desc',info.error?'Workflow status unavailable: '+info.error:'No recent workflow run visible.'));
+    }
+    const links=node('div','repo-actions');
+    links.append(externalLink('https://github.com/'+repo.full_name+'/actions','Open Actions ↗',['github.com']));
+    links.append(externalLink(repo.html_url,'Open repository ↗',['github.com']));
+    card.append(links);grid.append(card);
+  }
+}
+function runFilterMatch(run,filter){
+  const state=stateOf(run);
+  if(filter==='all')return true;
+  if(filter==='failure')return isFailure(run);
+  if(filter==='success')return isSuccess(run);
+  if(filter==='running')return isActive(run);
+  return !isFailure(run)&&!isSuccess(run)&&!isActive(run);
+}
+function renderRunList(){
+  const box=$('workflowList');box.replaceChildren();
+  const sorted=opsRuns.slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  const filtered=sorted.filter(run=>runFilterMatch(run,activeRunFilter));
+  $('runCount').textContent=filtered.length+' matching · '+sorted.length+' loaded';
+  if(!filtered.length){box.append(node('div','empty','No workflow runs match this filter in the loaded recent history. This does not mean older runs never failed.'));return}
+  filtered.slice(0,18).forEach(run=>{
+    const row=node('div','run-row');const details=node('div','');
+    details.append(node('div','run-title',run.name||'GitHub Actions workflow'));
+    details.append(node('div','run-meta',(run.repoFullName||'Repository')+' · '+(run.display_title||run.head_commit?.message||run.path||'Run')+' · '+bdDate(run.created_at)+(run.run_number?' · #'+run.run_number:'')));
+    row.append(details);
+    const side=node('div','');side.append(statusBadge(stateOf(run)));side.append(node('div','run-action',''));const link=externalLink(run.html_url,'Open run ↗',['github.com']);link.className='run-action';side.append(link);row.append(side);box.append(row);
+  });
+  if(filtered.length>18)box.append(node('div','empty','Showing the latest 18 matching runs. More history is available on GitHub Actions.'));
+}
+function triageHint(run){
+  const hay=(String(run.name||'')+' '+String(run.display_title||'')+' '+String(run.path||'')).toLowerCase();
+  if(/youtube.?12.?hour analytics|analytics|audience insights/.test(hay))return 'Likely area to inspect: YouTube Analytics API availability, OAuth scopes/refresh token, or the report-writing step. Open the run and read the first failed step before changing credentials.';
+  if(/daily episode|publisher|upload|youtube/.test(hay))return 'Likely area to inspect: the first failed production/upload step, AI provider or text-to-speech response, video assembly, then YouTube OAuth permissions. Do not retry repeatedly if the log reports revoked credentials or missing scopes.';
+  if(/voice|tts|speech|audio/.test(hay))return 'Likely area to inspect: text-to-speech response, audio duration/format, subtitle timing, and any provider quota or timeout messages.';
+  if(/test|quality|lint|health/.test(hay))return 'Likely area to inspect: the first failed assertion or validation step. A failed test should be fixed at the source rather than bypassed.';
+  return 'Open the run and inspect the first failed step and its error message. This dashboard can classify the workflow, but it does not pretend to have read private logs or run an LLM diagnosis.';
+}
+function renderTriage(){
+  const box=$('autoTriage');box.replaceChildren();
+  const failures=opsRuns.filter(isFailure).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(failures.length){
+    const run=failures[0];
+    box.append(node('strong','', 'Latest failure in the loaded history'));
+    box.append(node('div','', (run.repoFullName||'Repository')+' · '+(run.name||'Workflow')+' · '+bdDate(run.created_at)+'. '+triageHint(run)));
+    box.append(externalLink(run.html_url,'Open failed run and logs ↗',['github.com']));
+  }else if(opsRuns.some(isActive)){
+    box.append(node('strong','','Workflow activity is still running'));
+    box.append(node('div','','Some jobs have not finished. Refresh after completion to see final success/failure status.'));
+  }else if(opsRuns.length){
+    box.append(node('strong','','No failure found in the loaded recent runs'));
+    box.append(node('div','','This checks only the most recent runs retrieved from public repositories. It is not a historical audit, and skipped/cancelled runs are not counted as successful.'));
+  }else{
+    box.append(node('strong','','No workflow results available'));
+    box.append(node('div','','GitHub did not provide visible run data. Open Actions from the repository card to confirm.'));
+  }
+  box.append(node('div','muted','Triage mode: transparent rule-based hints; no logs are sent to an AI model from this public page.'));
+}
+function renderOps(){
+  $('publicRepoCount').textContent=fmtNum(opsRepos.length);
+  $('successCount').textContent=fmtNum(opsRuns.filter(isSuccess).length);
+  $('failureCount').textContent=fmtNum(opsRuns.filter(isFailure).length);
+  $('activeCount').textContent=fmtNum(opsRuns.filter(isActive).length);
+  renderRepoCards();renderRunList();renderTriage();
+}
+async function loadOps(force){
+  if(!force&&opsLoadedAt&&Date.now()-opsLoadedAt<30000)return;
+  $('opsUpdated').textContent='Refreshing public GitHub repositories and workflow runs…';
+  try{
+    const repos=await getJson('https://api.github.com/users/'+OWNER+'/repos?type=owner&sort=updated&per_page=100');
+    opsRepos=(Array.isArray(repos)?repos:[]).filter(r=>r&&r.full_name&&r.owner&&String(r.owner.login).toLowerCase()===OWNER.toLowerCase()&&!r.private);
+    opsRepos.sort((a,b)=>new Date(b.pushed_at||b.updated_at||0)-new Date(a.pushed_at||a.updated_at||0));
+    const queryRepos=opsRepos.filter(r=>!r.archived).slice(0,12);
+    const resultList=await Promise.all(queryRepos.map(async repo=>{
+      try{
+        const data=await getJson('https://api.github.com/repos/'+repo.full_name+'/actions/runs?per_page=8');
+        const runs=(data.workflow_runs||[]).map(run=>({...run,repoFullName:repo.full_name,repoHtmlUrl:repo.html_url}));
+        return {repo:repo.full_name,runs:runs,error:''};
+      }catch(error){return {repo:repo.full_name,runs:[],error:String(error.message||error)}}
+    }));
+    opsRepoInfo={};opsRuns=[];
+    resultList.forEach(item=>{opsRepoInfo[item.repo]=item;opsRuns.push(...item.runs)});
+    opsLoadedAt=Date.now();renderOps();
+    $('opsUpdated').textContent='Updated '+bdDate(new Date().toISOString())+' · '+opsRepos.length+' public repositories · workflow history checked for '+queryRepos.length+' active repositories.';
+  }catch(error){
+    $('opsUpdated').textContent='GitHub could not be refreshed: '+String(error.message||error)+'. This can happen when the public API rate limit is reached.';
+    $('repoGrid').replaceChildren(node('div','empty','Repository data could not be loaded. Open the public profile and Actions pages directly, then retry later.'));
+    $('workflowList').replaceChildren(node('div','empty','No workflow history was loaded. The page does not invent success or failure statuses.'));
+    $('autoTriage').textContent='No AI diagnosis is available because GitHub status data failed to load.';
+  }
+}
+
+function latestPerVideo(history){
+  const byId=new Map();
+  history.forEach(item=>{
+    if(!item||!item.video_id)return;
+    const old=byId.get(item.video_id);
+    if(!old||new Date(item.analyzed_at||0)>new Date(old.analyzed_at||0))byId.set(item.video_id,item);
+  });
+  return Array.from(byId.values()).sort((a,b)=>new Date(b.analyzed_at||0)-new Date(a.analyzed_at||0));
+}
+function renderVideoReports(){
+  const box=$('videoList');box.replaceChildren();
+  const hours=({'12h':12,'24h':24,'7d':168})[activeVideoRange]||12;
+  const cutoff=Date.now()-hours*3600000;
+  const selected=videoHistory.filter(item=>item&&item.analyzed_at&&new Date(item.analyzed_at).getTime()>=cutoff).sort((a,b)=>new Date(b.analyzed_at)-new Date(a.analyzed_at));
+  $('analyticsRange').textContent='Reports saved during the last '+(activeVideoRange==='7d'?'7 days':activeVideoRange==='24h'?'24 hours':'12 hours')+': '+selected.length+' snapshot record(s). Latest stored report data; timestamps shown in Bangladesh time.';
+  if(!selected.length){box.append(node('div','empty','No report snapshots were saved in this time range. Try 7 days, or check the YouTube analytics workflow in GitHub Actions.'));return}
+  selected.slice(0,14).forEach(item=>{
+    const row=node('div','video-row');const info=node('div','');
+    const title=externalLink(item.link||('https://www.youtube.com/watch?v='+encodeURIComponent(item.video_id||'')),item.title||'Untitled video',['youtube.com','www.youtube.com','youtu.be','m.youtube.com']);
+    title.className='video-name';info.append(title);
+    const checkpoint=item.checkpoint||item.checkpoint_key||item.kind||'Saved snapshot';
+    let meta=(item.kind||'Video')+' · '+checkpoint+' · report recorded '+bdDate(item.analyzed_at);
+    if(Number.isFinite(Number(item.age_hours)))meta+=' · video age at report: '+fmtNum(item.age_hours,1)+'h';
+    info.append(node('div','video-meta',meta));
+    info.append(node('div','video-numbers','Video totals at this snapshot: '+fmtNum(item.views)+' views · '+fmtNum(item.likes)+' likes · '+fmtNum(item.comments)+' comments'));
+    const rec=item.recommendation||item.summary||'No recommendation was saved for this snapshot.';
+    info.append(node('div','video-recommendation',String(rec).slice(0,420)));
+    const side=node('div','');side.append(statusBadge('neutral'));const cp=node('div','video-meta',checkpoint);side.append(cp);row.append(info,side);box.append(row);
+  });
+  if(selected.length>14)box.append(node('div','empty','Showing the latest 14 saved report records.'));
+}
+async function loadYoutubeData(){
+  const stateUrl=RAW_DATA+'youtube_analytics_state.json?refresh='+Date.now();
+  const deepUrl=RAW_DATA+'youtube_deep_analytics.json?refresh='+Date.now();
+  const [stateResult,deepResult]=await Promise.allSettled([
+    fetch(stateUrl,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}),
+    fetch(deepUrl,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  ]);
+  if(stateResult.status==='fulfilled'){
+    const state=stateResult.value||{};videoHistory=Array.isArray(state.history)?state.history:[];
+    const latest=latestPerVideo(videoHistory);
+    $('trackedVideoCount').textContent=fmtNum(latest.length);
+    $('trackedVideoViews').textContent=fmtNum(latest.reduce((sum,item)=>sum+Number(item.views||0),0));
+    $('trackedVideoLikes').textContent=fmtNum(latest.reduce((sum,item)=>sum+Number(item.likes||0),0));
+    $('trackedVideoComments').textContent=fmtNum(latest.reduce((sum,item)=>sum+Number(item.comments||0),0));
+    renderVideoReports();
+  }else{
+    $('videoList').replaceChildren(node('div','empty','Could not load YouTube snapshot history: '+String(stateResult.reason?.message||stateResult.reason)));
+    $('analyticsRange').textContent='Video reporting data unavailable; check that the repository and saved JSON file are public.';
+  }
+  if(deepResult.status==='fulfilled'){
+    const data=deepResult.value||{};
+    $('ytViews').textContent=fmtNum(data.views);
+    $('ytMinutes').textContent=fmtNum(data.estimated_minutes_watched,1);
+    $('ytAvgPct').textContent=Number.isFinite(Number(data.average_view_percentage))?fmtNum(data.average_view_percentage,1)+'%':'—';
+    $('ytSubs').textContent=Number.isFinite(Number(data.subscribers_gained))?(Number(data.subscribers_gained)>0?'+':'')+fmtNum(data.subscribers_gained):'—';
+    $('ytLikes').textContent=fmtNum(data.likes);
+    $('ytComments').textContent=fmtNum(data.comments);
+    $('ytWindow').textContent='Saved Analytics API reporting window: '+(data.window||'window unavailable')+'. These values update only when the analytics workflow writes a new report.';
+    $('ytDataNote').textContent='Not a real-time feed. Impressions and click-through rate are not in the current saved report. Last available file can be older than today.';
+  }else{
+    $('ytWindow').textContent='Channel analytics report could not be loaded: '+String(deepResult.reason?.message||deepResult.reason);
+    $('ytDataNote').textContent='Open the analytics workflow and confirm it saved data/youtube_deep_analytics.json.';
+  }
+}
+
+document.querySelectorAll('[data-run-filter]').forEach(button=>button.onclick=()=>{
+  activeRunFilter=button.dataset.runFilter||'all';
+  document.querySelectorAll('[data-run-filter]').forEach(item=>item.classList.toggle('active',item===button));
+  renderRunList();
+});
+document.querySelectorAll('[data-range]').forEach(button=>button.onclick=()=>{
+  activeVideoRange=button.dataset.range||'12h';
+  document.querySelectorAll('[data-range]').forEach(item=>item.classList.toggle('active',item===button));
+  renderVideoReports();
+});
+$('refreshAll').onclick=async()=>{
+  $('refreshAll').disabled=true;$('refreshAll').textContent='Refreshing…';
+  await Promise.allSettled([loadOps(true),loadYoutubeData()]);
+  $('refreshAll').disabled=false;$('refreshAll').textContent='↻ Refresh data';
+};
+loadOps(false);loadYoutubeData();
+
 renderEvents();tick();setInterval(tick,1000);
 </script></body></html>

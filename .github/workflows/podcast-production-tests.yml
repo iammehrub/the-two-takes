@@ -8,6 +8,7 @@ on:
       - "scripts/openai_pipeline.py"
       - "scripts/build_podcast.py"
       - "scripts/production_upgrade.py"
+      - "scripts/test_video_presentation.py"
       - "scripts/audio_enhancements.py"
       - "scripts/episode_qc.py"
       - ".github/workflows/daily-podcast.yml"
@@ -41,7 +42,11 @@ jobs:
       - name: Compile production modules
         run: |
           set -euo pipefail
-          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/test_video_presentation.py scripts/audio_enhancements.py scripts/episode_qc.py
+      - name: Test fixed host subtitle areas
+        env:
+          PYTHONPATH: scripts
+        run: python -m unittest scripts.test_video_presentation
       - name: Validate branded artwork exports
         run: |
           set -euo pipefail

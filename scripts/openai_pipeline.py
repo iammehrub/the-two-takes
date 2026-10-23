@@ -547,8 +547,7 @@ Use 30–45 short, natural turns; no more than three consecutive turns by
 the same host. Give the real conversation most of the time. Expand with
 specific mini-stories, realistic reactions, helpful examples, clarifying
 questions, and natural back-and-forth—not filler or repeated explanations.
-Keep the first turn as "hook", include "welcome" within the first five
-turns, include at least three "language_tip" turns, at least three
+Keep the first turn as "hook", do not add any welcome or intro turn, include at least three "language_tip" turns, at least three
 "practice" turns, at least one "recap", and finish with "outro".
 The topic must stay the mandatory topic. Keep metadata accurate to the
 rewritten dialogue. Do not invent facts, statistics, citations, or research.

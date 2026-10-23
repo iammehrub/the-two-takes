@@ -14,7 +14,8 @@
     "L8XragzyKMs",
     "px4P_tmuFkg",
     "Bfzmt-DjTf4",
-    "MGOITKFdj0k"
+    "MGOITKFdj0k",
+    "HbIvQ1vbgTE"
   ],
   "history": [
     {
@@ -927,6 +928,25 @@
       "comments_since_previous_report": 0,
       "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
       "summary": "24-hour checkpoint, about 25.5 hours after publication: 8 total views, 1 likes, and 0 comments. Like rate: 12.50%.  Since the previous report: +1 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-23T01:59:30.277751+00:00",
+      "age_hours": 13.31,
+      "checkpoint": "12-hour",
+      "checkpoint_key": "12h",
+      "video_id": "HbIvQ1vbgTE",
+      "title": "Explain Your Opinion Clearly | English Conversation Practice",
+      "kind": "Podcast",
+      "views": 16,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 6.25,
+      "link": "https://youtu.be/HbIvQ1vbgTE",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "12-hour checkpoint, about 13.3 hours after publication: 16 total views, 1 likes, and 0 comments. Like rate: 6.25%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -1002,6 +1022,9 @@
     "MGOITKFdj0k": [
       "12h",
       "24h"
+    ],
+    "HbIvQ1vbgTE": [
+      "12h"
     ]
   }
 }

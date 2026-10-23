@@ -11,6 +11,8 @@ on:
       - "scripts/test_video_presentation.py"
       - "scripts/audio_enhancements.py"
       - "scripts/episode_qc.py"
+      - "scripts/facebook_publish.py"
+      - "scripts/test_facebook_publish.py"
       - ".github/workflows/daily-podcast.yml"
       - ".github/workflows/podcast-production-tests.yml"
       - "assets/two_takes_podcast_studio.avif"
@@ -39,10 +41,12 @@ jobs:
           sudo apt-get install -y -qq ffmpeg
           python -m pip install --upgrade pip
           python -m pip install numpy requests
+      - name: Test Facebook Page publishing helpers (offline)
+        run: python -m unittest scripts.test_facebook_publish
       - name: Compile production modules
         run: |
           set -euo pipefail
-          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/test_video_presentation.py scripts/audio_enhancements.py scripts/episode_qc.py
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/test_video_presentation.py scripts/audio_enhancements.py scripts/episode_qc.py scripts/facebook_publish.py scripts/test_facebook_publish.py
       - name: Test fixed host subtitle areas
         env:
           PYTHONPATH: scripts

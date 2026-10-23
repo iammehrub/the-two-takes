@@ -166,12 +166,14 @@ def gemini_generate(prompt, temperature=0.9):
 # ============================================================
 
 def fetch_news():
+    # Search the actual Google News RSS search endpoint and prioritize recent stories.
     q = (
-        "(AI OR technology OR science OR business OR gaming "
-        "OR entertainment OR space)"
+        "(AI OR \"artificial intelligence\" OR technology OR science OR business "
+        "OR gaming OR entertainment OR space OR cybersecurity OR \"social media\" "
+        "OR education OR jobs OR climate) when:7d"
     )
 
-    url = "https://news.google.com/rss"
+    url = "https://news.google.com/rss/search"
 
     params = {
         "hl": "en-US",

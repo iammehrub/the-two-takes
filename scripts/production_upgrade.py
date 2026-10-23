@@ -343,7 +343,7 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide", section=""
     ], label=f"Studio {camera} shot {output_path.name}")
 
 def render_video(wav, clips, srt, title):
-    """Render the supplied channel artwork with gentle camera motion and host-aligned captions."""
+    """Render the supplied channel-opener image for the entire episode with host-aligned captions."""
     print("=== FULL-EPISODE OPENER + SPEAKER-POSITIONED CAPTIONS RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
@@ -410,7 +410,7 @@ def render_video(wav, clips, srt, title):
         "-i", str(wav),
         "-i", str(music_bed),
     ]
-    video_filter = f"[0:v:0]zoompan=z='1+0.025*(0.5-0.5*cos(2*PI*on/(30*24)))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1920x1080:fps=30,format=yuv420p,subtitles='{subtitle_path}'[vout]"
+    video_filter = f"[0:v:0]format=yuv420p,subtitles='{subtitle_path}'[vout]"
     audio_filter = (
         "[1:a]asplit=2[voice_sc][voice_raw];"
         "[2:a]volume=1.1[music];"
@@ -652,7 +652,29 @@ def _short_thumbnail_title(title, topic):
 
 
 def make_thumbnail(title, topic):
-    """Create a topic-specific thumbnail with a bold lesson phrase and original hosts."""
+    """Warm educational thumbnail: large lesson phrase + original illustrated hosts."""
+    # Prefer the channel's permanent studio artwork so every episode has consistent branding.
+    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
+    if branded_asset.is_file():
+        # Decode AVIF with FFmpeg first: ImageMagick builds on some runners do not
+        # include an AVIF delegate. The final YouTube thumbnail remains JPEG.
+        poster = Path(app.WORK) / "two_takes_podcast_studio_poster.png"
+        _run(
+            [
+                "ffmpeg", "-y", "-i", str(branded_asset),
+                "-vf", "scale=1280:720:flags=lanczos",
+                "-frames:v", "1", "-update", "1", str(poster),
+            ],
+            label="Decode permanent Two Takes AVIF artwork",
+        )
+        jpg = Path(app.WORK) / "thumbnail.jpg"
+        _run(
+            ["convert", str(poster), "-resize", "1280x720!", "-strip", "-quality", "92", str(jpg)],
+            label="Permanent Two Takes channel thumbnail",
+        )
+        print("Using the permanent Two Takes studio artwork for the YouTube thumbnail.")
+        return jpg
+
     headline = _short_thumbnail_title(title, topic)
     lines = textwrap.wrap(headline, width=15)[:2]
 

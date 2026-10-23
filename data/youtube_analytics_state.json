@@ -990,6 +990,29 @@
       "comments_since_previous_report": 0,
       "recommendation": "No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself.",
       "summary": "24-hour checkpoint, about 25.2 hours after publication: 16 total views, 0 likes, and 0 comments. Like rate: 0.00%.  Since the previous report: +0 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: No new views appeared since the last report. Review the title, thumbnail, and topic fit before changing the video itself."
+    },
+    {
+      "analyzed_at": "2026-10-23T18:44:37.111405+00:00",
+      "age_hours": 26.58,
+      "checkpoint": "24-hour",
+      "checkpoint_key": "24h",
+      "video_id": "1fBvXpGj3vk",
+      "title": "Tell Better Stories in English | English Conversation Practice",
+      "kind": "Podcast",
+      "views": 30,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 3.3333333333333335,
+      "link": "https://youtu.be/1fBvXpGj3vk",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 9,
+      "views_since_previous_report": 21,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "24-hour checkpoint, about 26.6 hours after publication: 30 total views, 1 likes, and 0 comments. Like rate: 3.33%.  Since the previous report: +21 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -1071,7 +1094,8 @@
       "24h"
     ],
     "1fBvXpGj3vk": [
-      "12h"
+      "12h",
+      "24h"
     ]
   }
 }

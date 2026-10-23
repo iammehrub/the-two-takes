@@ -423,14 +423,18 @@ TITLE/PACKAGING RULES:
 - Make the title accurate, specific, and useful; no misleading clickbait.
 - One title should be clearly searchable.
 - One title should feel like a natural podcast episode title.
-- One title should combine search clarity with curiosity.
+- Make at least one title earn the click with a concrete tension, surprising contrast, or clear consequence from the actual story; avoid generic labels and empty suspense.
+- Keep the English-learning benefit visible in the title set, but don't force the same suffix onto every option.
 - Choose the strongest primary title as "title".
 - Produce "thumbnail_text" with only 2–4 short words, different wording from the full title when possible.
 - Thumbnail text must be truthful to the actual episode.
 
 CONTENT / RETENTION RULES:
 - Write an original 1,300–1,450 word two-host conversation, aiming for approximately 9–11 minutes of spoken audio before the short musical tail.
-- First turn: a compelling 1–2 sentence hook, marked "hook", designed for 5–8 seconds. Start the spoken audio at 0:00.
+- First turn: one sharp, concrete 8–14-word hook tied to the actual story, marked "hook", delivered with curious energy rather than announcer hype. Start the spoken audio at 0:00.
+- Opening 25 seconds: hook -> the other host reacts or asks the viewer's real question -> give one useful, supported insight quickly. Make the stakes relatable without inventing details.
+- Create one honest curiosity loop that the discussion answers within about 90 seconds. Never hide the basic answer or promise a reveal the episode cannot deliver.
+- Vary the hook shape across episodes (specific dilemma, counterintuitive contrast, or vivid everyday consequence); don't default to "Can X do Y?" or "What if...?"
 - Do not include a welcome, host/channel introduction, episode announcement, or opening music sting. The second turn should continue naturally into the topic.
 - Use this flow: Hook -> Real Conversation -> Phrase Tour -> Quick Tip -> Speaking/Shadowing Practice -> Recap -> Outro.
 - The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.

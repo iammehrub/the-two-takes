@@ -309,48 +309,47 @@ def audience_profile_context():
 
 
 def make_episode(news):
-    topic_bank = [
+    # Fresh headlines are the primary topic pool. Evergreen English topics are
+    # used only if the current-news feed has no usable stories.
+    fallback_topic_bank = [
         "Stop Translating in Your Head: Speak English More Naturally",
         "How to Speak English With Confidence Even When You Make Mistakes",
-        "What to Say When You Do Not Understand Someone in English",
-        "How to Start a Conversation With Someone You Just Met",
         "How to Keep a Conversation Going When You Run Out of Things to Say",
         "How to Make Small Talk Without Feeling Awkward",
-        "How to Sound More Natural in Everyday English",
-        "English Phrases You Can Use in Real Conversations",
         "How to Remember New English Words and Actually Use Them",
-        "How to Build English Sentences Faster",
         "How to Agree and Disagree Politely in English",
-        "How to Explain Your Opinion Clearly in English",
-        "How to Tell a Story in English Without Getting Stuck",
-        "How to Ask for Help Naturally in English",
-        "How to Refuse a Request Politely in English",
-        "How to Apologize Naturally in English",
-        "How to Talk About Your Studies in English",
-        "How to Talk About Your Work in English",
-        "How to Talk About Your Hobbies in English",
-        "How to Talk About Travel in Everyday English",
-        "How to Talk About Food and Eating Habits in English",
-        "How to Talk About Movies and TV in English",
-        "How to Talk About Gaming in English",
-        "How to Talk About Money and Saving in English",
-        "How to Talk About Stress and a Busy Day in English",
-        "How to Talk About Your Plans for the Future in English",
-        "How to Express Feelings in Everyday English",
-        "How to Handle an Awkward Silence in English",
-        "How to Sound Friendly Instead of Too Formal in English",
-        "How to End a Conversation Naturally in English",
         "How to Improve Your Listening When People Speak Fast",
         "How to Think in English More Often",
-        "How to Stop Saying 'Umm' So Much in English",
-        "How to Ask Better Questions in English",
-        "How to Give Better Answers in English",
-        "How to Sound Clear on the Phone in English",
-        "How to Make Your English More Natural With Simple Phrases",
-        "How to Describe People and Places in English",
-        "How to Talk About Your Goals in English",
-        "How to Talk About Daily Problems in English",
     ]
+
+    current_stories = []
+    seen_story_keys = set()
+    for item in news or []:
+        if not isinstance(item, dict):
+            continue
+        headline = re.sub(r"\s+", " ", str(item.get("title") or "")).strip()
+        source = re.sub(r"\s+", " ", str(item.get("source") or "")).strip()
+        pub_date = re.sub(r"\s+", " ", str(item.get("pubDate") or "")).strip()
+        if len(headline) < 15 or len(headline) > 180:
+            continue
+        story_key = re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip()
+        if not story_key or story_key in seen_story_keys:
+            continue
+        seen_story_keys.add(story_key)
+        current_stories.append({
+            "title": headline,
+            "source": source,
+            "pubDate": pub_date,
+        })
+        if len(current_stories) >= 12:
+            break
+
+    trend_context = "\n".join(
+        f"{i + 1}. {item['title']} — {item['source']} ({item['pubDate']})"
+        for i, item in enumerate(current_stories)
+    ) or "(No usable current headlines were returned; use an evergreen topic only as a fallback.)"
+
+    topic_bank = [item["title"] for item in current_stories] or fallback_topic_bank
 
     recent_context = recent_content_context(20)
     demand_rows = youtube_demand_snapshot()
@@ -358,7 +357,7 @@ def make_episode(news):
     audience_context = audience_profile_context()
 
     prompt = f"""
-You are the lead writer for TWO TAKES PODCAST, an original English-learning YouTube conversation show.
+You are the lead writer for TWO TAKES PODCAST: a trending-story English-learning conversation show.
 
 REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — ADAPT THE FORMAT, KEEP EVERYTHING ORIGINAL
 - Recreate the same broad viewer experience: a calm, friendly English-learning podcast built around natural conversation, relatable life topics, vocabulary teaching, and speaking practice.
@@ -380,7 +379,7 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for Two Takes Podcast.
 
 PRIMARY GOAL:
-Create a video concept that a new viewer can understand instantly and has a clear reason to click and keep watching.
+Turn a genuinely current story into a useful, entertaining English-learning conversation. The news topic attracts interest; natural English, useful phrases, and speaking practice are the channel's core value. Do not drift into generic news commentary.
 
 Audience:
 A2-B1 and B1-B2 English learners worldwide, especially people who want to speak more naturally in everyday life.
@@ -406,14 +405,17 @@ RECENTLY PUBLISHED CONTENT:
 DIRECTIONAL YOUTUBE DEMAND SNAPSHOT:
 {demand_context}
 
+CURRENT TRENDING NEWS HEADLINES (most recent candidates first; headlines are leads, not complete reporting):
+{trend_context}
+
 AVAILABLE TOPIC BANK:
 {chr(10).join('- ' + x for x in topic_bank)}
 
-Use the channel audience profile as a signal, not a rule. Prioritize topics that fit the actual audience while still attracting English learners worldwide.\n\nChoose ONE fresh topic. You may create a new angle around a topic-bank idea, but it must be meaningfully different from recent content.
+Use the channel audience profile and YouTube demand snapshot as signals, not guarantees. When current headlines are available, choose ONE story with broad curiosity and clear everyday relevance. Explain the story's general context in plain English and teach language viewers can use to discuss it. Do not simply read the headline or produce a generic vocabulary lesson. Do not invent details that the supplied headlines do not establish. If the story is developing or ambiguous, explicitly use cautious wording. Use an evergreen topic only when no usable current headlines exist. Avoid topics substantially overlapping recent uploads.
 
 TITLE/PACKAGING RULES:
 - Produce 3 distinct title options.
-- Use a recognizable English-learning podcast title pattern, such as "[topic] | English Conversation Practice" or "English Podcast: [topic]".
+- Lead with the trending subject or the viewer's real question, then signal the English-learning benefit where natural. Examples: "Can AI Take Your Job? | English Conversation Practice" or "What This New Tech Story Means | English Podcast". Avoid awkward forced wording.
 - Put the main searchable phrase or learner problem near the beginning.
 - Keep titles clear and reasonably concise; do not force awkwardly short titles.
 - Do not start the title with "Two Takes Podcast".
@@ -432,7 +434,7 @@ CONTENT / RETENTION RULES:
 - Do not include a welcome, host/channel introduction, episode announcement, or opening music sting. The second turn should continue naturally into the topic.
 - Use this flow: Hook -> Real Conversation -> Phrase Tour -> Quick Tip -> Speaking/Shadowing Practice -> Recap -> Outro.
 - The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
-- Phrase Tour: include 6 useful everyday phrases/words that were either used earlier or clearly fit the topic; give a simple meaning and one natural example for each.
+- Phrase Tour: include exactly 6 useful words or phrases that appeared naturally in the discussion and fit the chosen trend/story. Give each a simple meaning and one natural example. Avoid unrelated textbook vocabulary.
 - Speaking/Shadowing Practice: include 5 short sentence patterns. Model each one naturally and invite the learner to repeat or personalize it.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences.
 - Add natural follow-up questions, examples, disagreement, clarification, personal mini-stories, and small moments of humor.
@@ -447,7 +449,7 @@ CONTENT / RETENTION RULES:
 - Avoid repetitive openings, repetitive outro lines, or the same conversation pattern as recent episodes.
 - No copied scripts, quotes, statistics, or invented research.
 - No stage directions or narration in the spoken dialogue.
-- No current-news discussion.
+- The selected current story must be a meaningful part of the conversation, not just a passing mention. Distinguish confirmed headline information from interpretation. Do not claim to have verified article details you have not been given.
 
 DISCOVERY METADATA:
 - Return 3–6 natural search phrases based on the actual topic.
@@ -686,7 +688,7 @@ CURRENT DRAFT JSON:
                 if (
                     forced_tokens
                     and generated_tokens
-                    and len(forced_tokens & generated_tokens) / len(forced_tokens) < 0.50
+                    and len(forced_tokens & generated_tokens) / max(1, min(len(forced_tokens), len(generated_tokens))) < 0.50
                 ):
                     last_problem = f"model ignored mandatory topic: {topic}"
                     print(last_problem)

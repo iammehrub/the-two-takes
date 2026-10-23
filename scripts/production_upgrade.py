@@ -484,12 +484,13 @@ def render_shorts(wav, title, topic):
     print("=== CREATING VERTICAL SHORTS ASSETS ===")
     started = time.time()
     work = Path(app.WORK)
-    base = work / "base_video.mp4"
-    music = work / "original_music_bed.wav"
+    # The full-episode renderer now builds the finished still-image video directly;
+    # it no longer creates the intermediate base_video.mp4 file.
+    base = work / "the_two_takes.mp4"
     timing_path = work / "tts_segments.json"
 
-    if not base.exists() or not Path(wav).exists() or not timing_path.exists():
-        raise RuntimeError("Cannot render Shorts: base video, voice WAV, or TTS timings are missing.")
+    if not base.exists() or not timing_path.exists():
+        raise RuntimeError("Cannot render Shorts: finished episode video or TTS timings are missing.")
 
     try:
         timing = json.loads(timing_path.read_text(encoding="utf-8"))
@@ -498,14 +499,11 @@ def render_shorts(wav, title, topic):
     if not isinstance(timing, list) or not timing:
         raise RuntimeError("Cannot render Shorts: the TTS timing file contains no segments.")
 
-    audio_duration = app.duration(wav)
+    audio_duration = app.duration(base)
     windows = select_short_windows(timing, audio_duration, max_clips=3)
     if not windows:
         print("No clean 18–35 second Shorts excerpts met the timing rules.")
         return []
-
-    if not music.exists():
-        generate_music_bed(audio_duration, music, sample_rate=24000)
 
     output_dir = work / "shorts"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -551,6 +549,9 @@ def render_shorts(wav, title, topic):
             .replace("'", "\\'")
         )
         font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        # Use the already-rendered episode as the sole source. Its voice/music mix
+        # and speaker-positioned captions are already baked in, so do not add them
+        # a second time or burn duplicate bottom-centred subtitles onto the Short.
         video_and_caption_filter = (
             "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,"
             "crop=1080:1920,boxblur=24:10,eq=brightness=-0.18[bg];"
@@ -561,33 +562,15 @@ def render_shorts(wav, title, topic):
             "x=(w-text_w)/2:y=88:fontsize=42:fontcolor=white,"
             "drawbox=x=48:y=1710:w=984:h=132:color=0x211914@0.90:t=fill,"
             f"drawtext=fontfile={font}:text='FULL EPISODE ON CHANNEL':"
-            "x=(w-text_w)/2:y=1750:fontsize=34:fontcolor=white,"
-            f"subtitles='{subtitle_path}':force_style="
-            "'FontName=DejaVu Sans,FontSize=46,Bold=1,"
-            "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
-            "BorderStyle=1,Outline=4,Shadow=1,"
-            "Alignment=2,MarginL=70,MarginR=70,MarginV=335,WrapStyle=2'"
+            "x=(w-text_w)/2:y=1750:fontsize=34:fontcolor=white"
             "[v]"
-        )
-        audio_filter = (
-            "[1:a]asplit=2[voice_sc][voice_raw];"
-            "[2:a]volume=1.1[music];"
-            "[music][voice_sc]sidechaincompress="
-            "threshold=0.08:ratio=2.5:attack=20:release=450[ducked_music];"
-            "[voice_raw]pan=stereo|c0=c0|c1=c0,highpass=f=70,lowpass=f=12000,"
-            "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
-            "volume=1.12[voice];"
-            "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
-            "alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
         )
         command = [
             "ffmpeg", "-y",
             "-ss", f"{clip_start:.3f}", "-i", str(base),
-            "-ss", f"{clip_start:.3f}", "-i", str(wav),
-            "-ss", f"{clip_start:.3f}", "-i", str(music),
             "-t", f"{clip_duration:.3f}",
-            "-filter_complex", video_and_caption_filter + ";" + audio_filter,
-            "-map", "[v]", "-map", "[aout]",
+            "-filter_complex", video_and_caption_filter,
+            "-map", "[v]", "-map", "0:a:0",
             "-r", str(FPS),
             "-c:v", "libx264", "-preset", ENCODE_PRESET, "-crf", "22",
             "-pix_fmt", "yuv420p",

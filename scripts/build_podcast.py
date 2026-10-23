@@ -282,7 +282,7 @@ STRUCTURE:
 1) 10–20 second cold hook:
 surprising question, tension, or intriguing claim.
 
-2) Short branded intro for The Two Takes.
+2) Continue directly into the conversation without a branded intro segment.
 
 3) Clear setup:
 why this matters TODAY.

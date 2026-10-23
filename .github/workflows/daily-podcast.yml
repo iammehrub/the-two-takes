@@ -135,6 +135,17 @@ jobs:
           print(f"Verified and recorded YouTube upload: {video_id}")
           PY
 
+      - name: Publish episode and matching Reel to Facebook
+        if: success()
+        env:
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+          FACEBOOK_GRAPH_API_VERSION: ${{ vars.FACEBOOK_GRAPH_API_VERSION || 'v26.0' }}
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/facebook_publish.py
+          python scripts/facebook_publish.py
+
       - name: Notify Discord about published episode
         env:
           DISCORD_YOUTUBE_PODCAST_WEBHOOK: ${{ secrets.DISCORD_YOUTUBE_PODCAST_WEBHOOK }}
@@ -211,5 +222,6 @@ jobs:
             work/production_report.txt
             work/captions.srt
             work/captions.ass
+            work/facebook_publish.json
           if-no-files-found: ignore
           retention-days: 14

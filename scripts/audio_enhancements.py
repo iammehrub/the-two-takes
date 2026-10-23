@@ -103,15 +103,13 @@ def generate_music_bed(
             left += pluck * pan_left
             right += pluck * pan_right
 
-            # Original short signature motif for the hook-to-welcome sting and
-            # final music-only tail. It is synthesised locally; no music API or
-            # copyrighted recording is downloaded.
+            # Original locally synthesised signature motif is reserved for the final
+            # music-only tail. No opening sting or intro motif is used.
             motif_notes = np.asarray((392.00, 440.00, 523.25, 392.00, 329.63, 392.00, 440.00, 587.33))
             motif_step = 0.58
-            intro_active = (times >= 5.0) & (times < 15.5)
             outro_start = max(0.0, duration_seconds - 7.0)
             outro_active = (times >= outro_start) & (times < duration_seconds)
-            for active, origin in ((intro_active, 5.0), (outro_active, outro_start)):
+            for active, origin in ((outro_active, outro_start),):
                 if not np.any(active):
                     continue
                 local = times[active] - origin

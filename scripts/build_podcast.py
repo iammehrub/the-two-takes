@@ -31,8 +31,7 @@ YT_REFRESH = os.environ.get("YOUTUBE_REFRESH_TOKEN")
 if not GEMINI:
     raise RuntimeError("Missing GEMINI_API_KEY GitHub secret")
 
-if not PEXELS:
-    raise RuntimeError("Missing PEXELS_API_KEY GitHub secret")
+# Pexels is optional: this channel now uses the supplied opener as the full-video background.
 
 for n, v in [
     ("YOUTUBE_CLIENT_ID", YT_CLIENT_ID),

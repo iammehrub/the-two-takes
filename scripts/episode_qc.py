@@ -145,7 +145,7 @@ def create_report(root, script, voice_path, video_path, subtitle_path) -> dict:
     if word_count < 1250:
         warnings.append(f"Script is short for the target format ({word_count} words).")
     if voice_seconds:
-        estimated_spoken_seconds = max(1.0, voice_seconds - 12.5)
+        estimated_spoken_seconds = max(1.0, voice_seconds - 7.0)
         estimated_wpm = round(word_count / estimated_spoken_seconds * 60, 1)
     else:
         estimated_wpm = None

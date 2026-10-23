@@ -13,6 +13,7 @@ import requests
 import time
 from pathlib import Path
 
+import build_podcast as app
 from audio_enhancements import build_chapters, generate_music_bed, select_short_windows
 
 VIDEO_W = 1920
@@ -45,46 +46,93 @@ def _caption_chunks(text, max_words=5):
     return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words) if words[i:i + max_words]]
 
 
-def make_srt(script, audio_seconds):
-    """Use exact TTS segment durations, then split each segment into short captions."""
-    timing_path = Path(app.WORK) / "tts_segments.json"
-    segments = []
-    if timing_path.exists():
-        try:
-            segments = json.loads(timing_path.read_text(encoding="utf-8"))
-        except Exception:
-            segments = []
+def _ass_ts(seconds):
+    total_cs = max(0, int(round(float(seconds) * 100)))
+    hours, remainder = divmod(total_cs, 360000)
+    minutes, remainder = divmod(remainder, 6000)
+    seconds, centiseconds = divmod(remainder, 100)
+    return f"{hours}:{minutes:02}:{seconds:02}.{centiseconds:02}"
 
-    if not segments:
+
+def make_srt(script, audio_seconds):
+    """Write ordinary SRT for QA plus speaker-positioned ASS for the rendered video."""
+    timing_path = Path(app.WORK) / "tts_segments.json"
+    try:
+        segments = json.loads(timing_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Missing or invalid TTS timing data: {exc}") from exc
+    if not isinstance(segments, list) or not segments:
         raise RuntimeError("Missing exact TTS timing data; refusing to create drifting subtitles.")
 
     rows = []
     for seg in segments:
         start = float(seg["start"])
         end = float(seg["end"])
-        text = str(seg["text"]).strip()
-        if end <= start or not text:
+        text = str(seg.get("text", "")).strip()
+        speaker = str(seg.get("speaker", "")).strip().title()
+        if speaker not in {"Himel", "Niha"} or end <= start or not text:
             continue
         chunks = _caption_chunks(text, max_words=5)
-        total_words = sum(len(x.split()) for x in chunks) or 1
+        total_words = sum(len(chunk.split()) for chunk in chunks) or 1
         cursor = start
-        for idx, chunk in enumerate(chunks):
+        for index, chunk in enumerate(chunks):
             share = len(chunk.split()) / total_words
-            dur = (end - start) * share
-            a = cursor
-            b = end if idx == len(chunks) - 1 else cursor + dur
-            rows.append((a, b, chunk))
-            cursor = b
+            chunk_end = end if index == len(chunks) - 1 else cursor + (end - start) * share
+            rows.append((
+                max(0.0, cursor - 0.03),
+                min(float(audio_seconds), chunk_end + 0.03),
+                chunk,
+                speaker,
+            ))
+            cursor = chunk_end
+    if not rows:
+        raise RuntimeError("No valid speaker-labelled captions could be generated.")
 
-    path = Path(app.WORK) / "captions.srt"
-    with path.open("w", encoding="utf-8") as f:
-        for i, (a, b, text) in enumerate(rows, 1):
-            # Tiny padding prevents flicker while keeping speech alignment tight.
-            a = max(0.0, a - 0.03)
-            b = min(audio_seconds, b + 0.03)
-            f.write(f"{i}\n{_ts(a)} --> {_ts(b)}\n{text}\n\n")
-    print(f"Created {len(rows)} tightly timed subtitle cues.")
-    return path
+    srt_path = Path(app.WORK) / "captions.srt"
+    with srt_path.open("w", encoding="utf-8") as file:
+        for index, (start, end, caption, _speaker) in enumerate(rows, 1):
+            file.write(f"{index}\n{_ts(start)} --> {_ts(end)}\n{caption}\n\n")
+
+    ass_path = Path(app.WORK) / "captions.ass"
+    ass_header = """[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Himel,DejaVu Sans,36,&H00FFFFFF,&H0000FFFF,&H00101722,&H800A0A18,-1,0,0,0,100,100,0,0,3,8,1,5,25,25,20,1
+Style: Niha,DejaVu Sans,36,&H00FFFFFF,&H0000FFFF,&H00101722,&H800A0A18,-1,0,0,0,100,100,0,0,3,8,1,5,25,25,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+    ass_lines = [ass_header]
+    for start, end, caption, speaker in rows:
+        x_position = 470 if speaker == "Himel" else 1450
+        # Position the label and its subtitle under the matching person in the supplied still artwork.
+        accent = "&H0000D9FF&" if speaker == "Himel" else "&H00FFD000&"
+        escaped = (
+            caption.replace("\\", "\\\\")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace("\r", " ")
+            .replace("\n", " ")
+        )
+        ass_lines.append(
+            f"Dialogue: 0,{_ass_ts(start)},{_ass_ts(end)},{speaker},,0,0,0,,"
+            f"{{\\an5\\pos({x_position},775)\\fs27\\b1\\c{accent}}}{speaker.upper()}"
+            f"\\N{{\\fs36\\b1\\c&H00FFFFFF&}}{escaped}\n"
+        )
+    ass_path.write_text("".join(ass_lines), encoding="utf-8")
+    print(
+        f"Created {len(rows)} precisely timed captions; "
+        "Himel captions are under the left host and Niha captions under the right host."
+    )
+    return srt_path
+
 
 
 def pexels_videos(keywords):
@@ -295,25 +343,16 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide", section=""
     ], label=f"Studio {camera} shot {output_path.name}")
 
 def render_video(wav, clips, srt, title):
-    """Render with semantic conversation-aware cuts.
-
-    The TTS timing file carries turn_type/speaker metadata, so visual changes
-    happen on real dialogue beats instead of arbitrary 28/38 second timers.
-    """
-    print("=== SEMANTIC STUDIO + TOPIC FOOTAGE RENDER START ===")
+    """Render the supplied channel-opener image for the entire episode with host-aligned captions."""
+    print("=== FULL-EPISODE OPENER + SPEAKER-POSITIONED CAPTIONS RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
-    studio = _make_studio_png()
-    segment_dir = Path(app.WORK) / "video_segments"
-    segment_dir.mkdir(exist_ok=True)
-
     timing_path = Path(app.WORK) / "tts_segments.json"
     try:
         timing = json.loads(timing_path.read_text(encoding="utf-8"))
     except Exception as exc:
         raise RuntimeError(f"Missing or invalid TTS timing metadata: {exc}") from exc
 
-    # Group sentence-level TTS chunks back into complete conversational turns.
     groups = []
     for item in timing:
         key = (item.get("turn_index"), item.get("speaker"), item.get("turn_type", "reaction"))
@@ -327,13 +366,11 @@ def render_video(wav, clips, srt, title):
                 "end": float(item["end"]),
                 "speaker": item.get("speaker", "Himel"),
                 "turn_type": item.get("turn_type", "reaction"),
-                "text": str(item.get("text", "")).strip()
+                "text": str(item.get("text", "")).strip(),
             })
-
     if not groups:
         raise RuntimeError("No timed conversation turns were available for rendering.")
 
-    # Generate navigation chapters from actual timed dialogue sections.
     chapter_lines = build_chapters(groups, audio_duration)
     chapter_path = Path(app.WORK) / "chapters.txt"
     chapter_path.write_text(
@@ -342,152 +379,38 @@ def render_video(wav, clips, srt, title):
     )
     print(f"Prepared {len(chapter_lines)} YouTube chapter markers.")
 
-    camera_by_type = {
-        "hook": "wide",
-        "welcome": "wide",
-        "question": "himel",
-        "follow_up": "himel",
-        "story": "wide",
-        "reaction": "niha",
-        "clarification": "wide",
-        "language_tip": "wide",
-        "practice": "wide",
-        "recap": "wide",
-        "outro": "wide",
-    }
-
-    # Prefer a close-up of whoever is speaking for questions/stories, while
-    # language-learning sections get a clean two-person/wide composition.
-    def camera_for(group):
-        turn_type = group["turn_type"]
-        speaker = str(group["speaker"]).lower()
-        if turn_type in {"question", "follow_up", "story"}:
-            return "himel" if speaker == "himel" else "niha"
-        if turn_type == "reaction":
-            return "himel" if speaker == "himel" else "niha"
-        return camera_by_type.get(turn_type, "wide")
-
-    scenes = []
-    footage_index = 0
-    timeline_cursor = 0.0
-
-    for index, group in enumerate(groups):
-        # Preserve the real audio timeline: sentence pauses and the dedicated
-        # intro sting must have matching video frames or subtitles will drift.
-        gap_seconds = float(group["start"]) - timeline_cursor
-        if gap_seconds > 0.08:
-            gap_out = segment_dir / f"gap_{index:03d}.mp4"
-            if gap_seconds >= 3.0 and timeline_cursor < 12.0:
-                gap_section = "INTRO MUSIC STING"
-            elif gap_seconds >= 3.0:
-                gap_section = "MUSIC TRANSITION"
-            else:
-                gap_section = "CONVERSATION"
-            _make_studio_segment(
-                studio,
-                gap_out,
-                gap_seconds,
-                camera="wide",
-                section=gap_section,
-                speaker="",
-            )
-            scenes.append(gap_out)
-
-        seconds = max(0.25, min(audio_duration - group["start"], group["end"] - group["start"]))
-        if seconds <= 0.25:
-            continue
-
-        turn_type = group["turn_type"]
-        # Keep teaching sections in the illustrated studio; use B-roll only for
-        # personal stories/examples so the show retains a calm learning-podcast identity.
-        use_broll = bool(clips) and turn_type == "story" and seconds >= 4.0
-
-        if use_broll:
-            clip_path, clip_dur, _, _ = clips[footage_index % len(clips)]
-            footage_index += 1
-            out = segment_dir / f"scene_{index:03d}.mp4"
-            footage_seconds = min(seconds, float(clip_dur), 10.0)
-            _make_clip_segment(clip_path, out, footage_seconds, start=0)
-            # If the clip is shorter than the spoken turn, cover the remainder
-            # with a studio shot so scene timing stays exactly aligned.
-            scenes.append(out)
-            if footage_seconds < seconds - 0.05:
-                studio_out = segment_dir / f"scene_{index:03d}_studio.mp4"
-                _make_studio_segment(
-                studio,
-                studio_out,
-                seconds - footage_seconds,
-                camera="wide",
-                section="STORY",
-                speaker=group["speaker"],
-            )
-                scenes.append(studio_out)
-        else:
-            out = segment_dir / f"scene_{index:03d}.mp4"
-            section_label = {
-                "hook": "ENGLISH PODCAST",
-                "welcome": "WELCOME",
-                "question": "CONVERSATION",
-                "follow_up": "CONVERSATION",
-                "story": "STORY",
-                "reaction": "CONVERSATION",
-                "clarification": "CONVERSATION",
-                "language_tip": "PHRASE TOUR",
-                "practice": "SHADOWING PRACTICE",
-                "recap": "RECAP",
-                "outro": "SIGN-OFF",
-            }.get(turn_type, "CONVERSATION")
-            _make_studio_segment(
-                studio,
-                out,
-                seconds,
-                camera=camera_for(group),
-                section=section_label,
-                speaker=group["speaker"],
-            )
-            scenes.append(out)
-
-        timeline_cursor = float(group["end"])
-
-    # The voice WAV deliberately ends with seven seconds of silence so the
-    # locally generated theme can fade out. Keep video frames during that tail.
-    trailing_gap = max(0.0, audio_duration - timeline_cursor)
-    if trailing_gap > 0.08:
-        tail_out = segment_dir / "music_fade_out.mp4"
-        _make_studio_segment(
-            studio,
-            tail_out,
-            trailing_gap,
-            camera="wide",
-            section="MUSIC FADE OUT",
-            speaker="",
+    # The user-supplied Two Takes opener is the only visual scene from 0:00 to the end.
+    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
+    poster_png = Path(app.WORK) / "two_takes_podcast_studio_full_video.png"
+    if branded_asset.is_file():
+        _run(
+            [
+                "ffmpeg", "-v", "error", "-y", "-i", str(branded_asset),
+                "-vf", "scale=1920:1080:flags=lanczos",
+                "-frames:v", "1", "-update", "1", str(poster_png),
+            ],
+            label="Prepare full-video Two Takes opener",
         )
-        scenes.append(tail_out)
+    else:
+        print("WARNING: supplied opener asset is missing; using original studio fallback artwork.")
+        poster_png = _make_studio_png()
 
-    concat = Path(app.WORK) / "scenes.txt"
-    with concat.open("w", encoding="utf-8") as f:
-        for seg in scenes:
-            f.write(f"file '{seg.as_posix()}'\n")
+    ass_path = Path(app.WORK) / "captions.ass"
+    if not ass_path.is_file() or ass_path.stat().st_size == 0:
+        make_srt("", audio_duration)
+    if not ass_path.is_file() or ass_path.stat().st_size == 0:
+        raise RuntimeError("Speaker-positioned ASS captions were not generated.")
 
-    base = Path(app.WORK) / "base_video.mp4"
-    _run([
-        "ffmpeg","-y","-f","concat","-safe","0","-i",str(concat),"-t",str(audio_duration),
-        "-an","-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
-        "-pix_fmt","yuv420p",str(base)
-    ], label="Semantic scene assembly")
-
-    final = Path(app.WORK) / "the_two_takes.mp4"
-    subtitle_path = str(srt).replace("\\","/").replace(":","\\:").replace("'","\\'")
-    vf = (
-        f"subtitles='{subtitle_path}':force_style="
-        "'FontName=DejaVu Sans,FontSize=36,Bold=1,"
-        "PrimaryColour=&H00FFFFFF,OutlineColour=&H00101722,"
-        "BorderStyle=1,Outline=3,Shadow=1,"
-        "Alignment=2,MarginL=140,MarginR=140,MarginV=115,WrapStyle=2'"
-    )
-    # Original locally synthesised score, automatically ducked under the hosts' voices.
+    # No intro card, opening sting, B-roll, or scene cuts. Only subtitles change over the looped still.
     music_bed = Path(app.WORK) / "original_music_bed.wav"
     generate_music_bed(audio_duration, music_bed, sample_rate=24000)
+    subtitle_path = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
+    input_args = [
+        "-loop", "1", "-framerate", str(FPS), "-i", str(poster_png),
+        "-i", str(wav),
+        "-i", str(music_bed),
+    ]
+    video_filter = f"[0:v:0]format=yuv420p,subtitles='{subtitle_path}'[vout]"
     audio_filter = (
         "[1:a]asplit=2[voice_sc][voice_raw];"
         "[2:a]volume=1.1[music];"
@@ -499,49 +422,25 @@ def render_video(wav, clips, srt, title):
         "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"
         "alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11[aout]"
     )
-    # Show the same branded studio artwork for the first four seconds of the video.
-    # This is an overlay, not an inserted timeline segment, so narration and subtitle
-    # timing do not shift.
-    branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
-    input_args = ["-i", str(base), "-i", str(wav), "-i", str(music_bed)]
-    if branded_asset.is_file():
-        # Decode AVIF to PNG once per episode so FFmpeg can safely loop the poster
-        # while preserving the original narration/subtitle timeline.
-        poster_png = Path(app.WORK) / "two_takes_podcast_studio_video_poster.png"
-        _run(
-            [
-                "ffmpeg", "-y", "-i", str(branded_asset),
-                "-vf", "scale=1920:1080:flags=lanczos",
-                "-frames:v", "1", "-update", "1", str(poster_png),
-            ],
-            label="Prepare Two Takes video opener",
-        )
-        input_args.extend(["-loop", "1", "-framerate", str(FPS), "-i", str(poster_png)])
-        print("Using the channel studio artwork as the 4-second video opener.")
-        video_filter = (
-            "[3:v]format=yuv420p[poster];"
-            "[0:v][poster]overlay=0:0:enable='between(t,0,4)'[branded];"
-            f"[branded]{vf}[vout]"
-        )
-    else:
-        # Safe fallback: do not break scheduled runs if the brand image has not yet
-        # been uploaded into assets/two_takes_podcast_studio.avif.
-        video_filter = f"[0:v:0]{vf}[vout]"
-
-    full_filter = video_filter + ";" + audio_filter
-    _run([
-        "ffmpeg","-y",*input_args,
-        "-t",str(audio_duration),
-        "-filter_complex",full_filter,
-        "-map","[vout]","-map","[aout]","-r",str(FPS),
-        "-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
-        "-pix_fmt","yuv420p","-c:a","aac","-b:a","192k",
-        "-shortest","-movflags","+faststart",str(final)
-    ], label="FINAL VIDEO WITH VOICE-DUCKED ORIGINAL MUSIC")
-
+    final = Path(app.WORK) / "the_two_takes.mp4"
+    _run(
+        [
+            "ffmpeg", "-hide_banner", "-y", *input_args,
+            "-t", str(audio_duration),
+            "-filter_complex", video_filter + ";" + audio_filter,
+            "-map", "[vout]", "-map", "[aout]",
+            "-r", str(FPS),
+            "-c:v", "libx264", "-preset", ENCODE_PRESET, "-crf", ENCODE_CRF,
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            "-shortest", "-movflags", "+faststart", str(final),
+        ],
+        label="Full episode with fixed opener and speaker-positioned captions",
+    )
     quality_check(final)
-    print(f"=== SEMANTIC RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
+    print(f"=== FULL-EPISODE STILL-IMAGE RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
     return final
+
 
 
 def _write_short_captions(timing, start_seconds, end_seconds, output_path):
@@ -733,7 +632,7 @@ def render_shorts(wav, title, topic):
 # Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
     "thumbnail": "16:9 vibrant 2D cartoon podcast studio; bold white and yellow ENGLISH PODCAST / with TWO HOSTS! headline; bright blue LEARN DAILY DIALOGUES banner; Two Takes Podcast channel name; high contrast and clean outlines",
-    "video": "warm illustrated learning-podcast studio; two-host wide shot and speaker close-ups; section labels for conversation, phrase tour, shadowing practice and recap; readable subtitles; B-roll only for stories",
+    "video": "Use the supplied Two Takes Podcast opener as the only background for the entire video; no intro card, no B-roll, no scene cuts; Himel dialogue captions under the left/male host and Niha dialogue captions under the right/female host.",
     "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 

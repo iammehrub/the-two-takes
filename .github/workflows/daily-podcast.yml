@@ -210,5 +210,6 @@ jobs:
             work/production_report.json
             work/production_report.txt
             work/captions.srt
+            work/captions.ass
           if-no-files-found: ignore
           retention-days: 14

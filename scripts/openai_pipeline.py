@@ -363,21 +363,20 @@ You are the lead writer for TWO TAKES PODCAST, an original English-learning YouT
 REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — ADAPT THE FORMAT, KEEP EVERYTHING ORIGINAL
 - Recreate the same broad viewer experience: a calm, friendly English-learning podcast built around natural conversation, relatable life topics, vocabulary teaching, and speaking practice.
 - Do NOT copy their scripts, exact wording, recurring catchphrases, episode titles, thumbnail artwork, logos, characters, or distinctive branding. Two Takes Podcast must remain original.
-- OPENING: start immediately with a relatable learner problem or life situation in the first few seconds. Follow with a brief welcome and a clear promise of what the viewer will be able to say or understand by the end.
+- OPENING: begin with a relatable learner problem, natural question, or useful phrase. Make the first spoken line the hook, then continue directly into the conversation.
+- NO INTRO: do not greet or welcome viewers, introduce the hosts or channel, announce the episode, or insert an opening music sting. No spoken branding before the conversation.
 - MAIN CONVERSATION: Himel and Niha should feel like real friends/teachers talking about one continuous topic. Use personal examples, questions, follow-up questions, light disagreement, clarification, and natural reactions. Do not read a lecture.
-- LESSON ARCHITECTURE: Hook -> branded welcome -> real conversation -> short audio transition -> phrase tour -> speaking/shadowing practice -> recap -> concise sign-off.
-- TIMED INTRO: the very first dialogue item must be a 1–2 sentence hook designed for 0:00–0:08 and marked turn_type "hook". The next spoken welcome should be marked turn_type "welcome". The production system inserts a 5.5-second original instrumental sting after the hook automatically; never write a spoken music cue.
-- WELCOME: keep the welcome/title/learning promise brief, approximately 0:15–0:35 after the music sting. Give a specific promise of what learners can say by the end.
+- LESSON ARCHITECTURE: Hook -> real conversation -> phrase tour -> speaking/shadowing practice -> recap -> concise sign-off.
 - MAIN DISCUSSION: aim for 0:35–3:30, using stories, follow-up questions, gentle disagreement, clarification and natural reactions.
 - TRANSITION: the production system supplies the short instrumental interlude automatically; do not add a host line saying "music plays".
 - PHRASE TOUR: teach exactly 6 useful everyday phrases/words in the middle/late middle. Mark explanation turns "language_tip"; explain meaning simply and give natural examples.
 - SPEAKING PRACTICE: include 5 practical sentence patterns with short model lines and invitations to repeat/personalize. Mark these turns "practice".
 - QUICK TIP: include one memorable rule or common mistake near the end.
 - OUTRO: finish with a brief recap marked "recap", then a friendly sign-off and one specific comment question marked "outro". The production system adds 7 seconds of instrumental fade-out after the final spoken line.
-- Target about 10 minutes at 130–150 words per minute. Avoid padding; keep intro and outro concise.
+- Target about 10 minutes at 130–150 words per minute. Avoid padding; keep the hook and outro concise.
 - PACING: natural conversational English at a comfortable everyday speed, not slow or sleepy. Vary energy with the moment: lively curiosity, relaxed storytelling, quick reactions, thoughtful pauses, and encouraging practice. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
 - OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
-- VISUAL-FRIENDLINESS: every major section should have a clear visual identity so the editor can show a wide two-host shot, a speaker close-up, a phrase card, or a shadowing-practice moment.
+- VISUALS: the supplied Two Takes Podcast opener remains on screen for the entire video. Keep it as one static background with no B-roll, scene cuts, title cards, or animated visual changes; captions appear beneath the host who is speaking.
 - Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for Two Takes Podcast.
 
 PRIMARY GOAL:
@@ -429,17 +428,17 @@ TITLE/PACKAGING RULES:
 
 CONTENT / RETENTION RULES:
 - Write an original 1,300–1,450 word two-host conversation, aiming for approximately 9–11 minutes of spoken audio before the short musical tail.
-- First turn: a compelling 1–2 sentence hook, marked "hook", designed for 5–8 seconds.
-- The first few turns must include a brief branded welcome, marked "welcome", after the automatic 5.5-second music sting.
-- Use this flow: Hook -> Welcome -> Real Conversation -> Phrase Tour -> Quick Tip -> Speaking/Shadowing Practice -> Recap -> Outro.
+- First turn: a compelling 1–2 sentence hook, marked "hook", designed for 5–8 seconds. Start the spoken audio at 0:00.
+- Do not include a welcome, host/channel introduction, episode announcement, or opening music sting. The second turn should continue naturally into the topic.
+- Use this flow: Hook -> Real Conversation -> Phrase Tour -> Quick Tip -> Speaking/Shadowing Practice -> Recap -> Outro.
 - The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
 - Phrase Tour: include 6 useful everyday phrases/words that were either used earlier or clearly fit the topic; give a simple meaning and one natural example for each.
 - Speaking/Shadowing Practice: include 5 short sentence patterns. Model each one naturally and invite the learner to repeat or personalize it.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences.
 - Add natural follow-up questions, examples, disagreement, clarification, personal mini-stories, and small moments of humor.
 - Every 25–45 seconds, introduce a fresh example, question, mini-challenge, useful phrase, or change of angle so the conversation does not flatten. Use a natural curiosity loop, then answer it honestly; never promise a reveal the episode does not deliver.
-- Use clear turn_type labels: hook, welcome, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. Use "welcome" for the branded opening and "outro" for the final sign-off.
-- The first dialogue item must be type "hook"; at least one of the first five items must be type "welcome"; include multiple language_tip and practice turns; include at least one recap and one final outro turn.
+- Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. Use "hook" only for the direct opening line and "outro" for the final sign-off.
+- The first dialogue item must be type "hook"; do not create any "welcome" turn; include multiple language_tip and practice turns; include at least one recap and one final outro turn.
 - End with a concise recap, one concrete practice task, one specific comment question, and a natural sign-off. No generic long outro.
 - Do not pad the episode just to reach a length target.
 - Include one natural mid-episode question that invites viewers to compare the idea with their own experience, plus one specific comment question at the end.
@@ -587,7 +586,7 @@ CURRENT DRAFT JSON:
 
         dialogue_obj = obj.get("dialogue", []) if isinstance(obj, dict) else []
         valid_types = {
-            "hook", "welcome", "question", "story", "reaction", "follow_up",
+            "hook", "question", "story", "reaction", "follow_up",
             "clarification", "language_tip", "practice", "recap", "outro"
         }
 
@@ -621,17 +620,26 @@ CURRENT DRAFT JSON:
                     })
 
         turn_types = [beat["turn_type"] for beat in beats]
+        first_three_turns = " ".join(beat["text"] for beat in beats[:3])
+        unwanted_intro = re.compile(
+            r"\b(?:welcome\s+(?:back\s+)?(?:to|everyone|everybody)|"
+            r"this\s+is\s+(?:the\s+)?two\s+takes\s+podcast|"
+            r"you['’]re\s+listening\s+to|on\s+today['’]s\s+episode|"
+            r"my\s+name\s+is\s+(?:himel|niha)|i['’]m\s+(?:himel|niha))\b",
+            re.I,
+        )
         required_structure_ok = (
             bool(beats)
             and turn_types[0] == "hook"
-            and "welcome" in turn_types[:5]
+            and "welcome" not in turn_types[:5]
             and turn_types.count("language_tip") >= 3
             and turn_types.count("practice") >= 3
             and "recap" in turn_types
             and turn_types[-1] == "outro"
+            and not unwanted_intro.search(first_three_turns)
         )
         if not required_structure_ok:
-            last_problem = "episode is missing required hook/welcome/phrase/practice/recap/outro structure"
+            last_problem = "episode is missing the direct hook/phrase/practice/recap/outro structure or contains an unwanted intro"
             print(last_problem)
             continue
 
@@ -976,9 +984,6 @@ def tts(script):
             # a little air, and ellipses are reserved for genuine hesitation.
             if text.endswith("...") or text.endswith("…"):
                 pause = 0.34
-            elif turn_type == "hook" and next_turn_index != turn_index:
-                # Dedicated 5.5-second music-only signature sting between hook and welcome.
-                pause = 5.5
             elif next_turn_index != turn_index:
                 pause = 0.34 if next_speaker != speaker else 0.24
             elif next_speaker != speaker:
@@ -1024,7 +1029,7 @@ app.make_episode = make_episode
 app.tts = tts
 
 import production_upgrade as visual_upgrade
-app.pexels_videos = visual_upgrade.pexels_videos
+app.pexels_videos = lambda _keywords: []  # One supplied still image is used throughout; skip B-roll downloads.
 app.make_srt = visual_upgrade.make_srt
 app.render_video = visual_upgrade.render_video
 app.render_shorts = visual_upgrade.render_shorts
@@ -1034,6 +1039,6 @@ print("=== ENGLISH-LEARNING STUDIO PRODUCTION ENABLED ===")
 print(f"Script model: {OPENAI_TEXT_MODEL}")
 print(f"Kokoro Himel: {KOKORO_HIMEL_VOICE}")
 print(f"Kokoro Niha: {KOKORO_NIHA_VOICE}")
-print("Output: 1920x1080 H.264, mixed studio + topic footage, exact TTS-timed captions, practical English topics.")
+print("Output: 1920x1080 H.264, supplied opener as full-video background, speaker-positioned captions, no intro sting.")
 
 app.main()

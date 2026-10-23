@@ -84,6 +84,79 @@ jobs:
               print(f"Branded artwork OK: {output} ({width}x{height})")
           PY
 
+      - name: Test full-video opener and speaker-positioned subtitles
+        env:
+          PYTHONPATH: scripts
+          GEMINI_API_KEY: test-only-no-network
+          YOUTUBE_CLIENT_ID: test-only-no-network
+          YOUTUBE_CLIENT_SECRET: test-only-no-network
+          YOUTUBE_REFRESH_TOKEN: test-only-no-network
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          import build_podcast as app
+          import production_upgrade
+
+          work = Path(app.WORK)
+          work.mkdir(parents=True, exist_ok=True)
+          voice = work / "fixed-opener-test.wav"
+          subprocess.run([
+              "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+              "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=24000:duration=15",
+              "-ac", "2", "-c:a", "pcm_s16le", str(voice),
+          ], check=True)
+
+          timing = []
+          for i in range(12):
+              speaker = "Himel" if i % 2 == 0 else "Niha"
+              start = i * 0.62
+              timing.append({
+                  "speaker": speaker,
+                  "text": (
+                      "This is a clear English dialogue caption for testing."
+                      if speaker == "Himel"
+                      else "Here is the response from the other host."
+                  ),
+                  "start": start,
+                  "end": start + 0.55,
+                  "turn_index": i,
+                  "turn_type": "hook" if i == 0 else ("language_tip" if i == 4 else ("practice" if i == 8 else "reaction")),
+              })
+          (work / "tts_segments.json").write_text(
+              json.dumps(timing, indent=2), encoding="utf-8"
+          )
+          srt = production_upgrade.make_srt("", 15.0)
+          ass = work / "captions.ass"
+          ass_text = ass.read_text(encoding="utf-8")
+          assert "HIMEL" in ass_text and "NIHA" in ass_text
+          assert r"\pos(470,775)" in ass_text, "Himel captions are not anchored under the left host."
+          assert r"\pos(1450,775)" in ass_text, "Niha captions are not anchored under the right host."
+          assert srt.exists() and "00:00:00,000" in srt.read_text(encoding="utf-8")
+
+          result_video = production_upgrade.render_video(voice, [], srt, "CI fixed opener test")
+          probe = subprocess.run([
+              "ffprobe", "-v", "error", "-select_streams", "v:0",
+              "-show_entries", "stream=width,height,codec_name",
+              "-show_entries", "format=duration", "-of", "json", str(result_video),
+          ], check=True, capture_output=True, text=True)
+          info = json.loads(probe.stdout)
+          stream = info["streams"][0]
+          assert stream["width"] == 1920 and stream["height"] == 1080, info
+          assert stream["codec_name"] == "h264", info
+          assert abs(float(info["format"]["duration"]) - 15.0) < 1.0, info
+
+          renderer = Path("scripts/production_upgrade.py").read_text(encoding="utf-8")
+          generator = Path("scripts/openai_pipeline.py").read_text(encoding="utf-8")
+          assert "enable='between(t,0,4)'" not in renderer
+          assert "overlay=0:0" not in renderer
+          assert "pause = 5.5" not in generator
+          assert "5.5-second original instrumental sting" not in generator
+          print("Fixed opener, no-intro timing, and left/right speaker subtitles passed.")
+          PY
       - name: Smoke-test original music and chapter generation
         env:
           PYTHONPATH: scripts

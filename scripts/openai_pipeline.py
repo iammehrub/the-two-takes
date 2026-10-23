@@ -539,7 +539,7 @@ TARGET: 1,350–1,500 words in the spoken dialogue, enough for a roughly
 Do not count JSON keys, metadata, or speaker labels as spoken content.
 
 Keep Himel and Niha's voices conversational, warm, witty, and distinct.
-Preserve the required flow: hook, branded welcome, real conversation,
+Preserve the required flow: hook, direct-to-topic conversation,
 six useful phrases with simple meanings and examples, a quick practical
 tip, five short shadowing/practice patterns, recap, one specific question
 for comments, and a concise natural sign-off.

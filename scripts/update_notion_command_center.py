@@ -95,7 +95,8 @@ def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[
     try:
         return requested_id, get_page_blocks(requested_id, token)
     except RuntimeError as exc:
-        if "HTTP 404" not in str(exc) or "object_not_found" not in str(exc):
+        original_error = str(exc)
+        if "HTTP 404" not in original_error or "object_not_found" not in original_error:
             raise
 
     # A 404 from Notion commonly means the page isn't shared with THIS token.
@@ -117,19 +118,17 @@ def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[
             print("Configured dashboard ID is not visible; found one exact-title dashboard visible to this token. Testing that page ID.")
             return found_id, get_page_blocks(found_id, token)
         if found_id == requested_id:
-            # The page appears in search but block children still returned 404. Report the
-            # actual response; do not loop or silently change the target.
             raise RuntimeError(
-                "Notion search can see AI Command Center, but its child blocks returned 404. "
-                "Check that this connection has Read content access for the page. Original error: " + str(exc)
-            ) from exc
+                "Notion Search can see AI Command Center, but its child blocks returned 404. "
+                "Check that this connection has Read content access for the page. Original error: " + original_error
+            )
 
     if len(exact_matches) > 1:
         ids = ", ".join(str(item.get("id", "unknown")) for item in exact_matches[:5])
         raise RuntimeError(
             "The Notion token can see multiple pages titled 'AI Command Center' (IDs: " + ids + "). "
             "For safety, no page was modified. Set NOTION_PAGE_ID to the intended dashboard page ID."
-        ) from exc
+        )
 
     raise RuntimeError(
         "The NOTION_TOKEN is valid, but this integration cannot see the target 'AI Command Center' page. "
@@ -139,8 +138,8 @@ def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[
         "••• → Connections, and verify that the exact internal connection whose token is stored in GitHub "
         "is listed there. Also verify the connection's Associated workspace is the workspace that contains "
         "this dashboard and that it has Read content, Insert content, and Update content. After checking, "
-        "rerun the workflow. Original Notion error: " + str(exc)
-    ) from exc
+        "rerun the workflow. Original Notion error: " + original_error
+    )
 
 
 def get_page_blocks(page_id: str, token: str) -> list[dict]:

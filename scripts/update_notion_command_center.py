@@ -15,7 +15,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 NOTION_PAGE_ID = os.getenv(
@@ -69,13 +69,68 @@ def notion_headers(token: str) -> dict[str, str]:
 
 
 def recent_runs(repo: str, token: str) -> list[dict]:
-    url = f"https://api.github.com/repos/{repo}/actions/runs?per_page=12"
+    """Fetch the latest 100 workflow runs while excluding this monitor's own runs."""
+    url = f"https://api.github.com/repos/{repo}/actions/runs?per_page=100"
     data = request_json(url, headers=github_headers(token))
     runs = data.get("workflow_runs", [])
-    # Avoid showing this monitor as the most recent business workflow every 15 minutes.
-    runs = [run for run in runs if run.get("path") != MONITOR_WORKFLOW_PATH]
-    return runs[:4]
+    # Do not let the monitor create noisy self-referential entries in its own dashboard.
+    return [run for run in runs if run.get("path") != MONITOR_WORKFLOW_PATH]
 
+
+def run_timestamp(run: dict) -> datetime:
+    """Parse a run timestamp for comparisons; missing timestamps sort to the epoch."""
+    value = run.get("run_started_at") or run.get("created_at") or run.get("updated_at")
+    if not value:
+        return datetime.fromtimestamp(0, timezone.utc)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        return datetime.fromtimestamp(0, timezone.utc)
+
+
+def latest_runs_by_workflow(runs: list[dict]) -> list[dict]:
+    """Return one newest run per workflow file, ordered newest first."""
+    latest: dict[str, dict] = {}
+    for run in runs:
+        key = str(
+            run.get("path")
+            or run.get("workflow_id")
+            or run.get("name")
+            or run.get("display_title")
+            or "unknown-workflow"
+        )
+        if key not in latest or run_timestamp(run) > run_timestamp(latest[key]):
+            latest[key] = run
+    return sorted(latest.values(), key=run_timestamp, reverse=True)
+
+
+def seven_day_run_stats(
+    runs: list[dict], *, now: datetime | None = None
+) -> dict[str, int]:
+    """Count run outcomes in the latest seven-day window among the runs fetched."""
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    cutoff = current - timedelta(days=7)
+    stats = {"succeeded": 0, "failed": 0, "active": 0, "cancelled": 0, "other": 0}
+    failure_conclusions = {"failure", "timed_out", "action_required", "startup_failure", "stale"}
+    for run in runs:
+        if run_timestamp(run) < cutoff:
+            continue
+        status = str(run.get("status") or "unknown")
+        conclusion = str(run.get("conclusion") or "")
+        if status != "completed":
+            stats["active"] += 1
+        elif conclusion == "success":
+            stats["succeeded"] += 1
+        elif conclusion in failure_conclusions:
+            stats["failed"] += 1
+        elif conclusion == "cancelled":
+            stats["cancelled"] += 1
+        else:
+            stats["other"] += 1
+    return stats
 
 def notion_page_title(page: dict) -> str:
     """Return a Notion page's title across the supported title-property shapes."""
@@ -204,18 +259,28 @@ def format_status(repo: str, runs: list[dict], checked_at: str, error: str | Non
         chunks.append({"type": "text", "text": {"content": header}})
         return header, chunks
 
-    header += "Recent GitHub Actions runs (monitor workflow excluded):"
-    chunks.append({"type": "text", "text": {"content": header + "\n"}})
-    for run in runs:
-        title = str(run.get("display_title") or run.get("name") or run.get("path") or "Workflow")
-        status = run.get("status") or "unknown"
-        conclusion = run.get("conclusion") or "pending"
-        branch = run.get("head_branch") or "branch unknown"
+    stats = seven_day_run_stats(runs)
+    latest = latest_runs_by_workflow(runs)
+    header += (
+        f" Window: latest {len(runs)} retrieved runs; last 7 days: "
+        f"{stats['succeeded']} succeeded, {stats['failed']} failed, "
+        f"{stats['active']} active, {stats['cancelled']} cancelled, "
+        f"{stats['other']} other. Latest result per workflow:"
+    )
+    chunks.append({"type": "text", "text": {"content": header + "\\n"}})
+
+    # One entry per workflow makes the page useful as a command-center overview,
+    # rather than listing several retries of the same workflow in a row.
+    for run in latest[:18]:
+        title = str(run.get("name") or run.get("path") or run.get("display_title") or "Workflow")
+        status = str(run.get("status") or "unknown")
+        conclusion = str(run.get("conclusion") or "pending")
+        branch = str(run.get("head_branch") or "branch unknown")
         updated = local_time(run.get("updated_at") or run.get("created_at"))
         run_url = run.get("html_url")
         number = run.get("run_number")
         line = (
-            f"#{number} {title[:100]} — status: {status}; conclusion: {conclusion}; "
+            f"#{number} {title[:95]} — status: {status}; conclusion: {conclusion}; "
             f"branch: {branch}; updated: {updated}. "
         )
         chunks.append({"type": "text", "text": {"content": line}})
@@ -224,13 +289,14 @@ def format_status(repo: str, runs: list[dict], checked_at: str, error: str | Non
                 "type": "text",
                 "text": {"content": "Open run", "link": {"url": run_url}},
             })
-        chunks.append({"type": "text", "text": {"content": "\n"}})
+        chunks.append({"type": "text", "text": {"content": "\\n"}})
 
-    # Notion's rich-text content limit is per text item; keep the total compact as well.
-    return "".join(
+    # Preserve the whole Notion rich-text chunk list for the block update. Every
+    # text item is short and the number of entries is bounded above.
+    plain_preview = "".join(
         item["text"]["content"] for item in chunks if item["type"] == "text"
-    )[:1900], chunks
-
+    )[:1900]
+    return plain_preview, chunks
 
 def update_existing_status(page_id: str, token: str, chunks: list[dict]) -> str:
     resolved_page_id, blocks = resolve_dashboard_page_id(page_id, token)

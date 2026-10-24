@@ -27,7 +27,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Test command-center formatter\n        run: PYTHONPATH=. python3 -m unittest scripts.test_command_center_monitor -v\n\n      - name: Check whether Notion is configured
+      - name: Test command-center formatter
+        run: PYTHONPATH=. python3 -m unittest scripts.test_command_center_monitor -v
+
+      - name: Check whether Notion is configured
         id: configuration
         shell: bash
         env:

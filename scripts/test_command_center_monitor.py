@@ -96,6 +96,30 @@ class WorkflowSummaryTests(unittest.TestCase):
         self.assertIn("Example newest video", joined)
         self.assertIn("https://youtu.be/JfLcSOSnn08", links)
 
+    def test_failed_job_summary_lists_failed_steps_but_not_successful_steps(self):
+        from scripts.update_notion_command_center import summarize_failed_jobs
+
+        jobs = [{
+            "name": "Build and publish episode",
+            "conclusion": "failure",
+            "steps": [
+                {"name": "Install packages", "conclusion": "success"},
+                {"name": "Generate script", "conclusion": "failure"},
+                {"name": "Notify Discord", "conclusion": "skipped"},
+            ],
+        }, {
+            "name": "Unrelated passing job",
+            "conclusion": "success",
+            "steps": [{"name": "Done", "conclusion": "success"}],
+        }]
+
+        summaries = summarize_failed_jobs(jobs)
+
+        self.assertEqual(
+            summaries,
+            ["Build and publish episode: failed step(s): Generate script"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

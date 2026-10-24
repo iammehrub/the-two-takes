@@ -444,8 +444,8 @@ CONTENT / RETENTION RULES:
 - Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
 - The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
 - Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.
-- In repetition practice, speak one phrase at a time and then include a real silent pause of about 3 seconds before continuing. Mark the intended pause in metadata, not as words the hosts say; never have a host read out stage directions.
-- Give each key phrase a short, readable on-screen text line suitable for a vertical Short. Include a concise "screen_text" field for each key phrase in the JSON output; keep it to a few words and do not put it into spoken dialogue.
+- In repetition practice, put each model phrase and its repeat invitation in separate short dialogue turns, so the existing speaker-aligned captions clearly show the target phrase. Do not ask a host to read stage directions. The current pipeline does not yet insert guaranteed three-second silent gaps, so do not pretend a pause marker alone creates silence.
+- Keep each target phrase short and clear enough to work as an on-screen caption in a vertical Short. The existing video renderer displays speaker-aligned captions; do not add a separate screen_text field unless the renderer is updated to use it.
 - The final practice task must tell viewers exactly what to say aloud or type in the comments. Ask one direct, easy-to-answer question.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences, with natural follow-up questions, clarification, small personal examples, and gentle humor.
 - Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. The first dialogue item must be "hook"; include several language_tip and practice turns; include at least one recap and one final outro turn.
@@ -816,6 +816,7 @@ CURRENT DRAFT JSON:
                             "title_options": title_options,
                             "thumbnail_text": thumbnail_text[:60],
                             "topic": topic[:300],
+                            "promise": str(obj.get("promise", "")).strip()[:300],
                             "search_phrases": search_phrases,
                             "hashtags": hashtags,
                             "description_hook": hook[:500],

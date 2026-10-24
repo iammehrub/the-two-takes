@@ -60,6 +60,42 @@ class WorkflowSummaryTests(unittest.TestCase):
 
         self.assertEqual(stats["failed"], 2)
 
+    def test_youtube_snapshot_includes_saved_metrics_and_latest_uploads(self):
+        from scripts.update_notion_command_center import youtube_snapshot_chunks
+
+        chunks = youtube_snapshot_chunks({
+            "deep": {
+                "window": "2026-09-24 to 2026-10-21",
+                "views": 56,
+                "estimated_minutes_watched": 68.0,
+                "average_view_duration_seconds": 105,
+                "average_view_percentage": 21.73,
+                "likes": 8,
+                "comments": 0,
+                "subscribers_gained": 2,
+            },
+            "audience": {
+                "window": "2026-09-24 to 2026-10-21",
+                "countries": [{"country": "BD", "views": 18}],
+                "traffic_sources": [{"source": "SHORTS", "views": 21}],
+            },
+            "history": [{
+                "video_id": "JfLcSOSnn08",
+                "title": "Example newest video",
+                "kind": "Podcast",
+                "published": "2026-10-23T15:48:00+00:00",
+            }],
+        })
+        joined = "".join(item["text"]["content"] for item in chunks)
+        links = "".join(item["text"].get("link", {}).get("url", "") for item in chunks)
+
+        self.assertIn("56", joined)
+        self.assertIn("21.73%", joined)
+        self.assertIn("Bangladesh (18 views)", joined)
+        self.assertIn("SHORTS (21 views)", joined)
+        self.assertIn("Example newest video", joined)
+        self.assertIn("https://youtu.be/JfLcSOSnn08", links)
+
 
 if __name__ == "__main__":
     unittest.main()

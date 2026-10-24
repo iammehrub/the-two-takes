@@ -16,7 +16,8 @@
     "Bfzmt-DjTf4",
     "MGOITKFdj0k",
     "HbIvQ1vbgTE",
-    "1fBvXpGj3vk"
+    "1fBvXpGj3vk",
+    "JfLcSOSnn08"
   ],
   "history": [
     {
@@ -1013,6 +1014,25 @@
       "comments_since_previous_report": 0,
       "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
       "summary": "24-hour checkpoint, about 26.6 hours after publication: 30 total views, 1 likes, and 0 comments. Like rate: 3.33%.  Since the previous report: +21 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-24T05:03:52.040785+00:00",
+      "age_hours": 13.26,
+      "checkpoint": "12-hour",
+      "checkpoint_key": "12h",
+      "video_id": "JfLcSOSnn08",
+      "title": "AI Finds Internet Weaknesses: What Does It Mean for You?",
+      "kind": "Podcast",
+      "views": 2,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 50.0,
+      "link": "https://youtu.be/JfLcSOSnn08",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "12-hour checkpoint, about 13.3 hours after publication: 2 total views, 1 likes, and 0 comments. Like rate: 50.00%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -1096,6 +1116,9 @@
     "1fBvXpGj3vk": [
       "12h",
       "24h"
+    ],
+    "JfLcSOSnn08": [
+      "12h"
     ]
   }
 }

@@ -1,0 +1,54 @@
+name: Notify Discord on Podcast Workflow Failure
+
+on:
+  workflow_run:
+    workflows:
+      - "Two Takes — Daily Episode"
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  notify-failure:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send failure alert to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DISCORD_WEBHOOK}" ]]; then
+            echo "DISCORD_ALERTS_WEBHOOK is not configured; skipping Discord failure alert."
+            exit 0
+          fi
+
+          PAYLOAD="$(python - <<'PY'
+          import json
+          import os
+
+          payload = {
+              "content": (
+                  "🚨 **Two Takes Podcast workflow failed**\n"
+                  f"Workflow: {os.environ.get('WORKFLOW_NAME', 'Two Takes — Daily Episode')}\n"
+                  f"Branch: {os.environ.get('BRANCH', 'unknown')}\n"
+                  f"Run ID: {os.environ.get('RUN_ID', 'unknown')}\n"
+                  f"Open logs: {os.environ.get('RUN_URL', '')}"
+              )
+          }
+          print(json.dumps(payload))
+          PY
+          )"
+
+          curl --fail --silent --show-error \
+            --retry 2 --retry-delay 2 \
+            -H "Content-Type: application/json" \
+            --data "${PAYLOAD}" \
+            "${DISCORD_WEBHOOK}"

@@ -117,12 +117,16 @@ def format_status(repo: str, runs: list[dict], checked_at: str, error: str | Non
     chunks.append({"type": "text", "text": {"content": header + "\n"}})
     for run in runs:
         title = str(run.get("display_title") or run.get("name") or run.get("path") or "Workflow")
-        conclusion = run.get("conclusion") or run.get("status") or "unknown"
+        status = run.get("status") or "unknown"
+        conclusion = run.get("conclusion") or "pending"
         branch = run.get("head_branch") or "branch unknown"
         updated = local_time(run.get("updated_at") or run.get("created_at"))
         run_url = run.get("html_url")
         number = run.get("run_number")
-        line = f"#{number} {title[:100]} — {conclusion}; {branch}; updated {updated}. "
+        line = (
+            f"#{number} {title[:100]} — status: {status}; conclusion: {conclusion}; "
+            f"branch: {branch}; updated: {updated}. "
+        )
         chunks.append({"type": "text", "text": {"content": line}})
         if run_url and run_url.startswith("https://github.com/"):
             chunks.append({

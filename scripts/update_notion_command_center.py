@@ -77,6 +77,72 @@ def recent_runs(repo: str, token: str) -> list[dict]:
     return runs[:4]
 
 
+def notion_page_title(page: dict) -> str:
+    """Return a Notion page's title across the supported title-property shapes."""
+    properties = page.get("properties", {})
+    for value in properties.values():
+        if isinstance(value, dict) and value.get("type") == "title":
+            return "".join(item.get("plain_text", "") for item in value.get("title", []))
+    # Be tolerant of the standard title property name in API payloads.
+    title_prop = properties.get("title", {}) if isinstance(properties, dict) else {}
+    if isinstance(title_prop, dict):
+        return "".join(item.get("plain_text", "") for item in title_prop.get("title", []))
+    return ""
+
+
+def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[dict]]:
+    """Verify the configured page is visible; recover only from a unique exact-title match."""
+    try:
+        return requested_id, get_page_blocks(requested_id, token)
+    except RuntimeError as exc:
+        if "HTTP 404" not in str(exc) or "object_not_found" not in str(exc):
+            raise
+
+    # A 404 from Notion commonly means the page isn't shared with THIS token.
+    # Search can also recover if the configured ID is stale but a single exact-title
+    # dashboard is visible to the integration. Never guess among similar pages.
+    search_result = request_json(
+        "https://api.notion.com/v1/search",
+        method="POST",
+        headers=notion_headers(token),
+        payload={"query": "AI Command Center", "page_size": 100},
+    )
+    exact_matches = [
+        item for item in search_result.get("results", [])
+        if item.get("object") == "page" and notion_page_title(item).strip() == "AI Command Center"
+    ]
+    if len(exact_matches) == 1:
+        found_id = exact_matches[0].get("id", "")
+        if found_id and found_id != requested_id:
+            print("Configured dashboard ID is not visible; found one exact-title dashboard visible to this token. Testing that page ID.")
+            return found_id, get_page_blocks(found_id, token)
+        if found_id == requested_id:
+            # The page appears in search but block children still returned 404. Report the
+            # actual response; do not loop or silently change the target.
+            raise RuntimeError(
+                "Notion search can see AI Command Center, but its child blocks returned 404. "
+                "Check that this connection has Read content access for the page. Original error: " + str(exc)
+            ) from exc
+
+    if len(exact_matches) > 1:
+        ids = ", ".join(str(item.get("id", "unknown")) for item in exact_matches[:5])
+        raise RuntimeError(
+            "The Notion token can see multiple pages titled 'AI Command Center' (IDs: " + ids + "). "
+            "For safety, no page was modified. Set NOTION_PAGE_ID to the intended dashboard page ID."
+        ) from exc
+
+    raise RuntimeError(
+        "The NOTION_TOKEN is valid, but this integration cannot see the target 'AI Command Center' page. "
+        "Notion returned 404 and its Search API did not return an accessible page with that exact title. "
+        "This is a workspace/page-access mismatch, not a Python or GitHub secret problem. In Notion, open the "
+        "AI Command Center page itself (not only the '15-Minute Automation Setup' child page), choose "
+        "••• → Connections, and verify that the exact internal connection whose token is stored in GitHub "
+        "is listed there. Also verify the connection's Associated workspace is the workspace that contains "
+        "this dashboard and that it has Read content, Insert content, and Update content. After checking, "
+        "rerun the workflow. Original Notion error: " + str(exc)
+    ) from exc
+
+
 def get_page_blocks(page_id: str, token: str) -> list[dict]:
     headers = notion_headers(token)
     url = f"https://api.notion.com/v1/blocks/{page_id}/children?page_size=100"
@@ -141,8 +207,8 @@ def format_status(repo: str, runs: list[dict], checked_at: str, error: str | Non
     )[:1900], chunks
 
 
-def update_existing_status(page_id: str, token: str, chunks: list[dict], fallback_text: str) -> None:
-    blocks = get_page_blocks(page_id, token)
+def update_existing_status(page_id: str, token: str, chunks: list[dict]) -> str:
+    resolved_page_id, blocks = resolve_dashboard_page_id(page_id, token)
     heading_index = None
     for index, block in enumerate(blocks):
         if block.get("type") == "heading_2" and rich_text_plain(block).strip() == "AUTOMATION LIVE STATUS":
@@ -184,6 +250,8 @@ def update_existing_status(page_id: str, token: str, chunks: list[dict], fallbac
             headers=headers,
         )
 
+    return resolved_page_id
+
 
 def main() -> int:
     notion_token = os.getenv("NOTION_TOKEN", "").strip()
@@ -206,12 +274,12 @@ def main() -> int:
         error_text = str(exc)
 
     _, chunks = format_status(repo, runs, checked_at, error_text)
-    update_existing_status(NOTION_PAGE_ID, notion_token, chunks, "")
+    resolved_page_id = update_existing_status(NOTION_PAGE_ID, notion_token, chunks)
     if error_text:
         print(f"Updated Notion with monitor error: {error_text}")
         return 1
 
-    print(f"Updated the existing Notion status block with {len(runs)} recent GitHub Actions runs.")
+    print(f"Updated the existing Notion status block on page {resolved_page_id} with {len(runs)} recent GitHub Actions runs.")
     return 0
 
 

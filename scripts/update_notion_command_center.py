@@ -273,6 +273,61 @@ def youtube_snapshot_chunks(
         add_line("Some optional saved sources could not be read: " + ", ".join(errors[:3]) + ".")
     return chunks
 
+
+def summarize_failed_jobs(jobs: list[dict]) -> list[str]:
+    """Extract failed job and step names from GitHub's job metadata (not raw logs)."""
+    failure_conclusions = {"failure", "timed_out", "action_required", "startup_failure", "stale"}
+    summaries: list[str] = []
+    for job in jobs:
+        failed_steps = [
+            str(step.get("name") or "Unnamed step")
+            for step in (job.get("steps") or [])
+            if str(step.get("conclusion") or "") in failure_conclusions
+        ]
+        job_conclusion = str(job.get("conclusion") or "")
+        if not failed_steps and job_conclusion not in failure_conclusions:
+            continue
+        job_name = str(job.get("name") or "Unnamed job")
+        if failed_steps:
+            summaries.append(f"{job_name}: failed step(s): {', '.join(failed_steps[:3])}")
+        else:
+            summaries.append(f"{job_name}: job conclusion {job_conclusion}")
+    return summaries
+
+
+def recent_failed_run_details(
+    repo: str, token: str, runs: list[dict], *, max_runs: int = 4
+) -> list[dict]:
+    """Read failure step metadata for a few workflows; missing details never block status updates."""
+    failure_conclusions = {"failure", "timed_out", "action_required", "startup_failure", "stale"}
+    candidates = [
+        run for run in latest_runs_by_workflow(runs)
+        if run.get("status") == "completed"
+        and str(run.get("conclusion") or "") in failure_conclusions
+        and run.get("id")
+    ]
+    results: list[dict] = []
+    for run in candidates[:max_runs]:
+        title = str(run.get("name") or run.get("path") or run.get("display_title") or "Workflow")
+        url = run.get("html_url") if str(run.get("html_url") or "").startswith("https://github.com/") else None
+        try:
+            data = request_json(
+                f"https://api.github.com/repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100",
+                headers=github_headers(token),
+            )
+            details = summarize_failed_jobs(data.get("jobs", []))
+            if not details:
+                details = ["No failed job/step details were returned."]
+        except Exception:
+            details = ["Job/step details unavailable; open the run for details."]
+        results.append({
+            "number": run.get("run_number"),
+            "title": title,
+            "url": url,
+            "details": details[:3],
+        })
+    return results
+
 def notion_page_title(page: dict) -> str:
     """Return a Notion page's title across the supported title-property shapes."""
     properties = page.get("properties", {})
@@ -394,6 +449,7 @@ def format_status(
     error: str | None = None,
     youtube_snapshot: dict[str, object] | None = None,
     youtube_errors: list[str] | None = None,
+    failure_details: list[dict] | None = None,
 ) -> tuple[str, list[dict]]:
     chunks: list[dict] = []
     header = f"AUTOMATION LIVE STATUS: Checked {checked_at} Bangladesh time. Repository: {repo}. "
@@ -432,6 +488,18 @@ def format_status(
             chunks.append({"type": "text", "text": {"content": "\n"}})
     elif not error:
         chunks.append({"type": "text", "text": {"content": "No recent workflow runs were returned by GitHub.\n"}})
+
+    details = failure_details or []
+    if details:
+        chunks.append({"type": "text", "text": {"content": "FAILED JOB / STEP DETAILS (from GitHub metadata; not an AI diagnosis):\n"}, "annotations": {"bold": True}})
+        for failure in details[:4]:
+            detail_text = "; ".join(str(item) for item in failure.get("details", [])[:3])
+            line = f"#{failure.get('number')} {str(failure.get('title') or 'Workflow')[:80]}: {detail_text[:700]} "
+            chunks.append({"type": "text", "text": {"content": line[:900]}})
+            url = failure.get("url")
+            if url and str(url).startswith("https://github.com/"):
+                chunks.append({"type": "text", "text": {"content": "Open failed run", "link": {"url": url}}})
+            chunks.append({"type": "text", "text": {"content": "\n"}})
 
     chunks.extend(youtube_snapshot_chunks(youtube_snapshot or {}, youtube_errors))
     plain_preview = "".join(
@@ -506,8 +574,9 @@ def main() -> int:
         error_text = str(exc)
 
     youtube_snapshot, youtube_errors = load_youtube_snapshot(repo, github_token)
+    failure_details = recent_failed_run_details(repo, github_token, runs) if not error_text else []
     _, chunks = format_status(
-        repo, runs, checked_at, error_text, youtube_snapshot, youtube_errors
+        repo, runs, checked_at, error_text, youtube_snapshot, youtube_errors, failure_details
     )
     resolved_page_id = update_existing_status(NOTION_PAGE_ID, notion_token, chunks)
     if error_text:

@@ -2,6 +2,11 @@ name: Notion Command Center Monitor
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/notion-command-center-monitor.yml'
+      - 'scripts/update_notion_command_center.py'
   schedule:
     - cron: '7,22,37,52 * * * *'
       timezone: "Asia/Dhaka"

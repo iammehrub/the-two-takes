@@ -10,6 +10,7 @@ Optional:
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -132,6 +133,145 @@ def seven_day_run_stats(
             stats["other"] += 1
     return stats
 
+
+def fetch_repo_json_file(repo: str, token: str, path: str) -> object:
+    """Read a committed JSON state/report file through the repository Contents API."""
+    encoded_path = "/".join(urllib.parse.quote(part, safe="") for part in path.split("/"))
+    data = request_json(
+        f"https://api.github.com/repos/{repo}/contents/{encoded_path}?ref=main",
+        headers=github_headers(token),
+    )
+    encoded = data.get("content")
+    if not isinstance(encoded, str):
+        raise RuntimeError(f"JSON file has no readable content: {path}")
+    raw = base64.b64decode("".join(encoded.split())).decode("utf-8")
+    return json.loads(raw)
+
+
+def load_youtube_snapshot(repo: str, token: str) -> tuple[dict[str, object], list[str]]:
+    """Read existing committed YouTube report and upload-history files; never needs OAuth scopes."""
+    data: dict[str, object] = {}
+    errors: list[str] = []
+    for key, path in (
+        ("deep", "data/youtube_deep_analytics.json"),
+        ("audience", "data/youtube_audience_insights.json"),
+        ("history", "data/content_history.json"),
+    ):
+        try:
+            data[key] = fetch_repo_json_file(repo, token, path)
+        except Exception:
+            # Keep the command center alive if one optional saved report is missing.
+            errors.append(path)
+    return data, errors
+
+
+def duration_label(value: object) -> str:
+    """Format seconds as a compact minutes-and-seconds label."""
+    try:
+        seconds = max(0, int(float(value)))
+    except (TypeError, ValueError):
+        return "unavailable"
+    minutes, remainder = divmod(seconds, 60)
+    return f"{minutes}m {remainder}s" if minutes else f"{remainder}s"
+
+
+def youtube_snapshot_chunks(
+    snapshot: dict[str, object], errors: list[str] | None = None
+) -> list[dict]:
+    """Create safe Notion rich-text chunks from saved YouTube and upload JSON."""
+    chunks: list[dict] = []
+
+    def add_text(content: str, *, bold: bool = False, url: str | None = None) -> None:
+        item: dict = {"type": "text", "text": {"content": content[:1800]}}
+        if url and url.startswith("https://"):
+            item["text"]["link"] = {"url": url}
+        if bold:
+            item["annotations"] = {"bold": True}
+        chunks.append(item)
+
+    def add_line(content: str = "", *, bold: bool = False, url: str | None = None) -> None:
+        add_text(content, bold=bold, url=url)
+        add_text("\\n")
+
+    add_line("YOUTUBE SNAPSHOT — saved report, not real-time channel data:", bold=True)
+    deep = snapshot.get("deep")
+    if isinstance(deep, dict):
+        window = str(deep.get("window") or "report window unavailable")
+        metrics: list[str] = []
+        for key, label in (
+            ("views", "views"),
+            ("estimated_minutes_watched", "minutes watched"),
+            ("likes", "likes"),
+            ("comments", "comments"),
+            ("subscribers_gained", "subscribers gained"),
+        ):
+            value = deep.get(key)
+            if value is not None:
+                metrics.append(f"{label}: {value}")
+        if deep.get("average_view_duration_seconds") is not None:
+            metrics.append(
+                "average view duration: "
+                + duration_label(deep.get("average_view_duration_seconds"))
+            )
+        if deep.get("average_view_percentage") is not None:
+            metrics.append(f"average viewed: {deep.get('average_view_percentage')}%")
+        add_line(f"Reporting window {window}. " + "; ".join(metrics) + ".")
+    else:
+        add_line("No saved deep-analytics report was available.")
+
+    audience = snapshot.get("audience")
+    if isinstance(audience, dict):
+        window = str(audience.get("window") or "saved window")
+        countries = audience.get("countries") if isinstance(audience.get("countries"), list) else []
+        traffic = audience.get("traffic_sources") if isinstance(audience.get("traffic_sources"), list) else []
+        top_country = max(
+            (item for item in countries if isinstance(item, dict)),
+            key=lambda item: float(item.get("views") or 0),
+            default=None,
+        )
+        top_source = max(
+            (item for item in traffic if isinstance(item, dict)),
+            key=lambda item: float(item.get("views") or 0),
+            default=None,
+        )
+        parts = [f"Audience snapshot ({window})"]
+        if top_country:
+            country = str(top_country.get("country") or "unknown")
+            country = "Bangladesh" if country == "BD" else country
+            parts.append(f"top country: {country} ({top_country.get('views', 0)} views)")
+        if top_source:
+            parts.append(f"top traffic source: {top_source.get('source', 'unknown')} ({top_source.get('views', 0)} views)")
+        if len(parts) > 1:
+            add_line("; ".join(parts) + ".")
+    else:
+        add_line("Audience breakdown unavailable in the saved report.")
+
+    history = snapshot.get("history")
+    if isinstance(history, list):
+        uploads = [item for item in history if isinstance(item, dict) and (item.get("video_id") or item.get("link"))]
+        uploads.sort(key=lambda item: str(item.get("published") or ""), reverse=True)
+        add_line("RECENT RECORDED UPLOADS:", bold=True)
+        if not uploads:
+            add_line("No published video records found in data/content_history.json.")
+        for item in uploads[:3]:
+            title = str(item.get("title") or item.get("topic") or "Untitled video")
+            kind = str(item.get("kind") or "Video")
+            published = str(item.get("published") or "date unavailable")[:10]
+            link = item.get("link")
+            video_id = str(item.get("video_id") or "")
+            if not link and video_id and all(ch.isalnum() or ch in "_-" for ch in video_id):
+                link = f"https://youtu.be/{video_id}"
+            label = f"{kind}: {title[:95]} (published {published}) — "
+            if link:
+                add_text(label)
+                add_text("Open video", url=str(link))
+                add_text("\\n")
+            else:
+                add_line(label + "link unavailable.")
+    if errors:
+        add_line("Some optional saved sources could not be read: " + ", ".join(errors[:3]) + ".")
+    return chunks
+
 def notion_page_title(page: dict) -> str:
     """Return a Notion page's title across the supported title-property shapes."""
     properties = page.get("properties", {})
@@ -246,53 +386,53 @@ def rich_text_plain(block: dict) -> str:
     return "".join(item.get("plain_text", "") for item in obj.get("rich_text", []))
 
 
-def format_status(repo: str, runs: list[dict], checked_at: str, error: str | None = None) -> tuple[str, list[dict]]:
+def format_status(
+    repo: str,
+    runs: list[dict],
+    checked_at: str,
+    error: str | None = None,
+    youtube_snapshot: dict[str, object] | None = None,
+    youtube_errors: list[str] | None = None,
+) -> tuple[str, list[dict]]:
     chunks: list[dict] = []
     header = f"AUTOMATION LIVE STATUS: Checked {checked_at} Bangladesh time. Repository: {repo}. "
     if error:
-        header += f"MONITOR ERROR: {error[:500]}. Existing run data may be stale."
-        chunks.append({"type": "text", "text": {"content": header[:1800]}})
-        return header, chunks
-
-    if not runs:
-        header += "No recent workflow runs were returned by GitHub."
-        chunks.append({"type": "text", "text": {"content": header}})
-        return header, chunks
-
-    stats = seven_day_run_stats(runs)
-    latest = latest_runs_by_workflow(runs)
-    header += (
-        f" Window: latest {len(runs)} retrieved runs; last 7 days: "
-        f"{stats['succeeded']} succeeded, {stats['failed']} failed, "
-        f"{stats['active']} active, {stats['cancelled']} cancelled, "
-        f"{stats['other']} other. Latest result per workflow:"
-    )
-    chunks.append({"type": "text", "text": {"content": header + "\n"}})
-
-    # One entry per workflow makes the page useful as a command-center overview,
-    # rather than listing several retries of the same workflow in a row.
-    for run in latest[:18]:
-        title = str(run.get("name") or run.get("path") or run.get("display_title") or "Workflow")
-        status = str(run.get("status") or "unknown")
-        conclusion = str(run.get("conclusion") or "pending")
-        branch = str(run.get("head_branch") or "branch unknown")
-        updated = local_time(run.get("updated_at") or run.get("created_at"))
-        run_url = run.get("html_url")
-        number = run.get("run_number")
-        line = (
-            f"#{number} {title[:95]} — status: {status}; conclusion: {conclusion}; "
-            f"branch: {branch}; updated: {updated}. "
+        header += f"MONITOR ERROR: {error[:400]}. Existing run data may be stale."
+    else:
+        stats = seven_day_run_stats(runs)
+        header += (
+            f" Window: latest {len(runs)} retrieved runs; last 7 days: "
+            f"{stats['succeeded']} succeeded, {stats['failed']} failed, "
+            f"{stats['active']} active, {stats['cancelled']} cancelled, "
+            f"{stats['other']} skipped/other. Latest result per workflow:"
         )
-        chunks.append({"type": "text", "text": {"content": line}})
-        if run_url and run_url.startswith("https://github.com/"):
-            chunks.append({
-                "type": "text",
-                "text": {"content": "Open run", "link": {"url": run_url}},
-            })
-        chunks.append({"type": "text", "text": {"content": "\n"}})
+    chunks.append({"type": "text", "text": {"content": header + "\\n"}})
 
-    # Preserve the whole Notion rich-text chunk list for the block update. Every
-    # text item is short and the number of entries is bounded above.
+    if not error and runs:
+        latest = latest_runs_by_workflow(runs)
+        for run in latest[:18]:
+            title = str(run.get("name") or run.get("path") or run.get("display_title") or "Workflow")
+            status = str(run.get("status") or "unknown")
+            conclusion = str(run.get("conclusion") or "pending")
+            branch = str(run.get("head_branch") or "branch unknown")
+            updated = local_time(run.get("updated_at") or run.get("created_at"))
+            run_url = run.get("html_url")
+            number = run.get("run_number")
+            line = (
+                f"#{number} {title[:95]} — status: {status}; conclusion: {conclusion}; "
+                f"branch: {branch}; updated: {updated}. "
+            )
+            chunks.append({"type": "text", "text": {"content": line}})
+            if run_url and run_url.startswith("https://github.com/"):
+                chunks.append({
+                    "type": "text",
+                    "text": {"content": "Open run", "link": {"url": run_url}},
+                })
+            chunks.append({"type": "text", "text": {"content": "\\n"}})
+    elif not error:
+        chunks.append({"type": "text", "text": {"content": "No recent workflow runs were returned by GitHub.\\n"}})
+
+    chunks.extend(youtube_snapshot_chunks(youtube_snapshot or {}, youtube_errors))
     plain_preview = "".join(
         item["text"]["content"] for item in chunks if item["type"] == "text"
     )[:1900]
@@ -364,7 +504,10 @@ def main() -> int:
     except Exception as exc:  # Preserve a visible monitor error if Notion is still reachable.
         error_text = str(exc)
 
-    _, chunks = format_status(repo, runs, checked_at, error_text)
+    youtube_snapshot, youtube_errors = load_youtube_snapshot(repo, github_token)
+    _, chunks = format_status(
+        repo, runs, checked_at, error_text, youtube_snapshot, youtube_errors
+    )
     resolved_page_id = update_existing_status(NOTION_PAGE_ID, notion_token, chunks)
     if error_text:
         print(f"Updated Notion with monitor error: {error_text}")

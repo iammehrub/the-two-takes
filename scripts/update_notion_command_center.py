@@ -90,6 +90,32 @@ def notion_page_title(page: dict) -> str:
     return ""
 
 
+def notion_search_exact_page(token: str, title: str) -> list[dict]:
+    data = request_json(
+        "https://api.notion.com/v1/search",
+        method="POST",
+        headers=notion_headers(token),
+        payload={"query": title, "page_size": 100},
+    )
+    return [
+        item for item in data.get("results", [])
+        if item.get("object") == "page" and notion_page_title(item).strip() == title
+    ]
+
+
+def notion_connection_identity(token: str) -> str:
+    """Return safe identity metadata for diagnosing workspace/token mismatches."""
+    try:
+        data = request_json("https://api.notion.com/v1/users/me", headers=notion_headers(token))
+        bot = data.get("bot", {}) if isinstance(data.get("bot"), dict) else {}
+        name = data.get("name") or bot.get("name") or "unknown connection"
+        workspace = bot.get("workspace_name") or "workspace name unavailable"
+        workspace_id = bot.get("workspace_id") or "workspace ID unavailable"
+        return f"connection={name!r}, workspace={workspace!r} ({workspace_id})"
+    except Exception:
+        return "connection identity unavailable from /v1/users/me"
+
+
 def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[dict]]:
     """Verify the configured page is visible; recover only from a unique exact-title match."""
     try:
@@ -99,19 +125,7 @@ def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[
         if "HTTP 404" not in original_error or "object_not_found" not in original_error:
             raise
 
-    # A 404 from Notion commonly means the page isn't shared with THIS token.
-    # Search can also recover if the configured ID is stale but a single exact-title
-    # dashboard is visible to the integration. Never guess among similar pages.
-    search_result = request_json(
-        "https://api.notion.com/v1/search",
-        method="POST",
-        headers=notion_headers(token),
-        payload={"query": "AI Command Center", "page_size": 100},
-    )
-    exact_matches = [
-        item for item in search_result.get("results", [])
-        if item.get("object") == "page" and notion_page_title(item).strip() == "AI Command Center"
-    ]
+    exact_matches = notion_search_exact_page(token, "AI Command Center")
     if len(exact_matches) == 1:
         found_id = exact_matches[0].get("id", "")
         if found_id and found_id != requested_id:
@@ -130,15 +144,27 @@ def resolve_dashboard_page_id(requested_id: str, token: str) -> tuple[str, list[
             "For safety, no page was modified. Set NOTION_PAGE_ID to the intended dashboard page ID."
         )
 
+    setup_matches = notion_search_exact_page(token, "15-Minute Automation Setup")
+    identity = notion_connection_identity(token)
+    if setup_matches:
+        extra = (
+            " The token CAN see '15-Minute Automation Setup' but CANNOT see its parent dashboard. "
+            "The connection was likely added only to the child page; add this same connection to the "
+            "AI Command Center parent page itself."
+        )
+    else:
+        extra = (
+            " Search cannot see either the dashboard or its setup page. Verify that the repository secret "
+            "was copied from the exact internal connection you added to the dashboard, and that this "
+            "connection's Associated workspace matches the dashboard's workspace. A same-named connection "
+            "in another workspace has a different token and will not grant access."
+        )
+
     raise RuntimeError(
         "The NOTION_TOKEN is valid, but this integration cannot see the target 'AI Command Center' page. "
-        "Notion returned 404 and its Search API did not return an accessible page with that exact title. "
-        "This is a workspace/page-access mismatch, not a Python or GitHub secret problem. In Notion, open the "
-        "AI Command Center page itself (not only the '15-Minute Automation Setup' child page), choose "
-        "••• → Connections, and verify that the exact internal connection whose token is stored in GitHub "
-        "is listed there. Also verify the connection's Associated workspace is the workspace that contains "
-        "this dashboard and that it has Read content, Insert content, and Update content. After checking, "
-        "rerun the workflow. Original Notion error: " + original_error
+        "Notion returned 404 and Search did not return an accessible page with that exact title. "
+        "This is a Notion connection identity/workspace/page-access mismatch, not a Python or GitHub secret problem."
+        + extra + " API identity: " + identity + ". Original Notion error: " + original_error
     )
 
 

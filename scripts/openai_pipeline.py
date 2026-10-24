@@ -309,17 +309,29 @@ def audience_profile_context():
 
 
 def make_episode(news):
-    # Fresh headlines are the primary topic pool. Evergreen English topics are
-    # used only if the current-news feed has no usable stories.
+    # Evergreen, searchable English-learning promises only. News is deliberately
+    # excluded so the channel has one clear audience and repeatable format.
     fallback_topic_bank = [
-        "Stop Translating in Your Head: Speak English More Naturally",
-        "How to Speak English With Confidence Even When You Make Mistakes",
-        "How to Keep a Conversation Going When You Run Out of Things to Say",
-        "How to Make Small Talk Without Feeling Awkward",
-        "How to Remember New English Words and Actually Use Them",
-        "How to Agree and Disagree Politely in English",
-        "How to Improve Your Listening When People Speak Fast",
-        "How to Think in English More Often",
+        "How to Practise English Speaking Alone",
+        "English Speaking Practice for Beginners: Daily Routine",
+        "Practise Ordering Food in English",
+        "How to Start a Conversation in English",
+        "How to Keep Speaking When You Forget a Word",
+        "Practise Talking About Your Daily Routine in English",
+        "How to Ask Questions Naturally in English",
+        "English Listening Practice: Understand Everyday Speech",
+        "How to Talk About Your Job in English",
+        "Practise a Simple Phone Call in English",
+        "How to Explain Your Opinion in Simple English",
+        "How to Talk About Your Feelings in English",
+        "How to Describe Your Weekend in English",
+        "Practise English for Meeting New People",
+        "How to Agree and Disagree in Everyday English",
+        "How to Speak English Without Translating Every Sentence",
+        "How to Make Small Talk in English: Easy Questions",
+        "How to Tell a Short Story in English",
+        "How to Use Past Tense in Everyday Conversation",
+        "How to Ask Someone to Repeat in English",
     ]
 
     current_stories = []
@@ -344,12 +356,8 @@ def make_episode(news):
         if len(current_stories) >= 12:
             break
 
-    trend_context = "\n".join(
-        f"{i + 1}. {item['title']} — {item['source']} ({item['pubDate']})"
-        for i, item in enumerate(current_stories)
-    ) or "(No usable current headlines were returned; use an evergreen topic only as a fallback.)"
-
-    topic_bank = [item["title"] for item in current_stories] or fallback_topic_bank
+    trend_context = "(Disabled: this channel now covers practical English learning only.)"
+    topic_bank = fallback_topic_bank
 
     recent_context = recent_content_context(20)
     demand_rows = youtube_demand_snapshot()
@@ -357,7 +365,7 @@ def make_episode(news):
     audience_context = audience_profile_context()
 
     prompt = f"""
-You are the lead writer for TWO TAKES PODCAST: a trending-story English-learning conversation show.
+You are the lead writer for TWO TAKES PODCAST, a calm, practical English-speaking and listening practice show for adult beginners.
 
 REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — ADAPT THE FORMAT, KEEP EVERYTHING ORIGINAL
 - Recreate the same broad viewer experience: a calm, friendly English-learning podcast built around natural conversation, relatable life topics, vocabulary teaching, and speaking practice.
@@ -378,8 +386,12 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - VISUALS: the supplied Two Takes Podcast opener remains on screen for the entire video. Keep it as one static background with no B-roll, scene cuts, title cards, or animated visual changes; captions appear beneath the host who is speaking.
 - Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for Two Takes Podcast.
 
-PRIMARY GOAL:
-Turn a genuinely current story into a useful, entertaining English-learning conversation. The news topic attracts interest; natural English, useful phrases, and speaking practice are the channel's core value. Do not drift into generic news commentary.
+ONE CONCRETE PROMISE — REQUIRED BEFORE WRITING:
+- State one specific, useful learner outcome in the JSON field "promise", in one short sentence: "By the end of this, you'll be able to ____."
+- Every episode must answer one real question an English learner would search for, such as how to practise speaking alone, start a conversation, order food, ask for clarification, or explain an opinion.
+- If the promise cannot be stated clearly in one line, reject the idea and choose a more concrete learner task.
+- This channel is ONLY about learning and practising English. Never create episodes about AI, technology, current affairs, politics, gaming, or unrelated news.
+- Ignore all supplied news headlines. Choose only from the English-learning topic bank and make the episode useful even if the viewer never saw a news story.
 
 Audience:
 A2-B1 and B1-B2 English learners worldwide, especially people who want to speak more naturally in everyday life.
@@ -405,51 +417,40 @@ RECENTLY PUBLISHED CONTENT:
 DIRECTIONAL YOUTUBE DEMAND SNAPSHOT:
 {demand_context}
 
-CURRENT TRENDING NEWS HEADLINES (most recent candidates first; headlines are leads, not complete reporting):
+NEWS INPUT (intentionally ignored):
 {trend_context}
 
-AVAILABLE TOPIC BANK:
+ENGLISH-LEARNING TOPIC BANK:
 {chr(10).join('- ' + x for x in topic_bank)}
 
-Use the channel audience profile and YouTube demand snapshot as signals, not guarantees. When current headlines are available, choose ONE story with broad curiosity and clear everyday relevance. Explain the story's general context in plain English and teach language viewers can use to discuss it. Do not simply read the headline or produce a generic vocabulary lesson. Do not invent details that the supplied headlines do not establish. If the story is developing or ambiguous, explicitly use cautious wording. Use an evergreen topic only when no usable current headlines exist. Avoid topics substantially overlapping recent uploads.
+Use the audience profile and YouTube demand snapshot as directional signals, not guarantees. Prefer a concrete beginner-friendly task with clear search intent and practical value. Avoid topics substantially overlapping recent uploads.
 
 TITLE/PACKAGING RULES:
-- Produce 3 distinct title options.
-- Lead with the trending subject or the viewer's real question, then signal the English-learning benefit where natural. Examples: "Can AI Take Your Job? | English Conversation Practice" or "What This New Tech Story Means | English Podcast". Avoid awkward forced wording.
-- Put the main searchable phrase or learner problem near the beginning.
-- Keep titles clear and reasonably concise; do not force awkwardly short titles.
-- Do not start the title with "Two Takes Podcast".
-- Do not use episode numbers.
-- Make the title accurate, specific, and useful; no misleading clickbait.
-- One title should be clearly searchable.
-- One title should feel like a natural podcast episode title.
-- One title should combine search clarity with curiosity.
+- Produce 3 distinct title options built around the promised learner outcome, not a vague subject.
+- Lead with the concrete promise or searchable learner question. Examples: "Practise English Speaking Alone", "Order Food in English: Easy Practice", "How to Start a Conversation in English".
+- Keep titles under 60 characters where possible; never sacrifice clarity or truth just to meet the limit.
+- Never use the word "topic" in a title. Avoid abstract titles such as "Improve Communication" when a concrete task can be named.
+- Put the main searchable phrase near the beginning. Use natural English; do not stuff keywords.
+- Do not start the title with "Two Takes Podcast" or use episode numbers.
+- Make all titles accurate, specific, and useful; no misleading clickbait.
+- One title should be directly searchable, one should sound like a natural practice session, and one should combine search clarity with curiosity.
 - Choose the strongest primary title as "title".
 - Produce "thumbnail_text" with only 2–4 short words, different wording from the full title when possible.
 - Thumbnail text must be truthful to the actual episode.
 
 CONTENT / RETENTION RULES:
-- Write an original 1,300–1,450 word two-host conversation, aiming for approximately 9–11 minutes of spoken audio before the short musical tail.
-- First turn: a compelling 1–2 sentence hook, marked "hook", designed for 5–8 seconds. Start the spoken audio at 0:00.
-- Do not include a welcome, host/channel introduction, episode announcement, or opening music sting. The second turn should continue naturally into the topic.
-- Use this flow: Hook -> Real Conversation -> Phrase Tour -> Quick Tip -> Speaking/Shadowing Practice -> Recap -> Outro.
-- The Real Conversation should be the largest section and should feel like a genuine discussion, not a lesson script.
-- Phrase Tour: include exactly 6 useful words or phrases that appeared naturally in the discussion and fit the chosen trend/story. Give each a simple meaning and one natural example. Avoid unrelated textbook vocabulary.
-- Speaking/Shadowing Practice: include 5 short sentence patterns. Model each one naturally and invite the learner to repeat or personalize it.
-- Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences.
-- Add natural follow-up questions, examples, disagreement, clarification, personal mini-stories, and small moments of humor.
-- Every 25–45 seconds, introduce a fresh example, question, mini-challenge, useful phrase, or change of angle so the conversation does not flatten. Use a natural curiosity loop, then answer it honestly; never promise a reveal the episode does not deliver.
-- Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. Use "hook" only for the direct opening line and "outro" for the final sign-off.
-- The first dialogue item must be type "hook"; do not create any "welcome" turn; include multiple language_tip and practice turns; include at least one recap and one final outro turn.
-- End with a concise recap, one concrete practice task, one specific comment question, and a natural sign-off. No generic long outro.
-- Do not pad the episode just to reach a length target.
-- Include one natural mid-episode question that invites viewers to compare the idea with their own experience, plus one specific comment question at the end.
-- Make the title and thumbnail promise the same clear viewer benefit; keep thumbnail text at 2–4 readable words and avoid vague clickbait.
-- Use a strong opening, quick first payoff, clear chapter changes, and a concrete final practice task to support retention.
-- Avoid repetitive openings, repetitive outro lines, or the same conversation pattern as recent episodes.
-- No copied scripts, quotes, statistics, or invented research.
-- No stage directions or narration in the spoken dialogue.
-- The selected current story must be a meaningful part of the conversation, not just a passing mention. Distinguish confirmed headline information from interpretation. Do not claim to have verified article details you have not been given.
+- Write an original 1,300–1,450 word two-host script, aiming for approximately 9–11 minutes of spoken audio before the musical tail. Keep language at A2–B1: short sentences, familiar words, and explain any necessary idiom.
+- First 15 seconds: Himel states a relatable learner problem, then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
+- Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
+- The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
+- Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.
+- In repetition practice, speak one phrase at a time and then include a real silent pause of about 3 seconds before continuing. Mark the intended pause in metadata, not as words the hosts say; never have a host read out stage directions.
+- Give each key phrase a short, readable on-screen text line suitable for a vertical Short. Include a concise "screen_text" field for each key phrase in the JSON output; keep it to a few words and do not put it into spoken dialogue.
+- The final practice task must tell viewers exactly what to say aloud or type in the comments. Ask one direct, easy-to-answer question.
+- Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences, with natural follow-up questions, clarification, small personal examples, and gentle humor.
+- Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. The first dialogue item must be "hook"; include several language_tip and practice turns; include at least one recap and one final outro turn.
+- Do not pad the episode just to reach a length target. Keep the title and thumbnail promise aligned with the actual lesson.
+- Avoid repetitive openings and outro lines. Do not use copied scripts or invented research. No stage directions in spoken dialogue.
 
 DISCOVERY METADATA:
 - Return 3–6 natural search phrases based on the actual topic.
@@ -460,6 +461,7 @@ RETURN ONLY VALID JSON:
 {{
   "title": "...",
   "title_options": ["...", "...", "..."],
+  "promise": "By the end of this, you'll be able to ...",
   "thumbnail_text": "...",
   "topic": "...",
   "visual_keywords": ["...", "...", "...", "...", "..."],

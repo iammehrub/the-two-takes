@@ -30,7 +30,7 @@ jobs:
         run: |
           if [[ -z "$NOTION_TOKEN" ]]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NOTION_TOKEN is missing. Monitoring is not active. Follow the setup notes at https://app.notion.com/p/4026d90fa42981e2b435c69eede7abf4"
+            echo "::warning::NOTION_TOKEN is missing. Monitoring is not active. Follow the setup notes in Notion's 15-Minute Automation Setup page."
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi

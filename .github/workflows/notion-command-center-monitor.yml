@@ -38,6 +38,7 @@ jobs:
             echo "::warning::NOTION_TOKEN is missing. Monitoring is not active. Follow the setup notes in Notion's 15-Minute Automation Setup page."
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "NOTION_TOKEN is present; testing the current repository secret without printing its value."
           fi
 
       - name: Update the existing Notion status block

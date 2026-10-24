@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -191,7 +192,7 @@ def youtube_snapshot_chunks(
 
     def add_line(content: str = "", *, bold: bool = False, url: str | None = None) -> None:
         add_text(content, bold=bold, url=url)
-        add_text("\\n")
+        add_text("\n")
 
     add_line("YOUTUBE SNAPSHOT — saved report, not real-time channel data:", bold=True)
     deep = snapshot.get("deep")
@@ -265,7 +266,7 @@ def youtube_snapshot_chunks(
             if link:
                 add_text(label)
                 add_text("Open video", url=str(link))
-                add_text("\\n")
+                add_text("\n")
             else:
                 add_line(label + "link unavailable.")
     if errors:
@@ -406,7 +407,7 @@ def format_status(
             f"{stats['active']} active, {stats['cancelled']} cancelled, "
             f"{stats['other']} skipped/other. Latest result per workflow:"
         )
-    chunks.append({"type": "text", "text": {"content": header + "\\n"}})
+    chunks.append({"type": "text", "text": {"content": header + "\n"}})
 
     if not error and runs:
         latest = latest_runs_by_workflow(runs)
@@ -428,9 +429,9 @@ def format_status(
                     "type": "text",
                     "text": {"content": "Open run", "link": {"url": run_url}},
                 })
-            chunks.append({"type": "text", "text": {"content": "\\n"}})
+            chunks.append({"type": "text", "text": {"content": "\n"}})
     elif not error:
-        chunks.append({"type": "text", "text": {"content": "No recent workflow runs were returned by GitHub.\\n"}})
+        chunks.append({"type": "text", "text": {"content": "No recent workflow runs were returned by GitHub.\n"}})
 
     chunks.extend(youtube_snapshot_chunks(youtube_snapshot or {}, youtube_errors))
     plain_preview = "".join(

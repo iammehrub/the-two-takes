@@ -267,7 +267,7 @@ def format_status(repo: str, runs: list[dict], checked_at: str, error: str | Non
         f"{stats['active']} active, {stats['cancelled']} cancelled, "
         f"{stats['other']} other. Latest result per workflow:"
     )
-    chunks.append({"type": "text", "text": {"content": header + "\\n"}})
+    chunks.append({"type": "text", "text": {"content": header + "\n"}})
 
     # One entry per workflow makes the page useful as a command-center overview,
     # rather than listing several retries of the same workflow in a row.
@@ -289,7 +289,7 @@ def format_status(repo: str, runs: list[dict], checked_at: str, error: str | Non
                 "type": "text",
                 "text": {"content": "Open run", "link": {"url": run_url}},
             })
-        chunks.append({"type": "text", "text": {"content": "\\n"}})
+        chunks.append({"type": "text", "text": {"content": "\n"}})
 
     # Preserve the whole Notion rich-text chunk list for the block update. Every
     # text item is short and the number of entries is bounded above.

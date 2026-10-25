@@ -267,7 +267,7 @@ jobs:
 
           work = Path("work")
           work.mkdir(parents=True, exist_ok=True)
-          base = work / "base_video.mp4"
+          base = work / "the_two_takes.mp4"
           voice = work / "shorts_smoke_voice.wav"
           music = work / "original_music_bed.wav"
           timing_path = work / "tts_segments.json"

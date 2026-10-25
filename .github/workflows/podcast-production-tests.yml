@@ -34,13 +34,31 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.11"
       - name: Install free local test dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python -m pip install --upgrade pip
-          python -m pip install numpy requests
+          python -m pip install requests "numpy<2" google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro==0.9.4" "spacy==3.7.5" "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl" soundfile
+      - name: Verify Kokoro English processing stack
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import spacy
+          import en_core_web_sm
+          from kokoro import KPipeline
+
+          assert spacy.__version__ == "3.7.5", spacy.__version__
+          assert en_core_web_sm.__version__ == "3.7.1", en_core_web_sm.__version__
+          nlp = spacy.load("en_core_web_sm")
+          assert list(nlp("This is a safe English speech test."))
+
+          # Match the production constructor without publishing anything.
+          pipeline = KPipeline(lang_code="a")
+          assert pipeline is not None
+          print("Kokoro preflight passed: spaCy 3.7.5 + en_core_web_sm 3.7.1 + KPipeline.")
+          PY
       - name: Test Facebook Page publishing helpers (offline)
         run: python -m unittest scripts.test_facebook_publish
       - name: Compile production modules
@@ -275,8 +293,11 @@ jobs:
           subprocess.run([
               "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
               "-f", "lavfi", "-i", "color=c=0x3b2b22:s=640x360:r=8:d=120",
-              "-an", "-c:v", "libx264", "-preset", "ultrafast",
-              "-pix_fmt", "yuv420p", str(base)
+              "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=24000:duration=120",
+              "-map", "0:v:0", "-map", "1:a:0",
+              "-c:v", "libx264", "-preset", "ultrafast",
+              "-pix_fmt", "yuv420p", "-c:a", "aac", "-ac", "2",
+              "-ar", "24000", "-shortest", str(base)
           ], check=True)
           subprocess.run([
               "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",

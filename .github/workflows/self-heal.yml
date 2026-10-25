@@ -18,8 +18,7 @@ jobs:
   recover:
     if: >-
       github.event.workflow_run.run_attempt == 1 &&
-      github.event.workflow_run.conclusion != 'success' &&
-      github.event.workflow_run.conclusion != 'skipped' &&
+      github.event.workflow_run.conclusion == 'failure' &&
       !contains(github.event.workflow_run.head_commit.message, '[self-heal]')
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -52,6 +51,13 @@ jobs:
             echo "oauth_action_required=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Block automatic retry after an episode was uploaded
+        if: steps.inspect.outputs.post_upload == 'true'
+        run: |
+          set -euo pipefail
+          echo "The run log confirms an episode was uploaded. Automatic retry is blocked to prevent duplicate public uploads. Inspect the failed run manually." | tee repair_reason.txt
+          exit 1
+
       - name: Stop on OAuth credentials requiring human action
         if: steps.inspect.outputs.oauth_action_required == 'true'
         run: |
@@ -65,7 +71,7 @@ jobs:
           exit 1
 
       - name: Build repair context
-        if: steps.inspect.outputs.oauth_action_required != 'true'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && steps.inspect.outputs.post_upload != 'true'
         run: |
           set -euo pipefail
           {
@@ -88,7 +94,7 @@ jobs:
           tail -c 70000 repair_context.txt > repair_context_tail.txt
 
       - name: Ask Gemini for repair
-        if: steps.inspect.outputs.oauth_action_required != 'true'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && steps.inspect.outputs.post_upload != 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -152,7 +158,7 @@ jobs:
           PY
 
       - name: Validate and apply repair
-        if: steps.inspect.outputs.oauth_action_required != 'true'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && steps.inspect.outputs.post_upload != 'true'
         run: |
           set -euo pipefail
           if [[ ! -s repair.patch ]]; then
@@ -177,7 +183,7 @@ jobs:
           fi
 
       - name: Commit repair
-        if: steps.inspect.outputs.oauth_action_required != 'true'
+        if: steps.inspect.outputs.oauth_action_required != 'true' && steps.inspect.outputs.post_upload != 'true'
         id: commit
         run: |
           set -euo pipefail
@@ -199,7 +205,7 @@ jobs:
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Run repaired publisher
-        if: steps.commit.outputs.changed == 'true'
+        if: steps.commit.outputs.changed == 'true' && steps.inspect.outputs.post_upload != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPAIR_SHA: ${{ steps.commit.outputs.commit_sha }}

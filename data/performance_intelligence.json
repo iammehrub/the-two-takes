@@ -1,31 +1,80 @@
 {
-  "generated_at": "2026-10-18T21:46:25.870157+00:00",
-  "sample_size": 3,
-  "total_recorded_views": 8,
-  "average_views": 2.7,
-  "median_views": 3.0,
-  "average_likes": 1.3,
+  "generated_at": "2026-10-25T23:21:03.741304+00:00",
+  "sample_size": 50,
+  "total_recorded_views": 176,
+  "average_views": 3.5,
+  "median_views": 1.0,
+  "average_likes": 0.7,
   "average_comments": 0.0,
   "top_videos_by_views": [
     {
-      "video_id": "Ngy0ny56H0A",
-      "title": "How to Talk About Money and Saving in Everyday English",
-      "views": 4,
-      "likes": 2,
+      "video_id": "1fBvXpGj3vk",
+      "title": "Tell Better Stories in English | English Conversation Practice",
+      "views": 30,
+      "likes": 1,
       "comments": 0
     },
     {
-      "video_id": "CfGF3NiriWE",
-      "title": "How to Talk About Money and Saving in Everyday English",
-      "views": 3,
-      "likes": 2,
+      "video_id": "Bfzmt-DjTf4",
+      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+      "views": 18,
+      "likes": 1,
       "comments": 0
     },
     {
-      "video_id": "vWy2i5lNZ1k",
-      "title": "Why Do We Procrastinate?",
-      "views": 1,
+      "video_id": "HbIvQ1vbgTE",
+      "title": "Explain Your Opinion Clearly | English Conversation Practice",
+      "views": 16,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "HbIvQ1vbgTE",
+      "title": "Explain Your Opinion Clearly | English Conversation Practice",
+      "views": 16,
       "likes": 0,
+      "comments": 0
+    },
+    {
+      "video_id": "1fBvXpGj3vk",
+      "title": "Tell Better Stories in English | English Conversation Practice",
+      "views": 9,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "MGOITKFdj0k",
+      "title": "How to Agree & Disagree Politely | English Conversation Practice",
+      "views": 8,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "MGOITKFdj0k",
+      "title": "How to Agree & Disagree Politely | English Conversation Practice",
+      "views": 7,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "JfLcSOSnn08",
+      "title": "AI Finds Internet Weaknesses: What Does It Mean for You?",
+      "views": 7,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "dGYcYGS82Zc",
+      "title": "Practise English Speaking Alone: Daily Habits",
+      "views": 7,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "Bfzmt-DjTf4",
+      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+      "views": 6,
+      "likes": 1,
       "comments": 0
     }
   ],

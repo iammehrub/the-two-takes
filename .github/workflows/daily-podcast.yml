@@ -10,7 +10,7 @@ on:
         type: string
   schedule:
     # Run once each morning in Bangladesh time; upload occurs after the build completes.
-    - cron: '7 8 * * *'
+    - cron: '0 8 * * *'
       timezone: "Asia/Dhaka"
 
 permissions:
@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
-            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro>=0.9.4" soundfile; then
+            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro==0.9.4" "spacy==3.8.7" "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" soundfile; then
               break
             fi
             if [[ "$attempt" == "3" ]]; then
@@ -64,6 +64,21 @@ jobs:
             echo "Python package installation failed; retrying..."
             sleep $((attempt * 5))
           done
+
+      - name: Verify Kokoro English processing stack
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import spacy
+          expected = "3.8.7"
+          if spacy.__version__ != expected:
+              raise SystemExit(f"Expected pinned spaCy {expected}, found {spacy.__version__}")
+          nlp = spacy.load("en_core_web_sm")
+          doc = nlp("We are practising English conversation today.")
+          if not doc:
+              raise SystemExit("The English NLP model returned no tokens.")
+          print(f"Kokoro English processing stack passed: spaCy {spacy.__version__}, en_core_web_sm loaded.")
+          PY
 
       - name: Verify YouTube upload OAuth
         env:

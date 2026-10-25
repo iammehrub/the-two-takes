@@ -47,14 +47,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
+          python-version: '3.11'
           cache: pip
 
       - name: Install Python packages
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
-            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "kokoro==0.9.4" "spacy==3.8.7" "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" soundfile; then
+            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "numpy<2" "kokoro==0.9.4" "spacy==3.7.5" "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl" soundfile; then
               break
             fi
             if [[ "$attempt" == "3" ]]; then
@@ -70,14 +70,23 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import spacy
-          expected = "3.8.7"
-          if spacy.__version__ != expected:
-              raise SystemExit(f"Expected pinned spaCy {expected}, found {spacy.__version__}")
+          import en_core_web_sm
+          from kokoro import KPipeline
+
+          if spacy.__version__ != "3.7.5":
+              raise SystemExit(f"Expected spaCy 3.7.5, found {spacy.__version__}")
+          if en_core_web_sm.__version__ != "3.7.1":
+              raise SystemExit(f"Expected en_core_web_sm 3.7.1, found {en_core_web_sm.__version__}")
+
           nlp = spacy.load("en_core_web_sm")
-          doc = nlp("We are practising English conversation today.")
-          if not doc:
+          if not nlp("We are practising English conversation today."):
               raise SystemExit("The English NLP model returned no tokens.")
-          print(f"Kokoro English processing stack passed: spaCy {spacy.__version__}, en_core_web_sm loaded.")
+
+          # Exercise the exact constructor used by production, before OAuth/upload.
+          pipeline = KPipeline(lang_code="a")
+          if pipeline is None:
+              raise SystemExit("Kokoro pipeline failed to initialize.")
+          print("Kokoro preflight passed: Python 3.11, spaCy 3.7.5, en_core_web_sm 3.7.1, KPipeline initialized.")
           PY
 
       - name: Verify YouTube upload OAuth

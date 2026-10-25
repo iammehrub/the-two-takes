@@ -1,43 +1,53 @@
 {
-  "window": "2026-09-24 to 2026-10-21",
+  "window": "2026-09-25 to 2026-10-22",
   "countries": [
     {
       "country": "BD",
       "views": 18,
       "minutes": 47.0
+    },
+    {
+      "country": "US",
+      "views": 0,
+      "minutes": 0.0
     }
   ],
   "age_gender": [],
   "traffic_sources": [
     {
       "source": "SHORTS",
-      "views": 21,
-      "minutes": 1.0
-    },
-    {
-      "source": "YT_CHANNEL",
-      "views": 17,
-      "minutes": 52.0
+      "views": 62,
+      "minutes": 2.0
     },
     {
       "source": "RELATED_VIDEO",
-      "views": 9,
-      "minutes": 5.0
+      "views": 30,
+      "minutes": 18.0
+    },
+    {
+      "source": "YT_CHANNEL",
+      "views": 26,
+      "minutes": 54.0
+    },
+    {
+      "source": "SUBSCRIBER",
+      "views": 21,
+      "minutes": 20.0
     },
     {
       "source": "NO_LINK_OTHER",
-      "views": 6,
+      "views": 7,
       "minutes": 0.0
     },
     {
       "source": "YT_SEARCH",
-      "views": 2,
+      "views": 7,
       "minutes": 0.0
     },
     {
-      "source": "SUBSCRIBER",
+      "source": "PLAYLIST",
       "views": 1,
-      "minutes": 9.0
+      "minutes": 0.0
     }
   ],
   "top_videos": []

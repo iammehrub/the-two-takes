@@ -303,7 +303,17 @@ jobs:
           generate_music_bed(120, music, sample_rate=24000)
 
           timing = []
-          beat_types = {0: "hook", 20: "language_tip", 40: "practice"}
+          # The selector needs contiguous, eligible phrase/practice sections.
+          beat_types = {}
+          for i in range(60):
+              if i == 0:
+                  beat_types[i] = "hook"
+              elif i < 20:
+                  beat_types[i] = "language_tip"
+              elif i < 40:
+                  beat_types[i] = "practice"
+              else:
+                  beat_types[i] = "language_tip" if i % 2 else "practice"
           for i in range(60):
               start = float(i * 2)
               timing.append({

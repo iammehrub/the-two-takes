@@ -492,6 +492,40 @@ def render_shorts(wav, title, topic):
     if not base.exists() or not timing_path.exists():
         raise RuntimeError("Cannot render Shorts: finished episode video or TTS timings are missing.")
 
+    # Some smoke tests or older intermediate renders can leave a video-only MP4.
+    # Verify the selected source has audio; if not, mux the supplied voice WAV into
+    # a temporary copy rather than failing later at FFmpeg's -map 0:a:0.
+    audio_probe = subprocess.run(
+        [
+            "ffprobe", "-v", "error", "-select_streams", "a:0",
+            "-show_entries", "stream=codec_name", "-of", "json", str(base),
+        ],
+        capture_output=True, text=True,
+    )
+    if audio_probe.returncode != 0:
+        raise RuntimeError(f"Could not inspect the Shorts source video audio: {audio_probe.stderr[-1000:]}")
+    try:
+        audio_streams = json.loads(audio_probe.stdout).get("streams", [])
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("FFprobe returned invalid JSON while checking Shorts source audio.") from exc
+    if not audio_streams:
+        voice_path = Path(wav)
+        if not voice_path.is_file():
+            raise RuntimeError("Shorts source has no audio track and the fallback voice WAV is missing.")
+        repaired_base = work / "the_two_takes_shorts_with_audio.mp4"
+        _run(
+            [
+                "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                "-i", str(base), "-i", str(voice_path),
+                "-map", "0:v:0", "-map", "1:a:0",
+                "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
+                "-ac", "2", "-shortest", "-movflags", "+faststart",
+                str(repaired_base),
+            ],
+            label="Restore missing audio track for Shorts source",
+        )
+        base = repaired_base
+
     try:
         timing = json.loads(timing_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:

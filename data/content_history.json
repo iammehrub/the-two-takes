@@ -147,8 +147,17 @@
     "video_id": "JfLcSOSnn08",
     "title": "AI Finds Internet Weaknesses: What Does It Mean for You?",
     "topic": "PHP2Shell: AI uncovers critical RCE vulnerabilities affecting 70% of the Internet - wiz.io",
+    "link": "https://youtu.be/JfLcSOSnn08",
     "kind": "Podcast",
     "published": "2026-10-23T15:48:00.228257+00:00",
-    "script_sha256": "89827538cb653b09f705db637f8a12bf7da6e4b07f907e21edec3347ec0e7ae0"
+    "notified_at": "2026-10-23T15:48:01.214872+00:00"
+  },
+  {
+    "video_id": "dGYcYGS82Zc",
+    "title": "Practise English Speaking Alone: Daily Habits",
+    "topic": "How to Practise English Speaking Alone",
+    "kind": "Podcast",
+    "published": "2026-10-25T03:54:11.619886+00:00",
+    "script_sha256": "8c49de2fdd434b5b180a8de0445fb810ed97eb3fb82028cd22eda1bc6e388719"
   }
 ]

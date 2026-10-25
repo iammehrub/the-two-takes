@@ -82,7 +82,7 @@ jobs:
             cat .github/workflows/daily-podcast.yml
             echo
             echo "=== SOURCE FILES MENTIONED IN TRACEBACK ==="
-            grep -Eo 'scripts/[A-Za-z0-9_.-]+\.py(:[0-9]+)?' failed.log 2>/dev/null |
+            { grep -Eo 'scripts/[A-Za-z0-9_.-]+\.py(:[0-9]+)?' failed.log 2>/dev/null || true; } |
               sed -E 's/:[0-9]+$//' | sort -u |
               while read -r p; do
                 [[ -f "$p" ]] || continue

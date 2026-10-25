@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
-            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "numpy==2.2.6" "cymem==2.0.8" "preshed==3.0.9" "murmurhash==1.0.10" "blis==1.1.0" "thinc==8.3.3" "srsly==2.4.8" "confection==0.1.5" "pydantic==2.9.2" "spacy==3.8.3" "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" soundfile; then
+            if python -m pip install --upgrade pip && python -m pip install requests google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 "numpy==2.2.6" "cymem==2.0.8" "preshed==3.0.9" "murmurhash==1.0.10" "blis==1.1.0" "thinc==8.3.3" "srsly==2.4.8" "confection==0.1.5" "pydantic==2.9.2" "spacy==3.8.3" "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" "kokoro==0.9.4" soundfile; then
               break
             fi
             if [[ "$attempt" == "3" ]]; then

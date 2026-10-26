@@ -156,8 +156,17 @@
     "video_id": "dGYcYGS82Zc",
     "title": "Practise English Speaking Alone: Daily Habits",
     "topic": "How to Practise English Speaking Alone",
+    "link": "https://youtu.be/dGYcYGS82Zc",
     "kind": "Podcast",
     "published": "2026-10-25T03:54:11.619886+00:00",
-    "script_sha256": "8c49de2fdd434b5b180a8de0445fb810ed97eb3fb82028cd22eda1bc6e388719"
+    "notified_at": "2026-10-25T03:54:14.608869+00:00"
+  },
+  {
+    "video_id": "hdEWLNmYZC0",
+    "title": "Talk About Your Daily Routine in English",
+    "topic": "English Speaking Practice for Beginners: Daily Routine",
+    "kind": "Podcast",
+    "published": "2026-10-26T03:57:19.470314+00:00",
+    "script_sha256": "68411a100752e539ac3e7ead279d9f170be741f82703b3c915d4b5311ac50e72"
   }
 ]

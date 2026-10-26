@@ -1,6 +1,9 @@
 name: Two Takes — Daily Episode
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       trigger_source:
@@ -22,6 +25,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'push' || github.event.head_commit.message == 'Run recovery upload for 2026-10-26'
     runs-on: ubuntu-latest
     timeout-minutes: 90
 

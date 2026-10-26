@@ -18,7 +18,8 @@
     "HbIvQ1vbgTE",
     "1fBvXpGj3vk",
     "JfLcSOSnn08",
-    "dGYcYGS82Zc"
+    "dGYcYGS82Zc",
+    "hdEWLNmYZC0"
   ],
   "history": [
     {
@@ -1099,6 +1100,25 @@
       "comments_since_previous_report": 0,
       "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
       "summary": "24-hour checkpoint, about 28.2 hours after publication: 29 total views, 1 likes, and 0 comments. Like rate: 3.45%.  Since the previous report: +22 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-26T20:45:25.801644+00:00",
+      "age_hours": 16.8,
+      "checkpoint": "12-hour",
+      "checkpoint_key": "12h",
+      "video_id": "hdEWLNmYZC0",
+      "title": "Talk About Your Daily Routine in English",
+      "kind": "Podcast",
+      "views": 32,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 3.125,
+      "link": "https://youtu.be/hdEWLNmYZC0",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "12-hour checkpoint, about 16.8 hours after publication: 32 total views, 1 likes, and 0 comments. Like rate: 3.12%.  These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -1190,6 +1210,9 @@
     "dGYcYGS82Zc": [
       "12h",
       "24h"
+    ],
+    "hdEWLNmYZC0": [
+      "12h"
     ]
   }
 }

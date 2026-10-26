@@ -10,7 +10,7 @@ on:
         type: string
   schedule:
     # Run once each morning in Bangladesh time; upload occurs after the build completes.
-    - cron: '0 8 * * *'
+    - cron: '7 8 * * *'
       timezone: "Asia/Dhaka"
 
 permissions:

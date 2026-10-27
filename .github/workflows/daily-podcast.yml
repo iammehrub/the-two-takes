@@ -9,10 +9,15 @@ on:
         default: Manual
         type: string
   schedule:
-    # 02:07 UTC = 08:07 Asia/Dhaka. Use UTC explicitly for broad scheduler compatibility.
-    - cron: '7 2 * * *'
+    # Primary run at 08:07 Bangladesh time, with a recovery run at 09:17.
+    # Use timezone-aware cron support and avoid the top of the hour, when schedules are more likely to be delayed.
+    - cron: '7 8 * * *'
+      timezone: 'Asia/Dhaka'
+    - cron: '17 9 * * *'
+      timezone: 'Asia/Dhaka'
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -20,7 +25,89 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  publish_guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Prevent duplicate same-day publishing
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          runs_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/daily-podcast.yml/runs?per_page=100")"
+          export RUNS_JSON="$runs_json"
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          current_run_id = int(os.environ["CURRENT_RUN_ID"])
+          today = datetime.now(ZoneInfo("Asia/Dhaka")).date()
+          repo = os.environ["GITHUB_REPOSITORY"]
+          runs = json.loads(os.environ["RUNS_JSON"]).get("workflow_runs", [])
+
+          def stop(reason):
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+                  out.write("should_run=false\\n")
+              print("Publishing skipped safely: " + reason)
+
+          todays = []
+          for run in runs:
+              if int(run.get("id", 0)) == current_run_id:
+                  continue
+              created = run.get("created_at")
+              if not created:
+                  continue
+              local_date = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(
+                  ZoneInfo("Asia/Dhaka")
+              ).date()
+              if local_date == today:
+                  todays.append(run)
+
+          todays.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+          for previous in todays:
+              run_id = int(previous["id"])
+              status = previous.get("status")
+              conclusion = previous.get("conclusion")
+              if status in {"queued", "in_progress", "waiting", "pending"}:
+                  stop(f"daily run {run_id} is still {status}; avoiding overlapping publication.")
+                  raise SystemExit(0)
+              if conclusion == "success":
+                  stop(f"daily run {run_id} already completed successfully today.")
+                  raise SystemExit(0)
+              if conclusion == "failure":
+                  # A failed run may still have uploaded a public video. Inspect its full log before retrying.
+                  try:
+                      logs = subprocess.run(
+                          ["gh", "run", "view", str(run_id), "--repo", repo, "--log"],
+                          check=False, capture_output=True, text=True, timeout=90,
+                      )
+                  except Exception as exc:
+                      stop(f"could not safely inspect failed run {run_id} ({exc}); avoiding a possible duplicate.")
+                      raise SystemExit(0)
+                  if logs.returncode != 0:
+                      stop(f"GitHub could not provide logs for failed run {run_id}; avoiding a possible duplicate.")
+                      raise SystemExit(0)
+                  if "YouTube upload complete. Video ID:" in logs.stdout:
+                      stop(f"failed run {run_id} already uploaded a video; automatic duplicate is blocked.")
+                      raise SystemExit(0)
+                  print(f"Previous run {run_id} failed before the confirmed-upload marker; a recovery attempt is allowed.")
+                  break
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("should_run=true\\n")
+          print(f"Publishing guard passed for Bangladesh date {today.isoformat()}.")
+          PY
+
   build:
+    needs: publish_guard
+    if: needs.publish_guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
 

@@ -9,12 +9,11 @@ on:
         default: Manual
         type: string
   schedule:
-    # Primary run at 08:07 Bangladesh time, with a recovery run at 09:17.
-    # Use timezone-aware cron support and avoid the top of the hour, when schedules are more likely to be delayed.
-    - cron: '7 8 * * *'
-      timezone: 'Asia/Dhaka'
-    - cron: '17 9 * * *'
-      timezone: 'Asia/Dhaka'
+    # GitHub Actions schedule cron is UTC: 02:07 UTC = 08:07 Bangladesh time;
+    # 03:17 UTC = 09:17 Bangladesh time is a recovery trigger. The publish_guard
+    # below prevents a second upload if the first run already succeeded.
+    - cron: '7 2 * * *'
+    - cron: '17 3 * * *'
 
 permissions:
   actions: read

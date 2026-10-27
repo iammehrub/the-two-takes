@@ -1,5 +1,5 @@
 {
-  "window": "2026-09-26 to 2026-10-23",
+  "window": "2026-09-27 to 2026-10-24",
   "countries": [
     {
       "country": "BD",
@@ -16,23 +16,28 @@
   "traffic_sources": [
     {
       "source": "SUBSCRIBER",
-      "views": 96,
-      "minutes": 43.0
+      "views": 143,
+      "minutes": 45.0
     },
     {
       "source": "SHORTS",
-      "views": 62,
-      "minutes": 2.0
+      "views": 114,
+      "minutes": 5.0
     },
     {
       "source": "RELATED_VIDEO",
-      "views": 31,
-      "minutes": 27.0
+      "views": 36,
+      "minutes": 38.0
     },
     {
       "source": "YT_CHANNEL",
-      "views": 29,
-      "minutes": 61.0
+      "views": 34,
+      "minutes": 64.0
+    },
+    {
+      "source": "YT_SEARCH",
+      "views": 10,
+      "minutes": 0.0
     },
     {
       "source": "NO_LINK_OTHER",
@@ -40,8 +45,8 @@
       "minutes": 0.0
     },
     {
-      "source": "YT_SEARCH",
-      "views": 7,
+      "source": "YT_OTHER_PAGE",
+      "views": 1,
       "minutes": 0.0
     },
     {

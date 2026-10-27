@@ -54,7 +54,7 @@ jobs:
 
           def stop(reason):
               with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
-                  out.write("should_run=false\\n")
+                  out.write("should_run=false" + chr(10))
               print("Publishing skipped safely: " + reason)
 
           todays = []
@@ -101,7 +101,7 @@ jobs:
                   break
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
-              out.write("should_run=true\\n")
+              out.write("should_run=true" + chr(10))
           print(f"Publishing guard passed for Bangladesh date {today.isoformat()}.")
           PY
 

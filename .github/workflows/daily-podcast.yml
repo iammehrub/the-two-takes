@@ -9,9 +9,8 @@ on:
         default: Manual
         type: string
   schedule:
-    # Run once each morning in Bangladesh time; upload occurs after the build completes.
-    - cron: '7 8 * * *'
-      timezone: "Asia/Dhaka"
+    # 02:07 UTC = 08:07 Asia/Dhaka. Use UTC explicitly for broad scheduler compatibility.
+    - cron: '7 2 * * *'
 
 permissions:
   contents: write

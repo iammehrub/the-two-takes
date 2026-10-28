@@ -165,8 +165,17 @@
     "video_id": "hdEWLNmYZC0",
     "title": "Talk About Your Daily Routine in English",
     "topic": "English Speaking Practice for Beginners: Daily Routine",
+    "link": "https://youtu.be/hdEWLNmYZC0",
     "kind": "Podcast",
     "published": "2026-10-26T03:57:19.470314+00:00",
-    "script_sha256": "68411a100752e539ac3e7ead279d9f170be741f82703b3c915d4b5311ac50e72"
+    "notified_at": "2026-10-26T03:57:22.019018+00:00"
+  },
+  {
+    "video_id": "wbL5potBbtU",
+    "title": "Order Food in English: Easy Practice",
+    "topic": "Practise Ordering Food in English",
+    "kind": "Podcast",
+    "published": "2026-10-28T12:31:03.341856+00:00",
+    "script_sha256": "58d8d8adf596d6c06e709817bd14685afd51533deb2fe66966add90f2ec1aac4"
   }
 ]

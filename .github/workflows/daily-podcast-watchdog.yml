@@ -2,10 +2,10 @@ name: Daily Podcast Schedule Watchdog
 
 on:
   schedule:
-    # Check shortly after the main 08:07 Bangladesh-time trigger and retry
-    # dispatch only if no daily-podcast run exists for today's Bangladesh date.
+    # Check several times after the 08:07 Bangladesh-time trigger and recover
+    # when no run is active or successful. GitHub schedule times are UTC.
     - cron: '20,35,50 2 * * *'
-    - cron: '5,20 3 * * *'
+    - cron: '5,20,35,50 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Dispatch the daily workflow only if no run started today
+      - name: Check today's run and safely recover if needed
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -31,12 +31,13 @@ jobs:
           import json
           import os
           import subprocess
-          from datetime import datetime
+          from datetime import datetime, timezone
           from zoneinfo import ZoneInfo
 
           repo = os.environ["REPOSITORY"]
           token = os.environ["GH_TOKEN"]
-          today = datetime.now(ZoneInfo("Asia/Dhaka")).date()
+          now = datetime.now(timezone.utc)
+          today = now.astimezone(ZoneInfo("Asia/Dhaka")).date()
           endpoint = f"repos/{repo}/actions/workflows/daily-podcast.yml/runs?per_page=100"
           result = subprocess.run(
               ["gh", "api", endpoint],
@@ -49,22 +50,52 @@ jobs:
               created = run.get("created_at")
               if not created:
                   continue
-              local_date = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(
-                  ZoneInfo("Asia/Dhaka")
-              ).date()
-              if local_date == today:
+              created_at = datetime.fromisoformat(created.replace("Z", "+00:00"))
+              if created_at.astimezone(ZoneInfo("Asia/Dhaka")).date() == today:
+                  run["_created_at"] = created_at
                   today_runs.append(run)
 
-          if today_runs:
-              latest = max(today_runs, key=lambda r: r.get("created_at", ""))
+          today_runs.sort(key=lambda r: r["_created_at"], reverse=True)
+
+          active = next(
+              (r for r in today_runs if r.get("status") in {"queued", "in_progress", "waiting", "pending"}),
+              None,
+          )
+          successful = next(
+              (r for r in today_runs if r.get("conclusion") == "success"),
+              None,
+          )
+
+          if active:
               print(
-                  f"No dispatch needed: run {latest['id']} exists today "
-                  f"(event={latest.get('event')}, status={latest.get('status')}, "
-                  f"conclusion={latest.get('conclusion')})."
+                  f"No recovery needed: run {active['id']} is active "
+                  f"(status={active.get('status')})."
               )
               raise SystemExit(0)
 
-          print(f"No daily podcast run found for Bangladesh date {today}; dispatching recovery run.")
+          if successful:
+              print(
+                  f"No recovery needed: run {successful['id']} succeeded today "
+                  f"(created_at={successful.get('created_at')})."
+              )
+              raise SystemExit(0)
+
+          latest = today_runs[0] if today_runs else None
+          if latest:
+              age_minutes = (now - latest["_created_at"]).total_seconds() / 60
+              if age_minutes < 20:
+                  print(
+                      f"Latest run {latest['id']} ended without success "
+                      f"(conclusion={latest.get('conclusion')}); waiting for the next check "
+                      f"to avoid rapid repeated retries ({age_minutes:.1f} minutes old)."
+                  )
+                  raise SystemExit(0)
+
+          reason = (
+              f"latest run {latest['id']} is not successful (conclusion={latest.get('conclusion')})"
+              if latest else f"no daily-podcast run found for Bangladesh date {today}"
+          )
+          print(f"Recovery needed: {reason}. Dispatching workflow_dispatch.")
           dispatch = subprocess.run(
               [
                   "gh", "api", "--method", "POST",
@@ -77,6 +108,8 @@ jobs:
           )
           if dispatch.returncode != 0:
               print(dispatch.stderr or dispatch.stdout)
-              raise SystemExit("Recovery dispatch failed; check Actions permissions and workflow logs.")
+              raise SystemExit(
+                  "Recovery dispatch failed. Check repository Actions permissions and this job's logs."
+              )
           print("Recovery dispatch accepted by GitHub.")
           PY

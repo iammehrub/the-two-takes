@@ -1,0 +1,82 @@
+name: Daily Podcast Schedule Watchdog
+
+on:
+  schedule:
+    # Check shortly after the main 08:07 Bangladesh-time trigger and retry
+    # dispatch only if no daily-podcast run exists for today's Bangladesh date.
+    - cron: '20,35,50 2 * * *'
+    - cron: '5,20 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: two-takes-podcast-schedule-watchdog
+  cancel-in-progress: false
+
+jobs:
+  verify-and-recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch the daily workflow only if no run started today
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          repo = os.environ["REPOSITORY"]
+          token = os.environ["GH_TOKEN"]
+          today = datetime.now(ZoneInfo("Asia/Dhaka")).date()
+          endpoint = f"repos/{repo}/actions/workflows/daily-podcast.yml/runs?per_page=100"
+          result = subprocess.run(
+              ["gh", "api", endpoint],
+              check=True, capture_output=True, text=True,
+              env={**os.environ, "GH_TOKEN": token},
+          )
+          runs = json.loads(result.stdout).get("workflow_runs", [])
+          today_runs = []
+          for run in runs:
+              created = run.get("created_at")
+              if not created:
+                  continue
+              local_date = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(
+                  ZoneInfo("Asia/Dhaka")
+              ).date()
+              if local_date == today:
+                  today_runs.append(run)
+
+          if today_runs:
+              latest = max(today_runs, key=lambda r: r.get("created_at", ""))
+              print(
+                  f"No dispatch needed: run {latest['id']} exists today "
+                  f"(event={latest.get('event')}, status={latest.get('status')}, "
+                  f"conclusion={latest.get('conclusion')})."
+              )
+              raise SystemExit(0)
+
+          print(f"No daily podcast run found for Bangladesh date {today}; dispatching recovery run.")
+          dispatch = subprocess.run(
+              [
+                  "gh", "api", "--method", "POST",
+                  f"repos/{repo}/actions/workflows/daily-podcast.yml/dispatches",
+                  "-f", "ref=main",
+                  "-f", "inputs[trigger_source]=Schedule watchdog recovery",
+              ],
+              check=False, capture_output=True, text=True,
+              env={**os.environ, "GH_TOKEN": token},
+          )
+          if dispatch.returncode != 0:
+              print(dispatch.stderr or dispatch.stdout)
+              raise SystemExit("Recovery dispatch failed; check Actions permissions and workflow logs.")
+          print("Recovery dispatch accepted by GitHub.")
+          PY

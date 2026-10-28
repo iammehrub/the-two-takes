@@ -96,8 +96,11 @@ jobs:
                   if logs.returncode != 0:
                       stop(f"GitHub could not provide logs for failed run {run_id}; avoiding a possible duplicate.")
                       raise SystemExit(0)
-                  if "YouTube upload complete. Video ID:" in logs.stdout:
-                      stop(f"failed run {run_id} already uploaded a video; automatic duplicate is blocked.")
+                  # The log echoes this script, so match a real 11-character YouTube ID,
+                  # not just the marker text, to avoid false duplicate detection.
+                  import re
+                  if re.search(r"YouTube upload complete\\. Video ID:\\s*[A-Za-z0-9_-]{11}(?![A-Za-z0-9_-])", logs.stdout):
+                      stop(f"failed run {run_id} contains a confirmed YouTube video ID; automatic duplicate is blocked.")
                       raise SystemExit(0)
                   print(f"Previous run {run_id} failed before the confirmed-upload marker; a recovery attempt is allowed.")
                   break

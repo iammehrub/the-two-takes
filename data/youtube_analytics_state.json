@@ -1142,6 +1142,29 @@
       "comments_since_previous_report": 0,
       "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
       "summary": "24-hour checkpoint, about 26.9 hours after publication: 35 total views, 1 likes, and 0 comments. Like rate: 2.86%.  Since the previous report: +3 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
+    },
+    {
+      "analyzed_at": "2026-10-28T09:00:14.328540+00:00",
+      "age_hours": 173.82,
+      "checkpoint": "7-day",
+      "checkpoint_key": "7d",
+      "video_id": "Bfzmt-DjTf4",
+      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+      "kind": "Podcast",
+      "views": 89,
+      "likes": 1,
+      "comments": 0,
+      "like_rate": 1.1235955056179776,
+      "link": "https://youtu.be/Bfzmt-DjTf4",
+      "audience_insights_available": true,
+      "audience_error": "",
+      "metric_source": "YouTube Data API public totals; not watch-time or retention data",
+      "previous_views": 18,
+      "views_since_previous_report": 71,
+      "likes_since_previous_report": 0,
+      "comments_since_previous_report": 0,
+      "recommendation": "Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes.",
+      "summary": "7-day checkpoint, about 173.8 hours after publication: 89 total views, 1 likes, and 0 comments. Like rate: 1.12%.  Since the previous report: +71 views, +0 likes, and +0 comments. These are public totals at the time of this report, not exact hour-by-hour historical totals. Next step: Keep this topic and format as a comparison point. Check impressions and audience retention in YouTube Studio before making larger changes."
     }
   ],
   "milestones": {
@@ -1212,7 +1235,8 @@
     ],
     "Bfzmt-DjTf4": [
       "12h",
-      "24h"
+      "24h",
+      "7d"
     ],
     "MGOITKFdj0k": [
       "12h",

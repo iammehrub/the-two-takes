@@ -81,8 +81,30 @@ jobs:
                   stop(f"daily run {run_id} is still {status}; avoiding overlapping publication.")
                   raise SystemExit(0)
               if conclusion == "success":
-                  stop(f"daily run {run_id} already completed successfully today.")
+                # A workflow can be overall-successful even when the guard skipped the build.
+                # Count it as published only if the actual build job succeeded.
+                try:
+                  jobs_result = subprocess.run(
+                    ["gh", "api", f"repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"],
+                    check=False, capture_output=True, text=True, timeout=45,
+                  )
+                except Exception as exc:
+                  stop(f"could not verify build job for successful run {run_id} ({exc}); avoiding a possible duplicate.")
                   raise SystemExit(0)
+                if jobs_result.returncode != 0:
+                  stop(f"GitHub could not verify jobs for successful run {run_id}; avoiding a possible duplicate.")
+                  raise SystemExit(0)
+                previous_jobs = json.loads(jobs_result.stdout).get("jobs", [])
+                build_job = next((job for job in previous_jobs if job.get("name") == "build"), None)
+                if build_job and build_job.get("conclusion") == "success":
+                  stop(f"build job in daily run {run_id} completed successfully today.")
+                  raise SystemExit(0)
+                print(
+                  f"Prior run {run_id} was overall-successful but its build job "
+                  f"was {build_job.get('conclusion') if build_job else 'not created'}; it did not publish. "
+                  "Checking older runs and allowing recovery if none actually published."
+                )
+                continue
               if conclusion == "failure":
                   # A failed run may still have uploaded a public video. Inspect its full log before retrying.
                   try:
@@ -99,7 +121,7 @@ jobs:
                   # The log echoes this script, so match a real 11-character YouTube ID,
                   # not just the marker text, to avoid false duplicate detection.
                   import re
-                  if re.search(r"YouTube upload complete\\. Video ID:\\s*[A-Za-z0-9_-]{11}(?![A-Za-z0-9_-])", logs.stdout):
+                  if re.search(r"YouTube upload complete\. Video ID:\s*[A-Za-z0-9_-]{11}(?![A-Za-z0-9_-])", logs.stdout):
                       stop(f"failed run {run_id} contains a confirmed YouTube video ID; automatic duplicate is blocked.")
                       raise SystemExit(0)
                   print(f"Previous run {run_id} failed before the confirmed-upload marker; a recovery attempt is allowed.")

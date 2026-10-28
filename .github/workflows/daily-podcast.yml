@@ -1,10 +1,6 @@
 name: Two Takes — Daily Episode
 
 on:
-  # Temporary one-time trigger to start a live recovery run after fixing the guard.
-  push:
-    paths:
-      - '.github/workflows/daily-podcast.yml'
   workflow_dispatch:
     inputs:
       trigger_source:

@@ -37,8 +37,10 @@ jobs:
           CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          runs_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/daily-podcast.yml/runs?per_page=100")"
-          export RUNS_JSON="$runs_json"
+          runs_file="$(mktemp)"
+          trap 'rm -f "$runs_file"' EXIT
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/daily-podcast.yml/runs?per_page=100" > "$runs_file"
+          export RUNS_FILE="$runs_file"
           python - <<'PY'
           import json
           import os
@@ -49,7 +51,8 @@ jobs:
           current_run_id = int(os.environ["CURRENT_RUN_ID"])
           today = datetime.now(ZoneInfo("Asia/Dhaka")).date()
           repo = os.environ["GITHUB_REPOSITORY"]
-          runs = json.loads(os.environ["RUNS_JSON"]).get("workflow_runs", [])
+          with open(os.environ["RUNS_FILE"], encoding="utf-8") as runs_handle:
+              runs = json.load(runs_handle).get("workflow_runs", [])
 
           def stop(reason):
               with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:

@@ -77,13 +77,46 @@ def _token_set(value):
     return set(normalize_text(value).split())
 
 
+# These words are common in English-learning channel titles. They should not,
+# by themselves, make two different episodes look like duplicates.
+_SIMILARITY_STOPWORDS = {
+    "a", "an", "the", "of", "to", "for", "and", "or", "but", "with",
+    "in", "on", "at", "by", "from", "about", "into", "through",
+    "is", "are", "was", "were", "be", "been", "being", "do", "does",
+    "did", "how", "what", "why", "when", "where", "who", "which",
+    "can", "could", "will", "would", "should", "might", "may",
+    "you", "your", "yours", "me", "my", "our", "we", "they", "them",
+    "their", "this", "that", "these", "those", "it", "its", "as",
+    "more", "most", "very", "much", "just", "than", "then",
+    "english", "speak", "speaking", "spoken", "conversation",
+    "conversations", "learning", "learn", "learned", "practice",
+    "practise", "practicing", "practising", "natural", "naturally",
+    "fluently", "fluent", "improve", "improving", "tips", "guide",
+    "everyday", "daily", "useful", "phrases", "phrase", "words",
+    "word", "easy", "simple", "beginner", "beginners", "talk", "talking",
+}
+
+
 def _similar(a, b):
-    a_tokens = _token_set(a)
-    b_tokens = _token_set(b)
+    # Exclude generic channel vocabulary and numeric list counts before
+    # comparing. Use Jaccard similarity rather than dividing by the shorter
+    # title, which previously rejected many unrelated titles after 4 retries.
+    a_tokens = {
+        token for token in _token_set(a) - _SIMILARITY_STOPWORDS
+        if not token.isdigit()
+    }
+    b_tokens = {
+        token for token in _token_set(b) - _SIMILARITY_STOPWORDS
+        if not token.isdigit()
+    }
     if not a_tokens or not b_tokens:
         return False
-    overlap = len(a_tokens & b_tokens) / max(1, min(len(a_tokens), len(b_tokens)))
-    return overlap >= 0.80
+
+    shared = len(a_tokens & b_tokens)
+    union = len(a_tokens | b_tokens)
+    # Require at least three meaningful shared terms. Exact title/topic
+    # duplicates are detected separately by is_duplicate().
+    return shared >= 3 and (shared / max(1, union)) >= 0.60
 
 
 def is_duplicate(root, title, topic, script):

@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "scripts/openai_pipeline.py"
+      - "scripts/content_guard.py"
+      - "scripts/test_content_guard.py"
       - "scripts/build_podcast.py"
       - "scripts/production_upgrade.py"
       - "scripts/test_video_presentation.py"
@@ -62,6 +64,8 @@ jobs:
           PY
       - name: Test Facebook Page publishing helpers (offline)
         run: python -m unittest scripts.test_facebook_publish
+      - name: Test episode duplicate protection
+        run: python -m unittest scripts.test_content_guard
       - name: Compile production modules
         run: |
           set -euo pipefail

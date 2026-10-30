@@ -8,12 +8,15 @@ on:
         required: false
         default: Manual
         type: string
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/daily-podcast.yml'
   schedule:
-    # GitHub Actions schedule cron is UTC: 02:07 UTC = 08:07 Bangladesh time;
-    # 03:17 UTC = 09:17 Bangladesh time is a recovery trigger. The publish_guard
-    # below prevents a second upload if the first run already succeeded.
-    - cron: '7 2 * * *'
-    - cron: '17 3 * * *'
+    # UTC: 02:23 = 08:23 Bangladesh time; 03:41 = 09:41 Bangladesh time.
+    # These avoid the busy top-of-hour window; the guard prevents duplicate uploads.
+    - cron: '23 2 * * *'
+    - cron: '41 3 * * *'
 
 permissions:
   actions: read

@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/daily-podcast.yml'
+      - 'scripts/openai_pipeline.py'
   schedule:
     # UTC: 02:23 = 08:23 Bangladesh time; 03:41 = 09:41 Bangladesh time.
     # These avoid the busy top-of-hour window; the guard prevents duplicate uploads.

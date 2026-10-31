@@ -16,6 +16,8 @@ on:
     # UTC: 02:23 = 08:23 Bangladesh time; 03:41 = 09:41 Bangladesh time.
     # These avoid the busy top-of-hour window; the guard prevents duplicate uploads.
     - cron: '23 2 * * *'
+    - cron: '53 2 * * *'
+    - cron: '11 3 * * *'
     - cron: '41 3 * * *'
 
 permissions:

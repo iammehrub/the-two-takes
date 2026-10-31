@@ -525,7 +525,7 @@ Do not reuse any previously published topic/title.
         # improves reliability without opting into a paid provider.
         if (
             script
-            and word_count < 1250
+            and word_count < 1150
             and isinstance(obj, dict)
             and isinstance(obj.get("dialogue"), list)
         ):
@@ -538,7 +538,7 @@ Rewrite and expand the podcast draft below. Return ONLY valid JSON, using
 the exact same top-level field names and dialogue item structure.
 
 MANDATORY TOPIC: {forced_topic}
-TARGET: 1,350–1,500 words in the spoken dialogue, enough for a roughly
+TARGET: 1,250–1,400 words in the spoken dialogue, enough for a roughly
 9–11 minute educational English conversation at a natural pace.
 Do not count JSON keys, metadata, or speaker labels as spoken content.
 
@@ -582,7 +582,7 @@ CURRENT DRAFT JSON:
             except Exception as exc:
                 print(f"Draft expansion failed safely: {exc}")
 
-        if not script or word_count < 1250:
+        if not script or word_count < 1150:
             last_problem = f"dialogue too short ({word_count} words)"
             print(last_problem)
             continue

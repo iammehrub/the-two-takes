@@ -2,10 +2,16 @@ name: Daily Podcast Schedule Watchdog
 
 on:
   schedule:
-    # Check several times after the 08:07 Bangladesh-time trigger and recover
-    # when no run is active or successful. GitHub schedule times are UTC.
-    - cron: '20,35,50 2 * * *'
-    - cron: '5,20,35,50 3 * * *'
+    # Explicit Dhaka-time recovery checks, staggered after the primary schedule.
+    # The primary schedule runs at 08:17, 08:47, 09:17, and 09:47 Asia/Dhaka.
+    - cron: '32 8 * * *'
+      timezone: "Asia/Dhaka"
+    - cron: '2 9 * * *'
+      timezone: "Asia/Dhaka"
+    - cron: '32 9 * * *'
+      timezone: "Asia/Dhaka"
+    - cron: '2 10 * * *'
+      timezone: "Asia/Dhaka"
   workflow_dispatch:
 
 permissions:
@@ -61,10 +67,30 @@ jobs:
               (r for r in today_runs if r.get("status") in {"queued", "in_progress", "waiting", "pending"}),
               None,
           )
-          successful = next(
-              (r for r in today_runs if r.get("conclusion") == "success"),
-              None,
-          )
+          successful = None
+          for run in today_runs:
+              if run.get("conclusion") != "success":
+                  continue
+              jobs_result = subprocess.run(
+                  ["gh", "api", f"repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100"],
+                  check=False, capture_output=True, text=True,
+                  env={**os.environ, "GH_TOKEN": token},
+              )
+              if jobs_result.returncode != 0:
+                  raise SystemExit(
+                      f"Could not verify build job for run {run['id']}; "
+                      "stopping recovery to avoid a duplicate upload."
+                  )
+              jobs = json.loads(jobs_result.stdout).get("jobs", [])
+              build_job = next((job for job in jobs if job.get("name") == "build"), None)
+              if build_job and build_job.get("conclusion") == "success":
+                  successful = run
+                  break
+              print(
+                  f"Run {run['id']} was overall-successful, but its build job "
+                  f"was {build_job.get('conclusion') if build_job else 'not created'}; "
+                  "it did not publish an episode."
+              )
 
           if active:
               print(
@@ -75,8 +101,8 @@ jobs:
 
           if successful:
               print(
-                  f"No recovery needed: run {successful['id']} succeeded today "
-                  f"(created_at={successful.get('created_at')})."
+                  f"No recovery needed: build job in run {successful['id']} "
+                  f"succeeded today (created_at={successful.get('created_at')})."
               )
               raise SystemExit(0)
 

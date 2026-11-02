@@ -1,16 +1,44 @@
 {
-  "generated_at": "2026-10-25T23:21:03.741304+00:00",
-  "sample_size": 50,
-  "total_recorded_views": 176,
-  "average_views": 3.5,
+  "generated_at": "2026-11-02T00:52:49.371236+00:00",
+  "sample_size": 54,
+  "total_recorded_views": 361,
+  "average_views": 6.7,
   "median_views": 1.0,
-  "average_likes": 0.7,
+  "average_likes": 0.8,
   "average_comments": 0.0,
   "top_videos_by_views": [
+    {
+      "video_id": "Bfzmt-DjTf4",
+      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
+      "views": 89,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "hdEWLNmYZC0",
+      "title": "Talk About Your Daily Routine in English",
+      "views": 35,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "hdEWLNmYZC0",
+      "title": "Talk About Your Daily Routine in English",
+      "views": 32,
+      "likes": 1,
+      "comments": 0
+    },
     {
       "video_id": "1fBvXpGj3vk",
       "title": "Tell Better Stories in English | English Conversation Practice",
       "views": 30,
+      "likes": 1,
+      "comments": 0
+    },
+    {
+      "video_id": "dGYcYGS82Zc",
+      "title": "Practise English Speaking Alone: Daily Habits",
+      "views": 29,
       "likes": 1,
       "comments": 0
     },
@@ -46,34 +74,6 @@
       "video_id": "MGOITKFdj0k",
       "title": "How to Agree & Disagree Politely | English Conversation Practice",
       "views": 8,
-      "likes": 1,
-      "comments": 0
-    },
-    {
-      "video_id": "MGOITKFdj0k",
-      "title": "How to Agree & Disagree Politely | English Conversation Practice",
-      "views": 7,
-      "likes": 1,
-      "comments": 0
-    },
-    {
-      "video_id": "JfLcSOSnn08",
-      "title": "AI Finds Internet Weaknesses: What Does It Mean for You?",
-      "views": 7,
-      "likes": 1,
-      "comments": 0
-    },
-    {
-      "video_id": "dGYcYGS82Zc",
-      "title": "Practise English Speaking Alone: Daily Habits",
-      "views": 7,
-      "likes": 1,
-      "comments": 0
-    },
-    {
-      "video_id": "Bfzmt-DjTf4",
-      "title": "Remember New English Words: Actually Use Them | English Speaking Practice",
-      "views": 6,
       "likes": 1,
       "comments": 0
     }

@@ -219,8 +219,17 @@
     "video_id": "UfsqO04ztnc",
     "title": "Hear Every Word: Understand Everyday English",
     "topic": "English Listening Practice: Understand Everyday Speech",
+    "link": "https://youtu.be/UfsqO04ztnc",
     "kind": "Podcast",
     "published": "2026-11-02T09:46:08.407105+00:00",
-    "script_sha256": "87385c8e036a0cc7a3de88e4bd6ac9d5fb10be8dd292aac07107da9fc14b2b43"
+    "notified_at": "2026-11-02T09:46:10.915717+00:00"
+  },
+  {
+    "video_id": "JZICz90pVwg",
+    "title": "Practise a Simple Phone Call in English",
+    "topic": "Practise a Simple Phone Call in English",
+    "kind": "Podcast",
+    "published": "2026-11-03T09:48:20.762604+00:00",
+    "script_sha256": "175cc05d7a1c6b7fcc28d1389826928deff01fb52d6def65f2b0df193b2cdf14"
   }
 ]

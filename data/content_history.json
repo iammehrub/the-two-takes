@@ -228,8 +228,17 @@
     "video_id": "JZICz90pVwg",
     "title": "Practise a Simple Phone Call in English",
     "topic": "Practise a Simple Phone Call in English",
+    "link": "https://youtu.be/JZICz90pVwg",
     "kind": "Podcast",
     "published": "2026-11-03T09:48:20.762604+00:00",
-    "script_sha256": "175cc05d7a1c6b7fcc28d1389826928deff01fb52d6def65f2b0df193b2cdf14"
+    "notified_at": "2026-11-03T09:48:24.013751+00:00"
+  },
+  {
+    "video_id": "qtG4ALRC80o",
+    "title": "Explain Your Opinion in Simple English",
+    "topic": "How to Explain Your Opinion in Simple English",
+    "kind": "Podcast",
+    "published": "2026-11-04T09:27:07.254929+00:00",
+    "script_sha256": "870fcf7212a1e226c507e101b68c105a4b35e537869e9573b4fa36007e6ed81e"
   }
 ]

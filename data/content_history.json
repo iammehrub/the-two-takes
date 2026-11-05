@@ -237,8 +237,17 @@
     "video_id": "qtG4ALRC80o",
     "title": "Explain Your Opinion in Simple English",
     "topic": "How to Explain Your Opinion in Simple English",
+    "link": "https://youtu.be/qtG4ALRC80o",
     "kind": "Podcast",
     "published": "2026-11-04T09:27:07.254929+00:00",
-    "script_sha256": "870fcf7212a1e226c507e101b68c105a4b35e537869e9573b4fa36007e6ed81e"
+    "notified_at": "2026-11-04T09:27:10.223659+00:00"
+  },
+  {
+    "video_id": "kaPYKdwbs8Q",
+    "title": "Talk About Your Feelings in English",
+    "topic": "How to Talk About Your Feelings in English",
+    "kind": "Podcast",
+    "published": "2026-11-05T11:52:07.997629+00:00",
+    "script_sha256": "f722191156a7faf0e9c5f49a72516d8318ac382a122d6eafb5c411cd49dbb954"
   }
 ]

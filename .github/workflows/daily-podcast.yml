@@ -134,6 +134,11 @@ jobs:
                   if re.search(r"YouTube upload complete\. Video ID:\s*[A-Za-z0-9_-]{11}(?![A-Za-z0-9_-])", logs.stdout):
                       stop(f"failed run {run_id} contains a confirmed YouTube video ID; automatic duplicate is blocked.")
                       raise SystemExit(0)
+                  # A revoked/expired refresh token is permanent for this credential.
+                  # Do not burn more runner time retrying the same OAuth failure today.
+                  if "refresh token is expired or revoked" in logs.stdout.lower() or "invalid_grant" in logs.stdout.lower():
+                      stop(f"failed run {run_id} has a permanent YouTube OAuth error; update YOUTUBE_REFRESH_TOKEN before the next publishing attempt.")
+                      raise SystemExit(0)
                   print(f"Previous run {run_id} failed before the confirmed-upload marker; a recovery attempt is allowed.")
                   break
 

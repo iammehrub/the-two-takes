@@ -454,7 +454,8 @@ def render_video(wav, clips, srt, title):
         if turn_type in {"hook", "question", "language_tip", "practice", "recap", "outro"}:
             camera = "wide"
         else:
-            camera = "himel" if speaker == "Himel" else "niha"
+            # Keep Himel on the shared wide shot; only Niha gets a close-up.
+            camera = "niha" if speaker == "Niha" else "wide"
 
         section = section_labels.get(turn_type, "TWO TAKES CONVERSATION")
         scene_path = scene_dir / f"scene_{index:03d}.mp4"
@@ -726,7 +727,7 @@ def render_shorts(wav, title, topic):
 # Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
     "thumbnail": "16:9 vibrant 2D cartoon podcast studio; bold white and yellow ENGLISH PODCAST / with TWO HOSTS! headline; bright blue LEARN DAILY DIALOGUES banner; Two Takes Podcast channel name; high contrast and clean outlines",
-    "video": "Use the supplied Two Takes Podcast studio artwork as the visual base; cut between wide two-host, Himel close-up and Niha close-up shots, with short section labels and speaker-positioned captions; keep branding consistent and avoid unrelated stock footage.",
+    "video": "Use the supplied Two Takes Podcast studio artwork as the visual base; cut between wide two-host shots and Niha close-ups only, with short section labels and speaker-positioned captions; keep Himel on the wide shot and avoid unrelated stock footage.",
     "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 

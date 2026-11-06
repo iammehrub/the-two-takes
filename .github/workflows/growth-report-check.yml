@@ -1,0 +1,32 @@
+name: Growth report tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/weekly_growth_report.py"
+      - "scripts/test_weekly_growth_report.py"
+      - ".github/workflows/growth-report-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile report and tests
+        run: |
+          python -m py_compile scripts/weekly_growth_report.py scripts/test_weekly_growth_report.py
+
+      - name: Run report tests
+        run: python scripts/test_weekly_growth_report.py

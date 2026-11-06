@@ -11,6 +11,20 @@ from collections import Counter
 from pathlib import Path
 
 
+def is_repeat_invitation(turn_type: str, text: str) -> bool:
+    """Pause only after an explicit learner invitation, not after the model phrase."""
+    if str(turn_type).lower() != "practice":
+        return False
+    invitation = re.compile(
+        r"\b(?:repeat after me|say it with me|now your turn|your turn|"
+        r"try saying|say the phrase|repeat the phrase|repeat it|"
+        r"say it aloud|say it out loud|speak it aloud|"
+        r"your turn to speak|try it yourself|pause and repeat)\b",
+        re.I,
+    )
+    return bool(invitation.search(str(text or "")))
+
+
 _FILLERS = (
     "exactly",
     "absolutely",

@@ -42,6 +42,9 @@ for n, v in [
         raise RuntimeError(f"Missing {n} GitHub secret")
 
 
+REQUIRES_NEWS = True  # Legacy news-led mode; the evergreen pipeline disables this.
+
+
 # ============================================================
 # GEMINI MODELS
 # ============================================================
@@ -1581,7 +1584,7 @@ def main():
     news = fetch_news()
     print(f"Got {len(news)} headlines")
 
-    if not news:
+    if not news and REQUIRES_NEWS:
         raise RuntimeError("No current news headlines were returned.")
 
     title, topic, keywords, hook, script = make_episode(news)

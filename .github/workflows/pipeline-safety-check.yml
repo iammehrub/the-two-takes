@@ -1,6 +1,8 @@
 name: Production safety checks
 
 on:
+  push:
+    branches: [integration/production-quality-and-growth]
   pull_request:
     paths:
       - "scripts/build_podcast.py"

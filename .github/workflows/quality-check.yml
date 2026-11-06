@@ -1,0 +1,38 @@
+name: Free dialogue upgrade checks
+
+on:
+  pull_request:
+    paths:
+      - "scripts/dialogue_qc.py"
+      - "scripts/test_dialogue_qc.py"
+      - "scripts/openai_pipeline.py"
+      - "scripts/production_upgrade.py"
+      - ".github/workflows/quality-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile changed Python modules
+        run: |
+          python -m py_compile \
+            scripts/dialogue_qc.py \
+            scripts/test_dialogue_qc.py \
+            scripts/openai_pipeline.py \
+            scripts/production_upgrade.py
+
+      - name: Test dialogue quality scoring
+        run: python scripts/test_dialogue_qc.py

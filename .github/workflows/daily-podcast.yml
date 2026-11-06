@@ -243,7 +243,7 @@ jobs:
           python --version
           ls -la scripts
           python -c "from kokoro import KPipeline; print('Kokoro import OK')"
-          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py
+          python -m py_compile scripts/content_guard.py scripts/openai_pipeline.py scripts/build_podcast.py scripts/production_upgrade.py scripts/audio_enhancements.py scripts/episode_qc.py scripts/dialogue_qc.py
           echo "=== PIPELINE PREFLIGHT PASSED ==="
           PYTHONPATH=scripts python -u scripts/openai_pipeline.py
 
@@ -369,6 +369,9 @@ jobs:
             work/youtube_shorts.json
             work/production_report.json
             work/production_report.txt
+            work/dialogue_qc.json
+            work/learning_phrases.json
+            work/practice_pause_windows.json
             work/captions.srt
             work/captions.ass
             work/facebook_publish.json

@@ -948,6 +948,20 @@ def split_for_kokoro(script, max_chars=420):
     return chunks
 
 
+def is_repeat_invitation(turn_type, text):
+    """Only pause after an invitation for the learner to speak, not after the model phrase."""
+    if str(turn_type).lower() != "practice":
+        return False
+    invitation = re.compile(
+        r"\\b(?:repeat after me|say it with me|now your turn|your turn|"
+        r"try saying|say the phrase|repeat the phrase|repeat it|"
+        r"say it aloud|say it out loud|speak it aloud|"
+        r"your turn to speak|try it yourself|pause and repeat)\\b",
+        re.I,
+    )
+    return bool(invitation.search(str(text or "")))
+
+
 def delivery_speed(turn_type, delivery):
     """Use small speed differences to support tone; Kokoro has no emotion-control input."""
     delivery_speeds = {
@@ -1037,8 +1051,8 @@ def tts(script):
             next_speaker, next_text, next_turn_index, next_turn_type, next_delivery = segments[i]
             # Natural timing: responses hand off more quickly; a new thought gets
             # a little air, and ellipses are reserved for genuine hesitation.
-            if turn_type == "practice" and next_turn_index != turn_index:
-                # Record the interval so the final mix can mute the music bed too.
+            if is_repeat_invitation(turn_type, text) and next_turn_index != turn_index:
+                # Give the listener real silence only after the invitation, not after the model phrase.
                 pause = practice_pause_seconds
                 practice_pause_windows.append({
                     "start": round(cursor, 3),

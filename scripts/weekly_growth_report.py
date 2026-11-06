@@ -39,7 +39,7 @@ CATEGORIES = {
 
 
 def norm(value: str) -> str:
-    return re.sub(r"\\s+", " ", (value or "").strip().lower())
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
 
 
 def find_column(headers, aliases):
@@ -221,7 +221,7 @@ def build_report(videos, stats, columns):
         "## Production guardrails", "",
         "- Keep the English-learning niche; do not copy another creator's scripts or branding.",
         "- Publish 5–7 long-form episodes only while quality remains stable; otherwise publish five.",
-        "- Aim for 1 Short per day and 1 weekly compilation when enough strong material exists.",
+        "- Aim for 1 Short per day and 1 weekly compilation when enough coherent material exists.",
         "- These are operating targets, not growth guarantees.",
         "", "## Highest-performing sampled videos", "",
     ]
@@ -229,7 +229,7 @@ def build_report(videos, stats, columns):
         views = item["views"] if item["views"] is not None else "views unknown"
         subs = item["subs"] if item["subs"] is not None else "subscriber data unavailable"
         lines.append(f"- {item['title']} — {views} views; {subs} subscribers gained.")
-    return "\\n".join(lines) + "\\n"
+    return "\n".join(lines) + "\n"
 
 
 def main():

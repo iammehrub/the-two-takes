@@ -1,6 +1,8 @@
 name: Growth report tests
 
 on:
+  push:
+    branches: [integration/production-quality-and-growth]
   pull_request:
     paths:
       - "scripts/weekly_growth_report.py"

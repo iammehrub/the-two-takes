@@ -2,7 +2,7 @@
 import unittest
 
 from dialogue_qc import evaluate_dialogue
-from openai_pipeline import is_repeat_invitation
+from dialogue_qc import is_repeat_invitation
 
 
 def sample_dialogue():

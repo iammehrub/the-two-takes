@@ -538,12 +538,41 @@ def render_video(wav, clips, srt, title):
         .replace("'", "\\'")
     )
     video_filter = f"[0:v:0]subtitles='{subtitle_path}',format=yuv420p[vout]"
+    practice_pause_path = Path(app.WORK) / "practice_pause_windows.json"
+    try:
+        practice_pause_windows = json.loads(practice_pause_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        practice_pause_windows = []
+    mute_intervals = []
+    if isinstance(practice_pause_windows, list):
+        for window in practice_pause_windows:
+            try:
+                pause_start = float(window["start"])
+                pause_end = float(window["end"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if pause_end > pause_start >= 0:
+                # Escaped commas keep FFmpeg's expression parser inside the volume filter.
+                mute_intervals.append(
+                    f"between(t\\,{pause_start:.3f}\\,{pause_end:.3f})"
+                )
+    mute_expression = "+".join(mute_intervals)
+    if mute_expression:
+        music_mute = (
+            f"[ducked_music_raw]volume=0:enable='{mute_expression}'[ducked_music];"
+        )
+        sidechain_label = "ducked_music_raw"
+    else:
+        music_mute = "[ducked_music_raw]anull[ducked_music];"
+        sidechain_label = "ducked_music_raw"
+
     audio_filter = (
         "[1:a]asplit=2[voice_sc][voice_raw];"
         "[2:a]volume=1.1[music];"
         "[music][voice_sc]sidechaincompress="
-        "threshold=0.08:ratio=2.5:attack=20:release=450[ducked_music];"
-        "[voice_raw]pan=stereo|c0=c0|c1=c0,highpass=f=70,lowpass=f=12000,"
+        f"threshold=0.08:ratio=2.5:attack=20:release=450[{sidechain_label}];"
+        + music_mute
+        + "[voice_raw]pan=stereo|c0=c0|c1=c0,highpass=f=70,lowpass=f=12000,"
         "acompressor=threshold=-18dB:ratio=3:attack=5:release=80:makeup=2,"
         "volume=1.12[voice];"
         "[voice][ducked_music]amix=inputs=2:duration=first:dropout_transition=2,"

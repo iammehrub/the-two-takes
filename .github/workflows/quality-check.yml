@@ -1,6 +1,8 @@
 name: Free dialogue upgrade checks
 
 on:
+  push:
+    branches: [integration/production-quality-and-growth]
   pull_request:
     paths:
       - "scripts/dialogue_qc.py"

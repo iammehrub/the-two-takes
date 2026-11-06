@@ -2,6 +2,7 @@
 import unittest
 
 from dialogue_qc import evaluate_dialogue
+from openai_pipeline import is_repeat_invitation
 
 
 def sample_dialogue():
@@ -36,6 +37,11 @@ class DialogueQCTests(unittest.TestCase):
         self.assertEqual(report["repeated_line_count"], 1)
         self.assertLess(report["score"], 100)
 
+    def test_repeat_pause_only_follows_learner_invitation(self):
+        self.assertFalse(is_repeat_invitation("practice", "Listen to the phrase: take your time."))
+        self.assertTrue(is_repeat_invitation("practice", "Now your turn. Repeat after me."))
+        self.assertFalse(is_repeat_invitation("language_tip", "Now your turn."))
+        
     def test_report_exposes_explainable_metrics(self):
         report = evaluate_dialogue(sample_dialogue())
         self.assertIn("question_count", report)

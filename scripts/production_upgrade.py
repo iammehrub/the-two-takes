@@ -449,13 +449,8 @@ def render_video(wav, clips, srt, title):
 
         turn_type = group["turn_type"]
         speaker = group["speaker"]
-        # Reset to the wide shot for hooks, teaching beats and section changes;
-        # use a speaker close-up for the conversational back-and-forth.
-        if turn_type in {"hook", "question", "language_tip", "practice", "recap", "outro"}:
-            camera = "wide"
-        else:
-            # Keep Himel on the shared wide shot; only Niha gets a close-up.
-            camera = "niha" if speaker == "Niha" else "wide"
+        # Keep one consistent wide two-host composition throughout the episode.
+        camera = "wide"
 
         section = section_labels.get(turn_type, "TWO TAKES CONVERSATION")
         scene_path = scene_dir / f"scene_{index:03d}.mp4"
@@ -522,11 +517,11 @@ def render_video(wav, clips, srt, title):
             "-c:a", "aac", "-b:a", "192k",
             "-shortest", "-movflags", "+faststart", str(final),
         ],
-        label="Render multi-shot episode with speaker-positioned captions",
+        label="Render consistent wide-shot episode with speaker-positioned captions",
     )
     quality_check(final)
     print(
-        f"=== MULTI-SHOT RENDER COMPLETE: {len(scene_files)} scenes "
+        f"=== WIDE-SHOT RENDER COMPLETE: {len(scene_files)} scenes "
         f"in {(time.time() - started) / 60:.1f} min ==="
     )
     return final

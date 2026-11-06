@@ -1006,6 +1006,7 @@ def tts(script):
     print(f"Kokoro TTS: {len(segments)} short conversational segments.")
     audio_parts = []
     timing = []
+    practice_pause_windows = []
     cursor = 0.0
     try:
         practice_pause_seconds = float(os.environ.get("PRACTICE_PAUSE_SECONDS", "2.5"))
@@ -1037,8 +1038,12 @@ def tts(script):
             # Natural timing: responses hand off more quickly; a new thought gets
             # a little air, and ellipses are reserved for genuine hesitation.
             if turn_type == "practice" and next_turn_index != turn_index:
-                # Give the listener actual silent time to repeat the model phrase.
+                # Record the interval so the final mix can mute the music bed too.
                 pause = practice_pause_seconds
+                practice_pause_windows.append({
+                    "start": round(cursor, 3),
+                    "end": round(cursor + pause, 3),
+                })
             elif text.endswith("...") or text.endswith("…"):
                 pause = 0.34
             elif next_turn_index != turn_index:
@@ -1057,6 +1062,10 @@ def tts(script):
 
     (app.WORK / "tts_segments.json").write_text(
         json.dumps(timing, indent=2),
+        encoding="utf-8"
+    )
+    (app.WORK / "practice_pause_windows.json").write_text(
+        json.dumps(practice_pause_windows, indent=2) + "\\n",
         encoding="utf-8"
     )
 

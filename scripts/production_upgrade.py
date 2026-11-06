@@ -726,7 +726,7 @@ def render_shorts(wav, title, topic):
 # Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
     "thumbnail": "16:9 vibrant 2D cartoon podcast studio; bold white and yellow ENGLISH PODCAST / with TWO HOSTS! headline; bright blue LEARN DAILY DIALOGUES banner; Two Takes Podcast channel name; high contrast and clean outlines",
-    "video": "Use the supplied Two Takes Podcast opener as the only background for the entire video; no intro card, no B-roll, no scene cuts; Himel dialogue captions under the left/male host and Niha dialogue captions under the right/female host.",
+    "video": "Use the supplied Two Takes Podcast studio artwork as the visual base; cut between wide two-host, Himel close-up and Niha close-up shots, with short section labels and speaker-positioned captions; keep branding consistent and avoid unrelated stock footage.",
     "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 

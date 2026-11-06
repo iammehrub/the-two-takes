@@ -1065,7 +1065,7 @@ def tts(script):
         encoding="utf-8"
     )
     (app.WORK / "practice_pause_windows.json").write_text(
-        json.dumps(practice_pause_windows, indent=2) + "\\n",
+        json.dumps(practice_pause_windows, indent=2) + "\n",
         encoding="utf-8"
     )
 

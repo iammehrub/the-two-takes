@@ -371,6 +371,7 @@ jobs:
             work/production_report.txt
             work/dialogue_qc.json
             work/learning_phrases.json
+            work/practice_pause_windows.json
             work/captions.srt
             work/captions.ass
             work/facebook_publish.json

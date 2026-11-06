@@ -1093,6 +1093,13 @@ def tts(script):
 
 
 
+def skip_external_news_for_evergreen_show():
+    print("Evergreen English-learning mode: skipping the external news feed.")
+    return []
+
+
+app.REQUIRES_NEWS = False
+app.fetch_news = skip_external_news_for_evergreen_show
 app.make_episode = make_episode
 app.tts = tts
 

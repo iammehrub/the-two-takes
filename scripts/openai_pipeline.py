@@ -376,8 +376,8 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - LESSON ARCHITECTURE: Hook -> real conversation -> phrase tour -> speaking/shadowing practice -> recap -> concise sign-off.
 - MAIN DISCUSSION: aim for 0:35–3:30, using stories, follow-up questions, gentle disagreement, clarification and natural reactions.
 - TRANSITION: the production system supplies the short instrumental interlude automatically; do not add a host line saying "music plays".
-- PHRASE TOUR: teach exactly 6 useful everyday phrases/words in the middle/late middle. Mark explanation turns "language_tip"; explain meaning simply and give natural examples.
-- SPEAKING PRACTICE: include 5 practical sentence patterns with short model lines and invitations to repeat/personalize. Mark these turns "practice".
+- PHRASE TOUR: teach 3–5 useful everyday phrases/words. Mark explanation turns "language_tip"; explain each meaning simply and give a natural example.
+- SPEAKING PRACTICE: include 3–5 practical model phrases with short repeat invitations. Keep each model phrase and its invitation in separate "practice" turns.
 - QUICK TIP: include one memorable rule or common mistake near the end.
 - OUTRO: finish with a brief recap marked "recap", then a friendly sign-off and one specific comment question marked "outro". The production system adds 7 seconds of instrumental fade-out after the final spoken line.
 - Target about 10 minutes at 130–150 words per minute. Avoid padding; keep the hook and outro concise.
@@ -444,7 +444,8 @@ CONTENT / RETENTION RULES:
 - Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
 - The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
 - Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.
-- In repetition practice, put each model phrase and its repeat invitation in separate short dialogue turns, so the existing speaker-aligned captions clearly show the target phrase. Do not ask a host to read stage directions. The current pipeline does not yet insert guaranteed three-second silent gaps, so do not pretend a pause marker alone creates silence.
+- In repetition practice, put each model phrase and its repeat invitation in separate short dialogue turns. The renderer inserts a real 2.5-second silent response gap after each practice turn. Do not write stage directions or pretend spoken words are silence.
+- Return the 3–5 exact target phrases in the "target_phrases" JSON array. Every target phrase must appear verbatim in the spoken dialogue and be short enough to highlight in captions.
 - Keep each target phrase short and clear enough to work as an on-screen caption in a vertical Short. The existing video renderer displays speaker-aligned captions; do not add a separate screen_text field unless the renderer is updated to use it.
 - The final practice task must tell viewers exactly what to say aloud or type in the comments. Ask one direct, easy-to-answer question.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences, with natural follow-up questions, clarification, small personal examples, and gentle humor.
@@ -468,6 +469,7 @@ RETURN ONLY VALID JSON:
   "search_phrases": ["...", "...", "..."],
   "hashtags": ["#...", "#...", "#..."],
   "description_hook": "...",
+  "target_phrases": ["exact phrase one", "exact phrase two", "exact phrase three"],
   "dialogue": [
     {{"speaker": "Himel", "turn_type": "hook", "delivery": "curious", "text": "..."}},
     {{"speaker": "Niha", "turn_type": "reaction", "delivery": "amused", "text": "..."}}
@@ -651,6 +653,12 @@ CURRENT DRAFT JSON:
             print(last_problem)
             continue
 
+        # Local, free heuristic review. It reports repetition, turn balance,
+        # sentence length and conversational interaction without a paid API.
+        from dialogue_qc import evaluate_dialogue, write_report
+        dialogue_qc_report = evaluate_dialogue(beats)
+        write_report(app.WORK, dialogue_qc_report)
+
         same_speaker_run = 0
         previous_speaker = None
         max_turn_words = 0
@@ -773,6 +781,42 @@ CURRENT DRAFT JSON:
                     if str(x).strip().startswith("#")
                 ][:5]
 
+                raw_target_phrases = obj.get("target_phrases", [])
+                if not isinstance(raw_target_phrases, list):
+                    raw_target_phrases = []
+                phrase_candidates = [
+                    str(value).strip()
+                    for value in raw_target_phrases
+                    if str(value).strip()
+                ]
+                # Recover quoted teaching phrases if the model omits the metadata field.
+                for beat in beats:
+                    if beat["turn_type"] in {"language_tip", "practice"}:
+                        phrase_candidates.extend(
+                            re.findall(r'[“"]([^”"]{2,70})[”"]', beat["text"])
+                        )
+                script_normalized = normalize_text(script)
+                target_phrases = []
+                for phrase in phrase_candidates:
+                    phrase = re.sub(r"\s+", " ", phrase).strip(" .,:;!?")
+                    phrase_normalized = normalize_text(phrase)
+                    if (
+                        phrase
+                        and 1 <= len(phrase.split()) <= 7
+                        and phrase_normalized
+                        and phrase_normalized in script_normalized
+                        and phrase_normalized not in {
+                            normalize_text(item) for item in target_phrases
+                        }
+                    ):
+                        target_phrases.append(phrase)
+                    if len(target_phrases) >= 5:
+                        break
+
+                (app.WORK / "learning_phrases.json").write_text(
+                    json.dumps(target_phrases, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
                 (app.WORK / "conversation_beats.json").write_text(
                     json.dumps(
                         beats,
@@ -963,6 +1007,12 @@ def tts(script):
     audio_parts = []
     timing = []
     cursor = 0.0
+    try:
+        practice_pause_seconds = float(os.environ.get("PRACTICE_PAUSE_SECONDS", "2.5"))
+    except (TypeError, ValueError):
+        practice_pause_seconds = 2.5
+    practice_pause_seconds = min(4.0, max(1.5, practice_pause_seconds))
+    print(f"Repeat-after-us response gap: {practice_pause_seconds:.1f}s after each practice turn.")
 
     for i, (speaker, text, turn_index, turn_type, delivery) in enumerate(segments, 1):
         audio = kokoro_segment(
@@ -986,7 +1036,10 @@ def tts(script):
             next_speaker, next_text, next_turn_index, next_turn_type, next_delivery = segments[i]
             # Natural timing: responses hand off more quickly; a new thought gets
             # a little air, and ellipses are reserved for genuine hesitation.
-            if text.endswith("...") or text.endswith("…"):
+            if turn_type == "practice" and next_turn_index != turn_index:
+                # Give the listener actual silent time to repeat the model phrase.
+                pause = practice_pause_seconds
+            elif text.endswith("...") or text.endswith("…"):
                 pause = 0.34
             elif next_turn_index != turn_index:
                 pause = 0.34 if next_speaker != speaker else 0.24

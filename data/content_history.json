@@ -246,8 +246,17 @@
     "video_id": "kaPYKdwbs8Q",
     "title": "Talk About Your Feelings in English",
     "topic": "How to Talk About Your Feelings in English",
+    "link": "https://youtu.be/kaPYKdwbs8Q",
     "kind": "Podcast",
     "published": "2026-11-05T11:52:07.997629+00:00",
-    "script_sha256": "f722191156a7faf0e9c5f49a72516d8318ac382a122d6eafb5c411cd49dbb954"
+    "notified_at": "2026-11-05T11:52:11.148704+00:00"
+  },
+  {
+    "video_id": "EipAIG1mfJI",
+    "title": "How to Describe Your Weekend in English",
+    "topic": "How to Describe Your Weekend in English",
+    "kind": "Podcast",
+    "published": "2026-11-06T09:40:06.788617+00:00",
+    "script_sha256": "7e7605b7b0f93e514c43858c3d7299fd21ea9eb6411cf14d0b8cb8e86a5ebf4c"
   }
 ]

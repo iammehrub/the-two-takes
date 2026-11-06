@@ -948,20 +948,6 @@ def split_for_kokoro(script, max_chars=420):
     return chunks
 
 
-def is_repeat_invitation(turn_type, text):
-    """Only pause after an invitation for the learner to speak, not after the model phrase."""
-    if str(turn_type).lower() != "practice":
-        return False
-    invitation = re.compile(
-        r"\\b(?:repeat after me|say it with me|now your turn|your turn|"
-        r"try saying|say the phrase|repeat the phrase|repeat it|"
-        r"say it aloud|say it out loud|speak it aloud|"
-        r"your turn to speak|try it yourself|pause and repeat)\\b",
-        re.I,
-    )
-    return bool(invitation.search(str(text or "")))
-
-
 def delivery_speed(turn_type, delivery):
     """Use small speed differences to support tone; Kokoro has no emotion-control input."""
     delivery_speeds = {
@@ -1016,6 +1002,8 @@ def kokoro_segment(speaker, text, index, total, turn_type="reaction", delivery="
 
 
 def tts(script):
+    from dialogue_qc import is_repeat_invitation
+
     segments = split_for_kokoro(script)
     print(f"Kokoro TTS: {len(segments)} short conversational segments.")
     audio_parts = []

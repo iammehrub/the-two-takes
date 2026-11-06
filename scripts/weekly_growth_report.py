@@ -39,7 +39,7 @@ CATEGORIES = {
 
 
 def norm(value: str) -> str:
-    return re.sub(r"\s+", " ", (value or "").strip().lower())
+    return re.sub(r"\\s+", " ", (value or "").strip().lower())
 
 
 def find_column(headers, aliases):
@@ -51,15 +51,45 @@ def find_column(headers, aliases):
 
 
 def number(value):
+    """Parse a numeric Studio field without turning missing data into zero."""
     if value is None:
         return None
     raw = str(value).strip().replace(",", "").replace("%", "")
-    if not raw or raw in {"—", "-", "N/A"}:
+    if not raw or raw.upper() in {"—", "-", "N/A", "NA"}:
         return None
     try:
         return float(raw)
     except ValueError:
         return None
+
+
+def duration_seconds(value):
+    """Parse Studio's H:MM:SS or M:SS average-view-duration values."""
+    if value is None:
+        return None
+    raw = str(value).strip()
+    if not raw or raw.upper() in {"—", "-", "N/A", "NA"}:
+        return None
+    if ":" not in raw:
+        return number(raw)
+    parts = raw.split(":")
+    if len(parts) not in {2, 3}:
+        return None
+    try:
+        parts = [int(part) for part in parts]
+    except ValueError:
+        return None
+    if any(part < 0 for part in parts):
+        return None
+    if len(parts) == 2:
+        minutes, seconds = parts
+        if seconds >= 60:
+            return None
+        return float(minutes * 60 + seconds)
+    hours, minutes, seconds = parts
+    if minutes >= 60 or seconds >= 60:
+        return None
+    return float(hours * 3600 + minutes * 60 + seconds)
 
 
 def category_for(title):
@@ -81,6 +111,22 @@ def load_rows(path):
         return list(reader), columns
 
 
+def weighted_average(items, metric_key, weight_key):
+    """Use the metric's denominator when available; fall back to a plain mean."""
+    pairs = [
+        (item[metric_key], item[weight_key])
+        for item in items
+        if item.get(metric_key) is not None
+    ]
+    if not pairs:
+        return None
+    weighted = [(value, weight) for value, weight in pairs if weight is not None and weight > 0]
+    if weighted:
+        denominator = sum(weight for _, weight in weighted)
+        return sum(value * weight for value, weight in weighted) / denominator
+    return sum(value for value, _ in pairs) / len(pairs)
+
+
 def analyze(path):
     rows, columns = load_rows(path)
     videos = []
@@ -90,24 +136,25 @@ def analyze(path):
         if not title:
             continue
         item = {"title": title, "category": category_for(title)}
-        for key in ("views", "impressions", "ctr", "avg_duration", "watch_time", "subs", "retention30"):
+        for key in ("views", "impressions", "ctr", "watch_time", "subs", "retention30"):
             col = columns[key]
             item[key] = number(row.get(col)) if col else None
+        duration_col = columns["avg_duration"]
+        item["avg_duration"] = duration_seconds(row.get(duration_col)) if duration_col else None
         videos.append(item)
         grouped[item["category"]].append(item)
-
-    def average(items, key):
-        values = [v[key] for v in items if v.get(key) is not None]
-        return sum(values) / len(values) if values else None
 
     category_stats = []
     for name, items in grouped.items():
         category_stats.append({
-            "name": name, "count": len(items),
+            "name": name,
+            "count": len(items),
             "views": sum(v["views"] or 0 for v in items),
-            "avg_duration": average(items, "avg_duration"),
-            "avg_ctr": average(items, "ctr"),
-            "avg_retention30": average(items, "retention30"),
+            "impressions": sum(v["impressions"] or 0 for v in items),
+            "watch_time": sum(v["watch_time"] or 0 for v in items),
+            "avg_duration": weighted_average(items, "avg_duration", "views"),
+            "avg_ctr": weighted_average(items, "ctr", "impressions"),
+            "avg_retention30": weighted_average(items, "retention30", "views"),
             "subs": sum(v["subs"] or 0 for v in items),
         })
     category_stats.sort(key=lambda x: (x["subs"], x["views"]), reverse=True)
@@ -118,20 +165,30 @@ def fmt(value, suffix=""):
     return "not available in this export" if value is None else f"{value:.2f}{suffix}"
 
 
+def fmt_duration(seconds):
+    if seconds is None:
+        return "not available in this export"
+    total = max(0, int(round(seconds)))
+    minutes, secs = divmod(total, 60)
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}:{minutes:02}:{secs:02}" if hours else f"{minutes}:{secs:02}"
+
+
 def build_report(videos, stats, columns):
     lines = [
         "# Two Takes Podcast — Weekly Growth Review", "",
         f"- Videos analyzed: **{len(videos)}**",
-        "- Source: user-supplied YouTube Studio CSV export",
+        "- Source: user-supplied YouTube Studio video-level CSV export",
+        "- CTR is weighted by impressions; average view duration and 0:30 retention are weighted by views when denominators are available.",
         "- This report is descriptive; small samples do not prove causation.", "",
         "## Category performance", "",
-        "| Category | Videos | Views | Avg. CTR | Avg. view duration | 0:30 retention | Subscribers gained |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| Category | Videos | Views | Impressions | Avg. CTR | Avg. view duration | 0:30 retention | Subscribers gained |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for s in stats:
         lines.append(
-            f"| {s['name']} | {s['count']} | {s['views']:.0f} | "
-            f"{fmt(s['avg_ctr'], '%')} | {fmt(s['avg_duration'])} | "
+            f"| {s['name']} | {s['count']} | {s['views']:.0f} | {s['impressions']:.0f} | "
+            f"{fmt(s['avg_ctr'], '%')} | {fmt_duration(s['avg_duration'])} | "
             f"{fmt(s['avg_retention30'], '%')} | {s['subs']:.0f} |"
         )
     lines += ["", "## What to inspect", ""]
@@ -142,9 +199,8 @@ def build_report(videos, stats, columns):
     if not columns["avg_duration"]:
         lines.append("- **Average view duration unavailable:** include that metric in the Studio export.")
     if stats:
-        best = stats[:3]
         lines += ["", "## Provisional next-week topic directions", ""]
-        for s in best:
+        for s in stats[:3]:
             if s["name"] == "Real-life English":
                 idea = "A realistic conversation for a specific everyday situation"
             elif s["name"] == "Speaking Confidence":
@@ -170,8 +226,10 @@ def build_report(videos, stats, columns):
         "", "## Highest-performing sampled videos", "",
     ]
     for item in sorted(videos, key=lambda x: (x["subs"] or 0, x["views"] or 0), reverse=True)[:10]:
-        lines.append(f"- {item['title']} — {item['views'] if item['views'] is not None else 'views unknown'} views; {item['subs'] if item['subs'] is not None else 'subscriber data unavailable'} subscribers gained.")
-    return "\n".join(lines) + "\n"
+        views = item["views"] if item["views"] is not None else "views unknown"
+        subs = item["subs"] if item["subs"] is not None else "subscriber data unavailable"
+        lines.append(f"- {item['title']} — {views} views; {subs} subscribers gained.")
+    return "\\n".join(lines) + "\\n"
 
 
 def main():

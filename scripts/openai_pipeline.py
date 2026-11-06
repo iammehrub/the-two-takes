@@ -546,8 +546,8 @@ Do not count JSON keys, metadata, or speaker labels as spoken content.
 
 Keep Himel and Niha's voices conversational, warm, witty, and distinct.
 Preserve the required flow: hook, direct-to-topic conversation,
-six useful phrases with simple meanings and examples, a quick practical
-tip, five short shadowing/practice patterns, recap, one specific question
+3–5 useful phrases with simple meanings and examples, a quick practical
+tip, 3–5 short shadowing/practice patterns, recap, one specific question
 for comments, and a concise natural sign-off.
 Use 30–45 short, natural turns; no more than three consecutive turns by
 the same host. Give the real conversation most of the time. Expand with

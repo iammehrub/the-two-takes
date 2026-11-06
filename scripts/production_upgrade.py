@@ -54,6 +54,57 @@ def _ass_ts(seconds):
     return f"{hours}:{minutes:02}:{seconds:02}.{centiseconds:02}"
 
 
+def _load_highlight_words():
+    """Load actual lesson phrases and return meaningful words to emphasize."""
+    phrase_path = Path(app.WORK) / "learning_phrases.json"
+    try:
+        phrases = json.loads(phrase_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    if not isinstance(phrases, list):
+        return set()
+    stop_words = {
+        "about", "after", "again", "also", "and", "are", "because", "been",
+        "before", "being", "but", "can", "could", "did", "does", "doing",
+        "for", "from", "get", "getting", "give", "have", "here", "how",
+        "into", "just", "like", "make", "maybe", "more", "most", "much",
+        "need", "not", "our", "please", "should", "some", "that", "the",
+        "their", "there", "these", "they", "this", "those", "through",
+        "very", "want", "what", "when", "where", "which", "with", "would",
+        "your", "you",
+    }
+    words = set()
+    for phrase in phrases:
+        for word in re.findall(r"[A-Za-z']+", str(phrase).casefold()):
+            if len(word) >= 4 and word not in stop_words:
+                words.add(word)
+    return words
+
+
+def _ass_escape(value):
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("\r", " ")
+        .replace("\n", " ")
+    )
+
+
+def _ass_caption_text(caption, highlight_words):
+    """Emphasize lesson vocabulary in gold while leaving normal caption text white."""
+    rendered = []
+    for raw_word in str(caption).split():
+        token = re.sub(r"^[^A-Za-z0-9']+|[^A-Za-z0-9']+$", "", raw_word).casefold()
+        escaped = _ass_escape(raw_word)
+        if token and token in highlight_words:
+            rendered.append("{\\c&H0000D9FF&\\b1}" + escaped + "{\\c&H00FFFFFF&\\b1}")
+        else:
+            rendered.append(escaped)
+    return " ".join(rendered)
+
+
 def make_srt(script, audio_seconds):
     """Write ordinary SRT for QA plus speaker-positioned ASS for the rendered video."""
     timing_path = Path(app.WORK) / "tts_segments.json"
@@ -65,6 +116,7 @@ def make_srt(script, audio_seconds):
         raise RuntimeError("Missing exact TTS timing data; refusing to create drifting subtitles.")
 
     rows = []
+    highlight_words = _load_highlight_words()
     for seg in segments:
         start = float(seg["start"])
         end = float(seg["end"])
@@ -114,13 +166,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         x_position = 470 if speaker == "Himel" else 1450
         # Position the label and its subtitle under the matching person in the supplied still artwork.
         accent = "&H0000D9FF&" if speaker == "Himel" else "&H00FFD000&"
-        escaped = (
-            caption.replace("\\", "\\\\")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-            .replace("\r", " ")
-            .replace("\n", " ")
-        )
+        escaped = _ass_caption_text(caption, highlight_words)
         ass_lines.append(
             f"Dialogue: 0,{_ass_ts(start)},{_ass_ts(end)},{speaker},,0,0,0,,"
             f"{{\\an5\\pos({x_position},775)\\fs27\\b1\\c{accent}}}{speaker.upper()}"
@@ -343,8 +389,8 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide", section=""
     ], label=f"Studio {camera} shot {output_path.name}")
 
 def render_video(wav, clips, srt, title):
-    """Render a paced, multi-shot illustrated episode with speaker-aligned captions."""
-    print("=== MULTI-SHOT TWO TAKES RENDER START ===")
+    """Render a paced, consistent wide-shot episode with speaker-aligned captions."""
+    print("=== WIDE-SHOT TWO TAKES RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
     timing_path = Path(app.WORK) / "tts_segments.json"
@@ -394,8 +440,8 @@ def render_video(wav, clips, srt, title):
     )
     print(f"Prepared {len(chapter_lines)} YouTube chapter markers.")
 
-    # Keep the channel's own artwork, but change the camera framing and section label
-    # as the conversation moves. This avoids one motionless image for the whole episode.
+    # Keep one wide two-host composition; section labels and speaker captions
+    # provide context without changing camera framing.
     branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
     poster_png = Path(app.WORK) / "two_takes_podcast_studio_full_video.png"
     if branded_asset.is_file():
@@ -722,7 +768,7 @@ def render_shorts(wav, title, topic):
 # Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
     "thumbnail": "16:9 vibrant 2D cartoon podcast studio; bold white and yellow ENGLISH PODCAST / with TWO HOSTS! headline; bright blue LEARN DAILY DIALOGUES banner; Two Takes Podcast channel name; high contrast and clean outlines",
-    "video": "Use the supplied Two Takes Podcast studio artwork as the visual base; cut between wide two-host shots and Niha close-ups only, with short section labels and speaker-positioned captions; keep Himel on the wide shot and avoid unrelated stock footage.",
+    "video": "Use one consistent wide two-host Two Takes Podcast studio composition throughout; add short section labels, speaker-positioned captions, and gold emphasis on lesson vocabulary; no camera cuts, close-ups, or unrelated stock footage.",
     "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 

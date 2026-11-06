@@ -343,8 +343,8 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide", section=""
     ], label=f"Studio {camera} shot {output_path.name}")
 
 def render_video(wav, clips, srt, title):
-    """Render the supplied channel-opener image for the entire episode with host-aligned captions."""
-    print("=== FULL-EPISODE OPENER + SPEAKER-POSITIONED CAPTIONS RENDER START ===")
+    """Render a paced, multi-shot illustrated episode with speaker-aligned captions."""
+    print("=== MULTI-SHOT TWO TAKES RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
     timing_path = Path(app.WORK) / "tts_segments.json"
@@ -352,24 +352,39 @@ def render_video(wav, clips, srt, title):
         timing = json.loads(timing_path.read_text(encoding="utf-8"))
     except Exception as exc:
         raise RuntimeError(f"Missing or invalid TTS timing metadata: {exc}") from exc
+    if not isinstance(timing, list) or not timing:
+        raise RuntimeError("No timed dialogue was available for the visual edit.")
 
+    # Group sentence-level TTS segments into natural dialogue turns.
     groups = []
     for item in timing:
-        key = (item.get("turn_index"), item.get("speaker"), item.get("turn_type", "reaction"))
+        try:
+            turn_index = int(item.get("turn_index", -1))
+            start_time = float(item.get("start", 0))
+            end_time = float(item.get("end", 0))
+        except (TypeError, ValueError):
+            continue
+        speaker = str(item.get("speaker", "Himel")).title()
+        turn_type = str(item.get("turn_type", "reaction")).lower()
+        spoken = str(item.get("text", "")).strip()
+        if turn_index < 0 or speaker not in {"Himel", "Niha"} or end_time <= start_time:
+            continue
+        key = (turn_index, speaker, turn_type)
         if groups and groups[-1]["key"] == key:
-            groups[-1]["end"] = float(item["end"])
-            groups[-1]["text"] += " " + str(item.get("text", "")).strip()
+            groups[-1]["end"] = max(groups[-1]["end"], end_time)
+            if spoken:
+                groups[-1]["text"] += " " + spoken
         else:
             groups.append({
                 "key": key,
-                "start": float(item["start"]),
-                "end": float(item["end"]),
-                "speaker": item.get("speaker", "Himel"),
-                "turn_type": item.get("turn_type", "reaction"),
-                "text": str(item.get("text", "")).strip(),
+                "start": start_time,
+                "end": end_time,
+                "speaker": speaker,
+                "turn_type": turn_type,
+                "text": spoken,
             })
     if not groups:
-        raise RuntimeError("No timed conversation turns were available for rendering.")
+        raise RuntimeError("No valid dialogue turns were available for the visual edit.")
 
     chapter_lines = build_chapters(groups, audio_duration)
     chapter_path = Path(app.WORK) / "chapters.txt"
@@ -379,7 +394,8 @@ def render_video(wav, clips, srt, title):
     )
     print(f"Prepared {len(chapter_lines)} YouTube chapter markers.")
 
-    # The user-supplied Two Takes opener is the only visual scene from 0:00 to the end.
+    # Keep the channel's own artwork, but change the camera framing and section label
+    # as the conversation moves. This avoids one motionless image for the whole episode.
     branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
     poster_png = Path(app.WORK) / "two_takes_podcast_studio_full_video.png"
     if branded_asset.is_file():
@@ -389,10 +405,10 @@ def render_video(wav, clips, srt, title):
                 "-vf", "scale=1920:1080:flags=lanczos",
                 "-frames:v", "1", "-update", "1", str(poster_png),
             ],
-            label="Prepare full-video Two Takes opener",
+            label="Prepare Two Takes studio artwork",
         )
     else:
-        print("WARNING: supplied opener asset is missing; using original studio fallback artwork.")
+        print("WARNING: supplied studio artwork is missing; using the original illustrated fallback.")
         poster_png = _make_studio_png()
 
     ass_path = Path(app.WORK) / "captions.ass"
@@ -401,16 +417,85 @@ def render_video(wav, clips, srt, title):
     if not ass_path.is_file() or ass_path.stat().st_size == 0:
         raise RuntimeError("Speaker-positioned ASS captions were not generated.")
 
-    # No intro card, opening sting, B-roll, or scene cuts. Only subtitles change over the looped still.
+    scene_dir = Path(app.WORK) / "scenes"
+    scene_dir.mkdir(parents=True, exist_ok=True)
+    for stale in scene_dir.glob("scene_*.mp4"):
+        stale.unlink()
+
+    section_labels = {
+        "hook": "TODAYS QUESTION",
+        "question": "REAL CONVERSATION",
+        "story": "REAL-LIFE EXAMPLE",
+        "follow_up": "KEEP THE CONVERSATION GOING",
+        "clarification": "MAKE IT CLEAR",
+        "language_tip": "USEFUL PHRASE",
+        "practice": "SPEAKING PRACTICE",
+        "recap": "QUICK RECAP",
+        "outro": "YOUR TURN",
+    }
+
+    scene_files = []
+    for index, group in enumerate(groups):
+        scene_start = max(0.0, group["start"])
+        scene_end = (
+            max(scene_start + 0.08, groups[index + 1]["start"])
+            if index + 1 < len(groups)
+            else audio_duration
+        )
+        scene_end = min(audio_duration, scene_end)
+        scene_seconds = scene_end - scene_start
+        if scene_seconds <= 0.05:
+            continue
+
+        turn_type = group["turn_type"]
+        speaker = group["speaker"]
+        # Reset to the wide shot for hooks, teaching beats and section changes;
+        # use a speaker close-up for the conversational back-and-forth.
+        if turn_type in {"hook", "question", "language_tip", "practice", "recap", "outro"}:
+            camera = "wide"
+        else:
+            camera = "himel" if speaker == "Himel" else "niha"
+
+        section = section_labels.get(turn_type, "TWO TAKES CONVERSATION")
+        scene_path = scene_dir / f"scene_{index:03d}.mp4"
+        _make_studio_segment(
+            poster_png,
+            scene_path,
+            scene_seconds,
+            camera=camera,
+            section=section,
+            speaker=speaker,
+        )
+        scene_files.append(scene_path)
+
+    if not scene_files:
+        raise RuntimeError("The visual editor did not produce any scene segments.")
+
+    concat_path = Path(app.WORK) / "scene_list.ffconcat"
+    concat_path.write_text(
+        "ffconcat version 1.0\n"
+        + "".join(f"file '{scene.as_posix()}'\n" for scene in scene_files),
+        encoding="utf-8",
+    )
+    scene_video = Path(app.WORK) / "two_takes_scenes.mp4"
+    _run(
+        [
+            "ffmpeg", "-hide_banner", "-y",
+            "-f", "concat", "-safe", "0", "-i", str(concat_path),
+            "-c", "copy", "-movflags", "+faststart", str(scene_video),
+        ],
+        label=f"Join {len(scene_files)} dialogue-led scenes",
+    )
+
     music_bed = Path(app.WORK) / "original_music_bed.wav"
     generate_music_bed(audio_duration, music_bed, sample_rate=24000)
-    subtitle_path = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
-    input_args = [
-        "-loop", "1", "-framerate", str(FPS), "-i", str(poster_png),
-        "-i", str(wav),
-        "-i", str(music_bed),
-    ]
-    video_filter = f"[0:v:0]format=yuv420p,subtitles='{subtitle_path}'[vout]"
+    subtitle_path = (
+        str(ass_path.resolve())
+        .replace("\\", "/")
+        .replace(":", "\\:")
+        .replace("'", "\\'")
+    )
+    video_filter = f"[0:v:0]subtitles='{subtitle_path}',format=yuv420p[vout]"
     audio_filter = (
         "[1:a]asplit=2[voice_sc][voice_raw];"
         "[2:a]volume=1.1[music];"
@@ -425,7 +510,8 @@ def render_video(wav, clips, srt, title):
     final = Path(app.WORK) / "the_two_takes.mp4"
     _run(
         [
-            "ffmpeg", "-hide_banner", "-y", *input_args,
+            "ffmpeg", "-hide_banner", "-y",
+            "-i", str(scene_video), "-i", str(wav), "-i", str(music_bed),
             "-t", str(audio_duration),
             "-filter_complex", video_filter + ";" + audio_filter,
             "-map", "[vout]", "-map", "[aout]",
@@ -435,13 +521,14 @@ def render_video(wav, clips, srt, title):
             "-c:a", "aac", "-b:a", "192k",
             "-shortest", "-movflags", "+faststart", str(final),
         ],
-        label="Full episode with fixed opener and speaker-positioned captions",
+        label="Render multi-shot episode with speaker-positioned captions",
     )
     quality_check(final)
-    print(f"=== FULL-EPISODE STILL-IMAGE RENDER COMPLETE in {(time.time()-started)/60:.1f} min ===")
+    print(
+        f"=== MULTI-SHOT RENDER COMPLETE: {len(scene_files)} scenes "
+        f"in {(time.time() - started) / 60:.1f} min ==="
+    )
     return final
-
-
 
 def _write_short_captions(timing, start_seconds, end_seconds, output_path):
     """Write subtitles relative to a selected excerpt, keeping captions on speech boundaries."""
@@ -545,15 +632,6 @@ def render_shorts(wav, title, topic):
         old_file.unlink()
     manifest = []
 
-    label_map = {
-        "hook": "Stop Making This English Mistake",
-        "language_tip": "One Useful English Phrase",
-        "practice": "Practice This English Pattern",
-        "story": "Real-Life English Conversation",
-        "question": "Ask Better Questions in English",
-        "follow_up": "Keep the English Conversation Going",
-    }
-
     for number, window in enumerate(windows, 1):
         clip_start = float(window["start"])
         clip_end = float(window["end"])
@@ -563,8 +641,7 @@ def render_shorts(wav, title, topic):
             continue
 
         anchor_type = str(window.get("turn_type", "conversation")).lower()
-        label = label_map.get(anchor_type, "Everyday English Tip")
-        short_title = f"{label} | {topic}".strip(" |")[:95]
+        short_title = _short_title_for_clip(anchor_type, topic)
         slug = re.sub(r"[^a-z0-9]+", "_", anchor_type.lower()).strip("_") or "clip"
         stem = f"short_{number:02d}_{slug}"
         output_video = output_dir / f"{stem}.mp4"
@@ -668,6 +745,23 @@ def _short_thumbnail_title(title, topic):
     return " ".join(words[:4]).upper()
 
 
+def _short_title_for_clip(turn_type, topic):
+    """Give each Short a specific, varied title instead of a repeated generic prefix."""
+    suffixes = {
+        "hook": "— Quick Challenge",
+        "language_tip": "— Useful Phrases",
+        "practice": "— Speak Along",
+        "story": "— Real-Life Example",
+        "question": "— Ask Naturally",
+        "follow_up": "— Keep Talking",
+    }
+    base = re.sub(r"\s+", " ", str(topic or "Everyday English practice")).strip(" .|")
+    suffix = suffixes.get(str(turn_type or "").lower(), "— English Practice")
+    max_base = 78 - len(suffix)
+    if len(base) > max_base:
+        base = base[:max_base].rsplit(" ", 1)[0].rstrip(" ,:;.-")
+    return f"{base} {suffix}".strip()
+
 def make_thumbnail(title, topic):
     """Warm educational thumbnail: large lesson phrase + original illustrated hosts."""
     # Prefer the channel's permanent studio artwork so every episode has consistent branding.
@@ -684,12 +778,25 @@ def make_thumbnail(title, topic):
             ],
             label="Decode permanent Two Takes AVIF artwork",
         )
+        headline = _short_thumbnail_title(title, topic)
+        headline_lines = textwrap.wrap(headline, width=18)[:2]
+        headline_text = "\n".join(headline_lines)
         jpg = Path(app.WORK) / "thumbnail.jpg"
         _run(
-            ["convert", str(poster), "-resize", "1280x720!", "-strip", "-quality", "92", str(jpg)],
-            label="Permanent Two Takes channel thumbnail",
+            [
+                "convert", str(poster), "-resize", "1280x720!",
+                "-fill", "rgba(31,27,24,0.92)",
+                "-draw", "roundrectangle 52,470 870,680 30,30",
+                "-font", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "-pointsize", "52", "-fill", "#fff7e8",
+                "-gravity", "northwest", "-annotate", "+88+505", headline_text,
+                "-pointsize", "23", "-fill", "#f0c79b",
+                "-annotate", "+88+625", "ENGLISH SPEAKING PRACTICE",
+                "-strip", "-quality", "92", str(jpg),
+            ],
+            label="Episode-specific Two Takes thumbnail",
         )
-        print("Using the permanent Two Takes studio artwork for the YouTube thumbnail.")
+        print(f"Created a lesson-specific thumbnail: {headline}.")
         return jpg
 
     headline = _short_thumbnail_title(title, topic)

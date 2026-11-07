@@ -255,8 +255,17 @@
     "video_id": "EipAIG1mfJI",
     "title": "How to Describe Your Weekend in English",
     "topic": "How to Describe Your Weekend in English",
+    "link": "https://youtu.be/EipAIG1mfJI",
     "kind": "Podcast",
     "published": "2026-11-06T09:40:06.788617+00:00",
-    "script_sha256": "7e7605b7b0f93e514c43858c3d7299fd21ea9eb6411cf14d0b8cb8e86a5ebf4c"
+    "notified_at": "2026-11-06T09:40:09.803255+00:00"
+  },
+  {
+    "video_id": "WmVkBDGUegM",
+    "title": "Practise English for Meeting New People",
+    "topic": "Practise English for Meeting New People",
+    "kind": "Podcast",
+    "published": "2026-11-07T09:03:49.018177+00:00",
+    "script_sha256": "d6c47c6dbd1e2836587c97046de894193baa5ad69a41dfd3c29f998b89861c36"
   }
 ]

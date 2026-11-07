@@ -1,0 +1,41 @@
+name: Production safety checks
+
+on:
+  push:
+    branches: [integration/production-quality-and-growth]
+  pull_request:
+    paths:
+      - "scripts/build_podcast.py"
+      - "scripts/openai_pipeline.py"
+      - "scripts/youtube_upload_preflight.py"
+      - "scripts/test_pipeline_safety.py"
+      - ".github/workflows/daily-podcast.yml"
+      - ".github/workflows/pipeline-safety-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile production modules
+        run: |
+          python -m py_compile \
+            scripts/build_podcast.py \
+            scripts/openai_pipeline.py \
+            scripts/youtube_upload_preflight.py \
+            scripts/test_pipeline_safety.py
+
+      - name: Run safety regression tests
+        run: python scripts/test_pipeline_safety.py

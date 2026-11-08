@@ -1,4 +1,4 @@
-name: Two Takes — Daily Episode
+name: Two Takes — English Learning Episodes
 
 on:
   workflow_dispatch:
@@ -13,16 +13,13 @@ on:
     paths:
       - '.github/workflows/daily-podcast.yml'
       - 'scripts/openai_pipeline.py'
+      - 'scripts/build_podcast.py'
+      - 'scripts/production_upgrade.py'
+      - 'scripts/episode_qc.py'
   schedule:
-    # Daily attempts in Bangladesh local time. Minutes are staggered away from :00.
-    # The publish guard allows at most one successful episode per Bangladesh date.
-    - cron: '17 8 * * *'
-      timezone: "Asia/Dhaka"
-    - cron: '47 8 * * *'
-      timezone: "Asia/Dhaka"
-    - cron: '17 9 * * *'
-      timezone: "Asia/Dhaka"
-    - cron: '47 9 * * *'
+    # Two full English-learning episodes each week: Tuesday and Friday, Bangladesh time.
+    # One episode run also schedules three Shorts for the following three days.
+    - cron: '17 8 * * 2,5'
       timezone: "Asia/Dhaka"
 
 permissions:

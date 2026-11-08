@@ -8,14 +8,6 @@ on:
         required: false
         default: Manual
         type: string
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/daily-podcast.yml'
-      - 'scripts/openai_pipeline.py'
-      - 'scripts/build_podcast.py'
-      - 'scripts/production_upgrade.py'
-      - 'scripts/episode_qc.py'
   schedule:
     # Two full English-learning episodes each week: Tuesday and Friday, Bangladesh time.
     # One episode run also schedules three Shorts for the following three days.

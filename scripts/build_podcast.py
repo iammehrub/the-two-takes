@@ -1224,38 +1224,29 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 
 
 def youtube_upload_one_short(topic):
-    """Publish the best available generated Short after the main episode succeeds.
+    """Schedule up to three reviewed-format Shorts on separate days after each episode.
 
-    This is intentionally best-effort: a Shorts upload failure must not undo the
-    successful full episode. It uses the same upload-only OAuth token.
+    The full episode is uploaded first. Shorts are scheduled privately through
+    YouTube's publishAt field so one batch does not flood subscribers at once.
+    Each Short is best-effort and cannot undo the successful full episode.
     """
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+
     manifest_path = WORK / "shorts" / "shorts_manifest.json"
     if not manifest_path.exists():
-        print("No Shorts manifest; skipping automatic Shorts publishing.")
-        return None
+        print("No Shorts manifest; skipping automatic Shorts scheduling.")
+        return []
 
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        print(f"Could not read Shorts manifest; skipping auto-publish: {exc}")
-        return None
+        print(f"Could not read Shorts manifest; skipping scheduling: {exc}")
+        return []
 
     if not isinstance(manifest, list) or not manifest:
-        print("No eligible Shorts were rendered; skipping auto-publish.")
-        return None
-
-    # Render order prioritizes clean, captioned excerpts. Publish one per episode
-    # to avoid flooding subscribers with several Shorts at the same time.
-    selected = manifest[0]
-    short_file = WORK / "shorts" / str(selected.get("file", ""))
-    if not short_file.is_file():
-        print(f"Short file is missing ({short_file}); skipping auto-publish.")
-        return None
-
-    duration = float(selected.get("duration_seconds", 0))
-    if duration < 18 or duration > 35:
-        print(f"Short duration {duration:.1f}s is outside the expected range; skipping.")
-        return None
+        print("No eligible Shorts were rendered; skipping scheduling.")
+        return []
 
     from google.oauth2.credentials import Credentials
     from google.auth.transport.requests import Request
@@ -1283,74 +1274,107 @@ def youtube_upload_one_short(topic):
         except (OSError, json.JSONDecodeError):
             pass
 
-    base_title = str(selected.get("title") or topic or "Everyday English").strip()
-    short_title = base_title[:86].rstrip()
-    if "#shorts" not in short_title.lower():
-        short_title = (short_title + " #Shorts")[:100]
+    local_now = datetime.now(ZoneInfo("Asia/Dhaka"))
+    results = []
+    # Three separate days per episode. With Tuesday/Friday episodes this
+    # creates a steady Wednesday–Monday Shorts rhythm without same-day bursts.
+    for day_offset, selected in enumerate(manifest[:3], start=1):
+        short_file = WORK / "shorts" / str(selected.get("file", ""))
+        if not short_file.is_file():
+            print(f"Short file is missing ({short_file}); skipping this candidate.")
+            continue
 
-    description_parts = [
-        "Learn one useful English idea in under a minute with Himel and Niha.",
-        "Listen, repeat the phrase, and write your own example in the comments.",
-    ]
-    if episode_url:
-        description_parts.append(f"Watch the full conversation: {episode_url}")
-    hashtags = selected.get("hashtag_suggestions", [])
-    if not isinstance(hashtags, list):
-        hashtags = []
-    hashtags = [
-        str(tag).strip() for tag in hashtags
-        if str(tag).strip().startswith("#")
-    ][:4]
-    if "#Shorts" not in hashtags:
-        hashtags.insert(0, "#Shorts")
-    description_parts.append(" ".join(dict.fromkeys(hashtags)))
-    description = "\n\n".join(description_parts)
+        try:
+            clip_duration = float(selected.get("duration_seconds", 0))
+        except (TypeError, ValueError):
+            clip_duration = 0
+        if clip_duration < 18 or clip_duration > 35:
+            print(f"Short duration {clip_duration:.1f}s is outside 18–35s; skipping.")
+            continue
 
-    body = {
-        "snippet": {
-            "title": short_title,
-            "description": description[:4900],
-            "categoryId": "27",
-            "tags": [
-                "The Two Takes", "English learning", "English conversation",
-                "spoken English", "English speaking practice", "Shorts",
-            ],
-        },
-        "status": {
-            "privacyStatus": "public",
-            "selfDeclaredMadeForKids": False,
-        },
-    }
+        publish_time = (local_now + timedelta(days=day_offset)).replace(
+            hour=10, minute=30, second=0, microsecond=0
+        )
+        base_title = str(
+            selected.get("title") or topic or "Everyday English"
+        ).strip()
+        short_title = base_title[:86].rstrip()
+        if "#shorts" not in short_title.lower():
+            short_title = (short_title + " #Shorts")[:100]
 
-    print(f"Publishing one vertical Short: {short_file.name}")
-    response = yt.videos().insert(
-        part="snippet,status",
-        body=body,
-        media_body=MediaFileUpload(
-            str(short_file),
-            mimetype="video/mp4",
-            chunksize=8 * 1024 * 1024,
-            resumable=True,
-        ),
-    ).execute(num_retries=5)
-    video_id = response["id"]
-    result = {
-        "video_id": video_id,
-        "title": short_title,
-        "topic": str(selected.get("topic") or topic)[:300],
-        "kind": "Short",
-        "link": f"https://youtube.com/shorts/{video_id}",
-        "source_episode_title": str(selected.get("source_episode_title", ""))[:100],
-        "published": datetime.now(timezone.utc).isoformat(),
-        "file": short_file.name,
-    }
-    (WORK / "youtube_shorts.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    print(f"Short published: {result['link']}")
-    return result
+        description_parts = [
+            "Learn one useful English idea in under a minute with Himel and Niha.",
+            "Listen, repeat the phrase, and write your own example in the comments.",
+        ]
+        if episode_url:
+            description_parts.append(f"Watch the full conversation: {episode_url}")
+        hashtags = selected.get("hashtag_suggestions", [])
+        if not isinstance(hashtags, list):
+            hashtags = []
+        hashtags = [
+            str(tag).strip() for tag in hashtags
+            if str(tag).strip().startswith("#")
+        ][:4]
+        if "#Shorts" not in hashtags:
+            hashtags.insert(0, "#Shorts")
+        description_parts.append(" ".join(dict.fromkeys(hashtags)))
+        description = "\n\n".join(description_parts)
 
+        body = {
+            "snippet": {
+                "title": short_title,
+                "description": description[:4900],
+                "categoryId": "27",
+                "tags": [
+                    "Two Takes Podcast", "English learning", "English conversation",
+                    "spoken English", "English speaking practice", "Shorts",
+                ],
+            },
+            "status": {
+                "privacyStatus": "private",
+                "publishAt": publish_time.isoformat(timespec="seconds"),
+                "selfDeclaredMadeForKids": False,
+            },
+        }
+
+        try:
+            print(
+                f"Scheduling Short {day_offset}/3: {short_file.name} "
+                f"for {publish_time.isoformat(timespec='minutes')} (Asia/Dhaka)"
+            )
+            response = yt.videos().insert(
+                part="snippet,status",
+                body=body,
+                media_body=MediaFileUpload(
+                    str(short_file),
+                    mimetype="video/mp4",
+                    chunksize=8 * 1024 * 1024,
+                    resumable=True,
+                ),
+            ).execute(num_retries=5)
+            video_id = response["id"]
+            result = {
+                "video_id": video_id,
+                "title": short_title,
+                "topic": str(selected.get("topic") or topic)[:300],
+                "kind": "Short",
+                "link": f"https://youtube.com/shorts/{video_id}",
+                "source_episode_title": str(selected.get("source_episode_title", ""))[:100],
+                "scheduled_for": publish_time.isoformat(timespec="seconds"),
+                "timezone": "Asia/Dhaka",
+                "file": short_file.name,
+            }
+            results.append(result)
+            (WORK / "youtube_shorts.json").write_text(
+                json.dumps(results, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            print(f"Short scheduled: {result['link']}")
+        except Exception as exc:
+            print(f"Short candidate {day_offset} failed; continuing with remaining clips: {exc}")
+
+    print(f"Scheduled {len(results)} of up to 3 Shorts.")
+    return results
 
 def create_growth_pack(title, topic, script, hook):
     """Create upload/promotion assets without artificial engagement."""
@@ -1647,7 +1671,7 @@ def main():
         clips
     )
 
-    print("\nPublishing one discovery Short (best-effort)...")
+    print("\nScheduling up to three discovery Shorts on separate days (best-effort)...")
     try:
         youtube_upload_one_short(topic)
     except Exception as exc:

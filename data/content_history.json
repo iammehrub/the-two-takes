@@ -282,8 +282,17 @@
     "video_id": "nZr9lHTaKdc",
     "title": "Speak English Without Translating: Easy Steps",
     "topic": "How to Speak English Without Translating Every Sentence",
+    "link": "https://youtu.be/nZr9lHTaKdc",
     "kind": "Podcast",
     "published": "2026-11-08T18:25:58.432360+00:00",
-    "script_sha256": "860eb6d63023a6d5e86c19b399e7d9d0ef3bd3a93caeea9376d9acc8bd2f88bb"
+    "notified_at": "2026-11-08T18:26:05.195176+00:00"
+  },
+  {
+    "video_id": "Cpo7_JYDVsM",
+    "title": "Practise Talking About Your Daily Routine in English",
+    "topic": "Practise Talking About Your Daily Routine in English",
+    "kind": "Podcast",
+    "published": "2026-11-10T10:14:08.231887+00:00",
+    "script_sha256": "cd1bc97f88a5bcc8cab30aff72c3e1d83baf0a6ddab9d7b1439d4954f5da6a72"
   }
 ]

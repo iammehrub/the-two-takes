@@ -291,8 +291,17 @@
     "video_id": "Cpo7_JYDVsM",
     "title": "Practise Talking About Your Daily Routine in English",
     "topic": "Practise Talking About Your Daily Routine in English",
+    "link": "https://youtu.be/Cpo7_JYDVsM",
     "kind": "Podcast",
     "published": "2026-11-10T10:14:08.231887+00:00",
-    "script_sha256": "cd1bc97f88a5bcc8cab30aff72c3e1d83baf0a6ddab9d7b1439d4954f5da6a72"
+    "notified_at": "2026-11-10T10:14:15.189696+00:00"
+  },
+  {
+    "video_id": "M9jo6BcCpNo",
+    "title": "How to Make Small Talk in English: Easy Questions",
+    "topic": "How to Make Small Talk in English: Easy Questions",
+    "kind": "Podcast",
+    "published": "2026-11-11T10:00:56.754526+00:00",
+    "script_sha256": "265eea6efd6933d731db78c041a6bb4fbaa3fbd97b6685e3a4375c27bdb878c2"
   }
 ]

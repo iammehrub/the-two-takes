@@ -300,8 +300,17 @@
     "video_id": "M9jo6BcCpNo",
     "title": "How to Make Small Talk in English: Easy Questions",
     "topic": "How to Make Small Talk in English: Easy Questions",
+    "link": "https://youtu.be/M9jo6BcCpNo",
     "kind": "Podcast",
     "published": "2026-11-11T10:00:56.754526+00:00",
-    "script_sha256": "265eea6efd6933d731db78c041a6bb4fbaa3fbd97b6685e3a4375c27bdb878c2"
+    "notified_at": "2026-11-11T10:01:02.797306+00:00"
+  },
+  {
+    "video_id": "-D5AFn8XJ-s",
+    "title": "How to Tell a Short Story in English",
+    "topic": "How to Tell a Short Story in English",
+    "kind": "Podcast",
+    "published": "2026-11-12T10:17:03.725717+00:00",
+    "script_sha256": "75e8f2187f178690610d4a5803fa8684e201cbafc2e6702536e7144cdc969acb"
   }
 ]

@@ -1227,11 +1227,11 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 
 
 def youtube_upload_one_short(topic):
-    """Schedule up to three reviewed-format Shorts on separate days after each episode.
+    """Schedule this episode's allocation in the four-Short weekly cadence.
 
-    The full episode is uploaded first. Shorts are scheduled privately through
-    YouTube's publishAt field so one batch does not flood subscribers at once.
-    Each Short is best-effort and cannot undo the successful full episode.
+    Tuesday supplies Wednesday and Friday Shorts; Thursday supplies Sunday;
+    Saturday supplies the following Monday. Shorts are staged privately with
+    YouTube's publishAt field, and each candidate is best-effort.
     """
     from datetime import timedelta
     from zoneinfo import ZoneInfo

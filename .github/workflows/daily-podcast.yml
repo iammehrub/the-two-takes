@@ -9,9 +9,9 @@ on:
         default: Manual
         type: string
   schedule:
-    # Two full English-learning episodes each week: Tuesday and Friday, Bangladesh time.
-    # One episode run also schedules three Shorts for the following three days.
-    - cron: '17 8 * * 2,5'
+    # Three long-form episodes each week: Tuesday, Thursday and Saturday (Bangladesh time).
+    # Shorts are allocated across Wednesday, Friday, Sunday and Monday by the publishing scheduler.
+    - cron: '17 8 * * 2,4,6'
       timezone: "Asia/Dhaka"
 
 permissions:

@@ -37,8 +37,8 @@ jobs:
             scripts/build_podcast.py \
             scripts/openai_pipeline.py \
             scripts/youtube_upload_preflight.py \
-            scripts/test_pipeline_safety.py \\
-            scripts/publishing_schedule.py \\
+            scripts/test_pipeline_safety.py \
+            scripts/publishing_schedule.py \
             scripts/test_publishing_schedule.py
 
       - name: Run safety regression tests

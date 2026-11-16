@@ -31,6 +31,7 @@ ALIASES = {
 CATEGORIES = {
     "Real-Life Speaking": (
         "understand someone", "repeat themselves", "conversation", "small talk",
+        "ordering food", "restaurant", "order at a restaurant",
         "disagree politely", "ask for help", "wrong order", "phone call",
         "tell me about yourself", "keep a conversation",
     ),

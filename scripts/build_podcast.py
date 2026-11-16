@@ -1227,11 +1227,11 @@ def youtube_upload(video, thumb, title, topic, script, hook, credits):
 
 
 def youtube_upload_one_short(topic):
-    """Schedule up to three reviewed-format Shorts on separate days after each episode.
+    """Schedule this episode's allocation in the four-Short weekly cadence.
 
-    The full episode is uploaded first. Shorts are scheduled privately through
-    YouTube's publishAt field so one batch does not flood subscribers at once.
-    Each Short is best-effort and cannot undo the successful full episode.
+    Tuesday supplies Wednesday and Friday Shorts; Thursday supplies Sunday;
+    Saturday supplies the following Monday. Shorts are staged privately with
+    YouTube's publishAt field, and each candidate is best-effort.
     """
     from datetime import timedelta
     from zoneinfo import ZoneInfo
@@ -1278,10 +1278,27 @@ def youtube_upload_one_short(topic):
             pass
 
     local_now = datetime.now(ZoneInfo("Asia/Dhaka"))
+    from publishing_schedule import short_publish_offsets
+    day_offsets = short_publish_offsets(local_now.weekday())
+    if not day_offsets:
+        print(
+            f"No Shorts are allocated to a long-video run on weekday {local_now.weekday()}; "
+            "the weekly cadence is Tuesday/Thursday/Saturday long videos."
+        )
+        return []
+
+    if len(manifest) < len(day_offsets):
+        print(
+            f"Only {len(manifest)} Short candidate(s) are available; "
+            f"{len(day_offsets)} were planned for this episode."
+        )
+
     results = []
-    # Three separate days per episode. With Tuesday/Friday episodes this
-    # creates a steady Wednesday–Monday Shorts rhythm without same-day bursts.
-    for day_offset, selected in enumerate(manifest[:3], start=1):
+    # Tuesday supplies Wednesday + Friday Shorts; Thursday supplies Sunday;
+    # Saturday supplies the following Monday. This produces four Shorts per week.
+    for short_number, (day_offset, selected) in enumerate(
+        zip(day_offsets, manifest[:len(day_offsets)]), start=1
+    ):
         short_file = WORK / "shorts" / str(selected.get("file", ""))
         if not short_file.is_file():
             print(f"Short file is missing ({short_file}); skipping this candidate.")
@@ -1342,7 +1359,7 @@ def youtube_upload_one_short(topic):
 
         try:
             print(
-                f"Scheduling Short {day_offset}/3: {short_file.name} "
+                f"Scheduling Short {short_number}/{len(day_offsets)}: {short_file.name} "
                 f"for {publish_time.isoformat(timespec='minutes')} (Asia/Dhaka)"
             )
             response = yt.videos().insert(
@@ -1376,7 +1393,7 @@ def youtube_upload_one_short(topic):
         except Exception as exc:
             print(f"Short candidate {day_offset} failed; continuing with remaining clips: {exc}")
 
-    print(f"Scheduled {len(results)} of up to 3 Shorts.")
+    print(f"Scheduled {len(results)} of {len(day_offsets)} Shorts allocated to this episode.")
     return results
 
 def create_growth_pack(title, topic, script, hook):

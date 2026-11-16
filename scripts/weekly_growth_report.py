@@ -29,12 +29,23 @@ ALIASES = {
 }
 
 CATEGORIES = {
-    "Real-life English": ("ordering food", "restaurant", "shopping", "job interview", "phone call",
-                          "doctor", "travel", "airport", "hotel", "daily conversation", "small talk"),
-    "Speaking Confidence": ("forget a word", "speak alone", "confidence", "fluency", "nervous",
-                            "start a conversation", "keep speaking", "pronunciation"),
-    "Vocabulary in Context": ("phrases", "vocabulary", "expressions", "common mistakes",
-                              "instead of", "meaning", "words", "grammar"),
+    "Real-Life Speaking": (
+        "understand someone", "repeat themselves", "conversation", "small talk",
+        "ordering food", "restaurant", "order at a restaurant",
+        "disagree politely", "ask for help", "wrong order", "phone call",
+        "tell me about yourself", "keep a conversation",
+    ),
+    "Listening Challenges": (
+        "listening test", "listening challenge", "listen and answer",
+        "understand fast", "cafe conversation", "missed bus",
+    ),
+    "Natural English": (
+        "reply naturally", "natural response", "sound natural", "useful phrases",
+        "common mistakes", "what have you been up to", "surprising news",
+    ),
+    "Story-Based Learning": (
+        "tell a short story", "story of", "yesterday", "real-life story",
+    ),
 }
 
 
@@ -220,8 +231,8 @@ def build_report(videos, stats, columns):
         "- Treat missing fields as unknown, never as zero.", "",
         "## Production guardrails", "",
         "- Keep the English-learning niche; do not copy another creator's scripts or branding.",
-        "- Publish 5–7 long-form episodes only while quality remains stable; otherwise publish five.",
-        "- Aim for 1 Short per day and 1 weekly compilation when enough coherent material exists.",
+        "- Target 3 long-form episodes weekly (Tuesday, Thursday, Saturday) and 4 Shorts weekly (Monday, Wednesday, Friday, Sunday).",
+        "- Keep Shorts and long-form results in separate reports; do not inflate output to chase volume.",
         "- These are operating targets, not growth guarantees.",
         "", "## Highest-performing sampled videos", "",
     ]

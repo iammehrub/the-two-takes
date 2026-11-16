@@ -2,6 +2,8 @@
 
 All times are Bangladesh time (Asia/Dhaka). Long videos publish Tuesday, Thursday and Saturday at 08:17. Shorts publish Monday, Wednesday, Friday and Sunday at 10:30.
 
+**Launch transition:** rollout starts Tuesday, 17 November 2026. The first long video is the Tuesday slot; the first new Shorts are scheduled for Wednesday 18 November and Friday 20 November. The Saturday 21 November episode supplies the first Monday 23 November Short. Do not backfill the Monday 16 November slot.
+
 ## Week 1 — Get unstuck in real conversations
 
 | Day | Format | Working title | Thumbnail / hook text |

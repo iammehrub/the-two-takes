@@ -312,26 +312,30 @@ def make_episode(news):
     # Evergreen, searchable English-learning promises only. News is deliberately
     # excluded so the channel has one clear audience and repeatable format.
     fallback_topic_bank = [
-        "How to Practise English Speaking Alone",
-        "English Speaking Practice for Beginners: Daily Routine",
-        "Practise Ordering Food in English",
-        "How to Start a Conversation in English",
-        "How to Keep Speaking When You Forget a Word",
-        "Practise Talking About Your Daily Routine in English",
-        "How to Ask Questions Naturally in English",
-        "English Listening Practice: Understand Everyday Speech",
-        "How to Talk About Your Job in English",
-        "Practise a Simple Phone Call in English",
+        "What to Say When You Don't Understand Someone",
+        "How to Keep a Conversation Going When Your Mind Goes Blank",
+        "Can You Understand This Cafe Conversation? An A2 Listening Test",
+        "How to Ask Someone to Repeat Themselves Politely",
+        "How to Disagree Politely Without Sounding Rude",
+        "How to Answer Tell Me About Yourself Naturally",
+        "How to Make Small Talk Without Awkward Silence",
+        "How to Explain a Problem and Ask for Help in English",
+        "How to Explain a Wrong Order at a Restaurant",
+        "Can You Understand Fast Everyday English? A Listening Challenge",
+        "How to Tell a Short Story About Yesterday",
+        "How to Handle an English Phone Call When You Cannot Hear Clearly",
+        "How to Respond Naturally to Surprising News",
+        "How to Start and End a Conversation Naturally",
+        "How to Stop Translating Every Sentence in Your Head",
+        "How to Make a Request Without Sounding Rude",
+        "How to Recover When You Forget an English Word",
+        "How to Talk About Plans and Invitations",
         "How to Explain Your Opinion in Simple English",
-        "How to Talk About Your Feelings in English",
-        "How to Describe Your Weekend in English",
-        "Practise English for Meeting New People",
-        "How to Agree and Disagree in Everyday English",
-        "How to Speak English Without Translating Every Sentence",
-        "How to Make Small Talk in English: Easy Questions",
-        "How to Tell a Short Story in English",
-        "How to Use Past Tense in Everyday Conversation",
-        "How to Ask Someone to Repeat in English",
+        "How to Ask for Clarification in a Class or Meeting",
+        "Listen and Answer: The Story of a Missed Bus",
+        "How to Reply Naturally to What Have You Been Up To",
+        "How to Respond When Someone Gives You Unexpected Advice",
+        "How to Keep a Phone Conversation Going in English",
     ]
 
     current_stories = []
@@ -365,7 +369,14 @@ def make_episode(news):
     audience_context = audience_profile_context()
 
     prompt = f"""
-You are the lead writer for TWO TAKES PODCAST, a calm, practical English-speaking and listening practice show for adult beginners.
+You are the lead writer for TWO TAKES PODCAST: Real English for Real-Life Situations. It is a practical, story-driven English speaking and listening show for A2-B1 learners.
+
+CHANNEL POSITIONING — KEEP THIS DISTINCT:
+- Help learners handle a specific real-world speaking or listening problem, not study generic textbook English.
+- Core pillars: Real-Life Speaking (40%), Listening Challenges (30%), Natural English (20%), and Story-Based Learning (10%). These are editorial priorities, not performance claims.
+- Use repeatable formats where suitable: Real Talk (role-play a real situation), Listen First, Answer Next (a short comprehension challenge), and What Would You Say? (a clear response challenge).
+- Every episode needs one relatable situation, one clear learner problem, and one practical payoff that viewers can use immediately.
+- Reject broad concepts such as “improve your English” when a more specific situation can be taught.
 
 REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — ADAPT THE FORMAT, KEEP EVERYTHING ORIGINAL
 - Recreate the same broad viewer experience: a calm, friendly English-learning podcast built around natural conversation, relatable life topics, vocabulary teaching, and speaking practice.
@@ -383,18 +394,19 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - Target about 10 minutes at 130–150 words per minute. Avoid padding; keep the hook and outro concise.
 - PACING: natural conversational English at a comfortable everyday speed, not slow or sleepy. Vary energy with the moment: lively curiosity, relaxed storytelling, quick reactions, thoughtful pauses, and encouraging practice. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
 - OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
-- VISUALS: the supplied Two Takes Podcast opener remains on screen for the entire video. Keep it as one static background with no B-roll, scene cuts, title cards, or animated visual changes; captions appear beneath the host who is speaking.
+- VISUALS: preserve the single wide two-host composition throughout; do not use camera cuts, close-ups, or alternate host shots. Use the renderer's changing section labels, speaker-positioned captions, and gold-highlighted target vocabulary to make each learning beat visually clear. Keep the frame uncluttered and never claim B-roll or animation that the renderer does not create.
 - Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for Two Takes Podcast.
 
 ONE CONCRETE PROMISE — REQUIRED BEFORE WRITING:
 - State one specific, useful learner outcome in the JSON field "promise", in one short sentence: "By the end of this, you'll be able to ____."
-- Every episode must answer one real question an English learner would search for, such as how to practise speaking alone, start a conversation, order food, ask for clarification, or explain an opinion.
+- Every episode must answer one specific question an English learner would search for, such as what to say when they do not understand, how to recover when they forget a word, how to disagree politely, or how to handle an everyday phone call.
+- Prefer titles that name an uncomfortable or recognizable moment, then promise a useful response. Avoid vague self-improvement language.
 - If the promise cannot be stated clearly in one line, reject the idea and choose a more concrete learner task.
 - This channel is ONLY about learning and practising English. Never create episodes about AI, technology, current affairs, politics, gaming, or unrelated news.
 - Ignore all supplied news headlines. Choose only from the English-learning topic bank and make the episode useful even if the viewer never saw a news story.
 
 Audience:
-A2-B1 and B1-B2 English learners worldwide, especially people who want to speak more naturally in everyday life.
+A2-B1 English learners worldwide, especially learners who understand basic English but struggle to respond naturally, follow fast everyday speech, or keep conversations going.
 
 Hosts:
 Himel — a friendly, curious young man with quick timing, gentle dry humor, honest reactions, and the confidence to admit when he is wrong. He sounds like a real person, not a presenter reading a lesson.
@@ -426,8 +438,8 @@ ENGLISH-LEARNING TOPIC BANK:
 Use the audience profile and YouTube demand snapshot as directional signals, not guarantees. Prefer a concrete beginner-friendly task with clear search intent and practical value. Avoid topics substantially overlapping recent uploads.
 
 TITLE/PACKAGING RULES:
-- Produce 3 distinct title options built around the promised learner outcome, not a vague subject.
-- Lead with the concrete promise or searchable learner question. Examples: "Practise English Speaking Alone", "Order Food in English: Easy Practice", "How to Start a Conversation in English".
+- Produce 3 distinct title options built around the promised learner outcome and exact situation, not a vague subject.
+- Lead with the concrete promise or searchable learner question. Examples: "What to Say When You Don't Understand", "How to Keep a Conversation Going", "How to Disagree Politely in English".
 - Keep titles under 60 characters where possible; never sacrifice clarity or truth just to meet the limit.
 - Never use the word "topic" in a title. Avoid abstract titles such as "Improve Communication" when a concrete task can be named.
 - Put the main searchable phrase near the beginning. Use natural English; do not stuff keywords.

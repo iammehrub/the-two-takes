@@ -19,8 +19,9 @@ from audio_enhancements import build_chapters, generate_music_bed, select_short_
 VIDEO_W = 1920
 VIDEO_H = 1080
 FPS = 30
-ENCODE_PRESET = "ultrafast"
-ENCODE_CRF = "23"
+# A modest quality bump without using the slowest encoder preset on long episodes.
+ENCODE_PRESET = "veryfast"
+ENCODE_CRF = "21"
 
 
 def _run(cmd, label="FFmpeg"):
@@ -350,6 +351,14 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide", section=""
         vf = f"crop=1100:1080:740:0,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
     else:
         vf = f"scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
+
+    # Add a restrained continuous push-in to the same wide two-host artwork.
+    # This creates visible motion without introducing close-ups or changing framing.
+    vf += (
+        ",zoompan=z='min(zoom+0.00008,1.025)'"
+        ":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+        ":d=1:s=1920x1080:fps=30"
+    )
 
     # Keep labels short and consistent so every scene feels like one learning show.
     section = str(section or "").strip().upper()[:26]

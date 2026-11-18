@@ -107,6 +107,21 @@ jobs:
               raise SystemExit(0)
 
           latest = today_runs[0] if today_runs else None
+          if latest and latest.get("conclusion") == "failure":
+              logs = subprocess.run(
+                  ["gh", "run", "view", str(latest["id"]), "--repo", repo, "--log"],
+                  check=False, capture_output=True, text=True, timeout=90,
+              )
+              if logs.returncode == 0 and (
+                  "YouTube OAuth failed: refresh token is expired or revoked"
+                  in logs.stdout
+              ):
+                  print(
+                      "Automatic recovery stopped: the YouTube refresh token is expired or revoked. "
+                      "Update the YOUTUBE_REFRESH_TOKEN Actions secret before retrying."
+                  )
+                  raise SystemExit(0)
+
           if latest:
               age_minutes = (now - latest["_created_at"]).total_seconds() / 60
               if age_minutes < 20:

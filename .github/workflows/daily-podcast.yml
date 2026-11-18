@@ -1,6 +1,10 @@
 name: Two Takes — English Learning Episodes
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/manual-test-trigger/one-off-upload-2026-11-18'
   workflow_dispatch:
     inputs:
       trigger_source:

@@ -309,8 +309,17 @@
     "video_id": "-D5AFn8XJ-s",
     "title": "How to Tell a Short Story in English",
     "topic": "How to Tell a Short Story in English",
+    "link": "https://youtu.be/-D5AFn8XJ-s",
     "kind": "Podcast",
     "published": "2026-11-12T10:17:03.725717+00:00",
-    "script_sha256": "75e8f2187f178690610d4a5803fa8684e201cbafc2e6702536e7144cdc969acb"
+    "notified_at": "2026-11-12T10:17:10.597667+00:00"
+  },
+  {
+    "video_id": "3Tdwsp8fZWU",
+    "title": "How to Ask Someone to Repeat Themselves Politely",
+    "topic": "How to Ask Someone to Repeat Themselves Politely",
+    "kind": "Podcast",
+    "published": "2026-11-18T14:22:40.104669+00:00",
+    "script_sha256": "e804ad1036edce88d746cbc1a61adde178d3fb3a1ce1af191532b41ec75bf3f2"
   }
 ]

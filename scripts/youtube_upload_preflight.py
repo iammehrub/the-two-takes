@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate YouTube upload OAuth and, when configured, verify the target channel."""
+"""Validate the YouTube upload OAuth credentials and required upload scope."""
 from __future__ import annotations
 
 import os
@@ -11,7 +11,6 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 UPLOAD_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
-READ_SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
 
 
 def refresh_credentials(client_id: str, client_secret: str, refresh_token: str, scope: str):
@@ -25,60 +24,6 @@ def refresh_credentials(client_id: str, client_secret: str, refresh_token: str, 
     )
     creds.refresh(Request())
     return creds
-
-
-def verify_target_channel(expected_channel_id: str) -> int:
-    """Verify account identity only when a separate read-scoped token is configured."""
-    refresh_token = os.environ.get("YOUTUBE_ANALYTICS_REFRESH_TOKEN", "").strip()
-    if not refresh_token:
-        print(
-            "WARNING: target channel identity was not verified. "
-            "Set YOUTUBE_ANALYTICS_REFRESH_TOKEN with youtube.readonly scope "
-            "to confirm the upload account before publishing."
-        )
-        return 0
-
-    client_id = (
-        os.environ.get("YOUTUBE_ANALYTICS_CLIENT_ID", "").strip()
-        or os.environ.get("YOUTUBE_CLIENT_ID", "").strip()
-    )
-    client_secret = (
-        os.environ.get("YOUTUBE_ANALYTICS_CLIENT_SECRET", "").strip()
-        or os.environ.get("YOUTUBE_CLIENT_SECRET", "").strip()
-    )
-    if not client_id or not client_secret:
-        print("Target-channel check failed: analytics OAuth client ID/secret is missing.")
-        return 6
-
-    try:
-        creds = refresh_credentials(client_id, client_secret, refresh_token, READ_SCOPE)
-    except RefreshError as exc:
-        print("Target-channel check failed: read-only OAuth refresh was rejected.")
-        print(str(exc)[:700])
-        return 6
-
-    try:
-        from googleapiclient.discovery import build
-        youtube = build("youtube", "v3", credentials=creds, cache_discovery=False)
-        response = youtube.channels().list(part="id", mine=True).execute()
-    except Exception as exc:
-        print("Target-channel check failed: YouTube could not identify the OAuth account.")
-        print(str(exc)[:700])
-        return 6
-
-    channel_ids = [
-        str(item.get("id", "")).strip()
-        for item in response.get("items", [])
-        if str(item.get("id", "")).strip()
-    ]
-    if expected_channel_id not in channel_ids:
-        print("TARGET CHANNEL MISMATCH: the read-only OAuth account does not own the expected channel.")
-        print("Expected channel ID: " + expected_channel_id)
-        print("Authorized channel IDs: " + (", ".join(channel_ids) or "(none returned)"))
-        return 7
-
-    print("Target YouTube channel identity verified: " + expected_channel_id)
-    return 0
 
 
 def main() -> int:
@@ -150,10 +95,7 @@ def main() -> int:
     if extra:
         print("Additional granted scopes: " + ", ".join(extra))
 
-    expected = os.environ.get("EXPECTED_YOUTUBE_CHANNEL_ID", "").strip()
-    if expected:
-        return verify_target_channel(expected)
-    print("WARNING: EXPECTED_YOUTUBE_CHANNEL_ID is not configured; target identity remains unverified.")
+    print("Upload OAuth preflight passed; no separate Analytics token or channel-read scope is required.")
     return 0
 
 

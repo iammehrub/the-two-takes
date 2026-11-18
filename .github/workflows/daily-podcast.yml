@@ -164,6 +164,24 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: Install lightweight YouTube auth dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check google-api-python-client google-auth google-auth-httplib2
+
+      - name: Verify YouTube upload OAuth and target channel
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_ANALYTICS_CLIENT_ID: ${{ secrets.YOUTUBE_ANALYTICS_CLIENT_ID || secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_ANALYTICS_CLIENT_SECRET: ${{ secrets.YOUTUBE_ANALYTICS_CLIENT_SECRET || secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_ANALYTICS_REFRESH_TOKEN: ${{ secrets.YOUTUBE_ANALYTICS_REFRESH_TOKEN }}
+          EXPECTED_YOUTUBE_CHANNEL_ID: UCnCATEnOPcnaZQvX2zwZjOA
+        run: |
+          set -euo pipefail
+          python scripts/youtube_upload_preflight.py
+
       - name: Install Python packages
         run: |
           set -euo pipefail
@@ -202,19 +220,6 @@ jobs:
               raise SystemExit("Kokoro pipeline failed to initialize.")
           print("Kokoro preflight passed: pinned spaCy/model and KPipeline initialized.")
           PY
-
-      - name: Verify YouTube upload OAuth and target channel
-        env:
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_ANALYTICS_CLIENT_ID: ${{ secrets.YOUTUBE_ANALYTICS_CLIENT_ID || secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_ANALYTICS_CLIENT_SECRET: ${{ secrets.YOUTUBE_ANALYTICS_CLIENT_SECRET || secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_ANALYTICS_REFRESH_TOKEN: ${{ secrets.YOUTUBE_ANALYTICS_REFRESH_TOKEN }}
-          EXPECTED_YOUTUBE_CHANNEL_ID: UCnCATEnOPcnaZQvX2zwZjOA
-        run: |
-          set -euo pipefail
-          python scripts/youtube_upload_preflight.py
 
       - name: Build and publish episode
         env:

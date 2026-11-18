@@ -277,8 +277,9 @@ jobs:
           print(f"Verified and recorded YouTube upload: {video_id}")
           PY
 
+      # Facebook cross-posting is disabled unless the repository variable is explicitly enabled.
       - name: Publish episode and matching Reel to Facebook
-        if: success()
+        if: success() && vars.ENABLE_FACEBOOK_CROSSPOST == 'true'
         env:
           FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
           FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}

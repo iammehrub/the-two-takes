@@ -327,8 +327,17 @@
     "video_id": "5t5mnPGya7k",
     "title": "When Your Mind Goes Blank: Keep Talking in English",
     "topic": "How to Keep a Conversation Going When Your Mind Goes Blank",
+    "link": "https://youtu.be/5t5mnPGya7k",
     "kind": "Podcast",
     "published": "2026-11-19T10:55:09.189751+00:00",
-    "script_sha256": "becc31d4611a419b04e5588e576a5fcab10c5a988660b92a14104790a071a363"
+    "notified_at": "2026-11-19T10:55:11.670755+00:00"
+  },
+  {
+    "video_id": "7KuiaNSSdQI",
+    "title": "How to Answer 'Tell Me About Yourself' Naturally",
+    "topic": "How to Answer Tell Me About Yourself Naturally",
+    "kind": "Podcast",
+    "published": "2026-11-20T10:34:59.086107+00:00",
+    "script_sha256": "33f79abc287f4df7ab6b5109541939114e0ab042bb4fe70e5d120beccc05389d"
   }
 ]

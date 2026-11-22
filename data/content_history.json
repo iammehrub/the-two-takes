@@ -345,8 +345,17 @@
     "video_id": "1f2P_eEyJXM",
     "title": "Disagree Politely: How to Avoid Sounding Rude",
     "topic": "How to Disagree Politely Without Sounding Rude",
+    "link": "https://youtu.be/1f2P_eEyJXM",
     "kind": "Podcast",
     "published": "2026-11-21T10:10:24.811668+00:00",
-    "script_sha256": "9b5829ea4477a57d4a430b28c357436542d64406b5f21d77f42ed7bfd111ab33"
+    "notified_at": "2026-11-21T10:10:28.033458+00:00"
+  },
+  {
+    "video_id": "wXHVXA3qxls",
+    "title": "Can You Understand This Cafe Conversation? An A2 Listening Test",
+    "topic": "Can You Understand This Cafe Conversation? An A2 Listening Test",
+    "kind": "Podcast",
+    "published": "2026-11-22T10:22:49.091684+00:00",
+    "script_sha256": "9d6c4181eba13869bf82fceebee8e3718f7f49bbb57e4eed8ada752d624cb0f5"
   }
 ]

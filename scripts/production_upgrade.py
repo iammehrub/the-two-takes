@@ -41,7 +41,7 @@ def _ts(seconds):
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 
-def _caption_chunks(text, max_words=5):
+def _caption_chunks(text, max_words=4):
     words = re.findall(r"\S+", text.strip())
     return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words) if words[i:i + max_words]]
 
@@ -124,7 +124,7 @@ def make_srt(script, audio_seconds):
         speaker = str(seg.get("speaker", "")).strip().title()
         if speaker not in {"Himel", "Niha"} or end <= start or not text:
             continue
-        chunks = _caption_chunks(text, max_words=5)
+        chunks = _caption_chunks(text, max_words=4)
         total_words = sum(len(chunk.split()) for chunk in chunks) or 1
         cursor = start
         for index, chunk in enumerate(chunks):
@@ -169,8 +169,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         escaped = _ass_caption_text(caption, highlight_words)
         ass_lines.append(
             f"Dialogue: 0,{_ass_ts(start)},{_ass_ts(end)},{speaker},,0,0,0,,"
-            f"{{\\an5\\pos({x_position},775)\\fs27\\b1\\c{accent}}}{speaker.upper()}"
-            f"\\N{{\\fs36\\b1\\c&H00FFFFFF&}}{escaped}\n"
+            f"{{\\an5\\fad(70,70)\\pos({x_position},775)\\fs27\\b1\\c{accent}}}{speaker.upper()}"
+            f"\\N{{\\fad(70,70)\\fs38\\b1\\c&H00FFFFFF&}}{escaped}\n"
         )
     ass_path.write_text("".join(ass_lines), encoding="utf-8")
     print(
@@ -619,7 +619,7 @@ def _write_short_captions(timing, start_seconds, end_seconds, output_path):
         if clipped_end <= clipped_start:
             continue
 
-        chunks = _caption_chunks(text, max_words=5)
+        chunks = _caption_chunks(text, max_words=4)
         total_words = sum(len(chunk.split()) for chunk in chunks) or 1
         cursor = clipped_start
         for index, chunk in enumerate(chunks):

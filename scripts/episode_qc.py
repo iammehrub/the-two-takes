@@ -125,11 +125,29 @@ def create_report(root, script, voice_path, video_path, subtitle_path) -> dict:
         )
 
     subtitle_count = 0
+    caption_word_counts = []
     if subtitle_path.exists():
         subtitle_text = subtitle_path.read_text(encoding="utf-8", errors="replace")
         subtitle_count = len(re.findall(r"(?m)^\d+\s*$", subtitle_text))
+        for cue in re.split(r"\n\s*\n", subtitle_text.strip()):
+            cue_lines = cue.splitlines()
+            if len(cue_lines) >= 3:
+                caption_text = " ".join(cue_lines[2:]).strip()
+                caption_words = len(re.findall(r"\b[\w’'-]+\b", caption_text))
+                if caption_words:
+                    caption_word_counts.append(caption_words)
         if subtitle_count < 10:
             errors.append(f"Too few subtitle cues ({subtitle_count}); captions may be missing.")
+        if caption_word_counts and max(caption_word_counts) > 5:
+            warnings.append(
+                f"Some subtitle cues contain more than five words (max {max(caption_word_counts)}); review mobile readability."
+            )
+
+    average_caption_words = (
+        round(sum(caption_word_counts) / len(caption_word_counts), 2)
+        if caption_word_counts else None
+    )
+    maximum_caption_words = max(caption_word_counts) if caption_word_counts else None
 
     chapters_path = work / "chapters.txt"
     chapter_lines = []
@@ -186,6 +204,8 @@ def create_report(root, script, voice_path, video_path, subtitle_path) -> dict:
             **audio_levels,
         },
         "subtitle_cues": subtitle_count,
+        "caption_average_words": average_caption_words,
+        "caption_max_words": maximum_caption_words,
         "chapters": chapter_lines,
         "warnings": warnings,
         "errors": errors,
@@ -206,6 +226,7 @@ def create_report(root, script, voice_path, video_path, subtitle_path) -> dict:
         f"Video: {video_stream.get('width')}x{video_stream.get('height')} {video_stream.get('codec_name')}",
         f"Audio: {audio_stream.get('codec_name')} / {audio_stream.get('channels')} channels / {audio_stream.get('sample_rate')} Hz",
         f"Subtitle cues: {subtitle_count}",
+        f"Caption words per cue: average {average_caption_words}, max {maximum_caption_words}",
         f"Mean audio volume: {audio_levels.get('mean_volume_db')} dBFS",
         f"Peak audio volume: {audio_levels.get('peak_volume_db')} dBFS",
         "",

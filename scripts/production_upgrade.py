@@ -450,8 +450,8 @@ def render_video(wav, clips, srt, title):
     )
     print(f"Prepared {len(chapter_lines)} YouTube chapter markers.")
 
-    # Keep one wide two-host composition; section labels and speaker captions
-    # provide context without changing camera framing.
+    # Use the two-shot as the visual anchor, with active-host close-ups for
+    # selected conversational turns and contextual footage for story/phrase beats.
     branded_asset = Path(app.ROOT) / "assets" / "two_takes_podcast_studio.avif"
     poster_png = Path(app.WORK) / "two_takes_podcast_studio_full_video.png"
     if branded_asset.is_file():

@@ -597,7 +597,7 @@ def render_video(wav, clips, srt, title):
 
     aligned_ass_lines = []
     for line in ass_path.read_text(encoding="utf-8").splitlines(keepends=True):
-        match = re.match(r"^Dialogue: \\d+,([^,]+),([^,]+),", line)
+        match = re.match(r"^Dialogue: \d+,([^,]+),([^,]+),", line)
         if match:
             midpoint = (_ass_seconds(match.group(1)) + _ass_seconds(match.group(2))) / 2
             scene = next(
@@ -611,7 +611,7 @@ def render_video(wav, clips, srt, title):
                 scene["camera"] in {"himel", "niha"}
                 or scene["background"] == "pexels_context"
             ):
-                line = re.sub(r"\\\\pos\\(\\d+,775\\)", r"\\pos(960,775)", line)
+                line = re.sub(r"\\pos\(\d+,775\)", r"\pos(960,775)", line)
         aligned_ass_lines.append(line)
 
     ass_path.write_text("".join(aligned_ass_lines), encoding="utf-8")

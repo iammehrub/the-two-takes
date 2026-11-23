@@ -452,7 +452,7 @@ TITLE/PACKAGING RULES:
 
 CONTENT / RETENTION RULES:
 - Write an original 1,300–1,450 word two-host script, aiming for approximately 9–11 minutes of spoken audio before the musical tail. Keep language at A2–B1: short sentences, familiar words, and explain any necessary idiom.
-- First 15 seconds: Himel states a relatable learner problem, then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
+- First 15 seconds: the first spoken line must be a direct, natural 6–12-word hook about the learner's problem. Himel then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
 - Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
 - The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
 - Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.

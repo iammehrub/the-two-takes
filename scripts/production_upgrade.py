@@ -611,7 +611,7 @@ def render_video(wav, clips, srt, title):
                 scene["camera"] in {"himel", "niha"}
                 or scene["background"] == "pexels_context"
             ):
-                line = re.sub(r"\\pos\(\d+,775\)", r"\pos(960,775)", line)
+                line = re.sub(r"\\pos\(\d+,775\)", lambda _match: r"\pos(960,775)", line)
         aligned_ass_lines.append(line)
 
     ass_path.write_text("".join(aligned_ass_lines), encoding="utf-8")

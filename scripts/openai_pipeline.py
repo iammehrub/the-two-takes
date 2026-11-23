@@ -394,7 +394,7 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - Target about 10 minutes at 130–150 words per minute. Avoid padding; keep the hook and outro concise.
 - PACING: natural conversational English at a comfortable everyday speed, not slow or sleepy. Vary energy with the moment: lively curiosity, relaxed storytelling, quick reactions, thoughtful pauses, and encouraging practice. Change the conversational focus every 45-90 seconds with a new example, question, mini-story, phrase, or practice task.
 - OUTRO: give a short recap of the main lesson and useful language, then a natural practice/subscribe invitation. Never use a long generic outro.
-- VISUALS: alternate the two-host wide shot with selected close-ups of the active speaker during natural back-and-forth. Re-establish the two-shot for the hook, phrase teaching, practice, recap and outro. Use topic-relevant contextual footage for story and phrase-in-context beats; never use unrelated stock footage. Preserve the renderer's section labels, speaker-positioned captions and gold-highlighted target vocabulary. Keep the frame uncluttered and never claim character animation or lip-sync that the renderer does not create.
+- VISUALS: preserve the single wide two-host composition throughout; do not use camera cuts, close-ups, or alternate host shots. Use the renderer's changing section labels, speaker-positioned captions, and gold-highlighted target vocabulary to make each learning beat visually clear. Keep the frame uncluttered and never claim B-roll or animation that the renderer does not create.
 - Keep the actual vocabulary, stories, examples, dialogue, and packaging newly generated for Two Takes Podcast.
 
 ONE CONCRETE PROMISE — REQUIRED BEFORE WRITING:
@@ -452,7 +452,7 @@ TITLE/PACKAGING RULES:
 
 CONTENT / RETENTION RULES:
 - Write an original 1,300–1,450 word two-host script, aiming for approximately 9–11 minutes of spoken audio before the musical tail. Keep language at A2–B1: short sentences, familiar words, and explain any necessary idiom.
-- First 15 seconds: open with an immediate, concrete learner problem. The first spoken line should be a short 6–12 word hook; Himel then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
+- First 15 seconds: Himel states a relatable learner problem, then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
 - Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
 - The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
 - Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.
@@ -467,7 +467,6 @@ CONTENT / RETENTION RULES:
 
 DISCOVERY METADATA:
 - Return 3–6 natural search phrases based on the actual topic.
-- Return 5 concrete, filmable visual search phrases for the actual settings, actions or objects in the episode (for example, a cafe counter, a person making a phone call, or a job interview desk). Avoid abstract terms such as "English learning" or "communication".
 - Return 3–5 relevant hashtags.
 - The description hook should clearly explain the viewer benefit in one sentence.
 
@@ -566,7 +565,7 @@ Use 30–45 short, natural turns; no more than three consecutive turns by
 the same host. Give the real conversation most of the time. Expand with
 specific mini-stories, realistic reactions, helpful examples, clarifying
 questions, and natural back-and-forth—not filler or repeated explanations.
-Keep the first turn as "hook" and make its spoken text a concise 6–12 word opening line; do not add any welcome or intro turn. Include at least three "language_tip" turns, at least three
+Keep the first turn as "hook", do not add any welcome or intro turn, include at least three "language_tip" turns, at least three
 "practice" turns, at least one "recap", and finish with "outro".
 The topic must stay the mandatory topic. Keep metadata accurate to the
 rewritten dialogue. Do not invent facts, statistics, citations, or research.
@@ -1117,7 +1116,7 @@ app.make_episode = make_episode
 app.tts = tts
 
 import production_upgrade as visual_upgrade
-app.pexels_videos = visual_upgrade.pexels_videos  # Topic-matched footage is used for story and phrase-in-context cutaways.
+app.pexels_videos = lambda _keywords: []  # One supplied still image is used throughout; skip B-roll downloads.
 app.make_srt = visual_upgrade.make_srt
 app.render_video = visual_upgrade.render_video
 app.render_shorts = visual_upgrade.render_shorts
@@ -1127,6 +1126,6 @@ print("=== ENGLISH-LEARNING STUDIO PRODUCTION ENABLED ===")
 print(f"Script model: {OPENAI_TEXT_MODEL}")
 print(f"Kokoro Himel: {KOKORO_HIMEL_VOICE}")
 print(f"Kokoro Niha: {KOKORO_NIHA_VOICE}")
-print("Output: 1920x1080 H.264, alternating two-shot/host close-ups, topic-matched contextual footage, speaker-positioned captions, no intro sting.")
+print("Output: 1920x1080 H.264, supplied opener as full-video background, speaker-positioned captions, no intro sting.")
 
 app.main()

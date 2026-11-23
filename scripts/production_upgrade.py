@@ -355,9 +355,10 @@ def _drawtext_escape(value):
 def _make_studio_segment(studio, output_path, seconds, camera="wide", section="", speaker=""):
     """Create an illustrated studio shot with simple section and speaker labels."""
     if camera == "himel":
-        vf = f"crop=1100:1080:80:0,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
+        # Keep the crop at 16:9 so the close-up does not stretch facial proportions.
+        vf = f"crop=1100:619:30:230,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
     elif camera == "niha":
-        vf = f"crop=1100:1080:740:0,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
+        vf = f"crop=1100:619:750:230,scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
     else:
         vf = f"scale={VIDEO_W}:{VIDEO_H}:flags=lanczos"
 
@@ -587,6 +588,33 @@ def render_video(wav, clips, srt, title):
         json.dumps(used_visual_credits, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+    # Speaker captions stay left/right in the two-shot. Center them during a
+    # close-up or contextual cutaway so text does not sit at the frame edge.
+    def _ass_seconds(value):
+        hours, minutes, seconds = value.split(":")
+        return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+
+    aligned_ass_lines = []
+    for line in ass_path.read_text(encoding="utf-8").splitlines(keepends=True):
+        match = re.match(r"^Dialogue: \\d+,([^,]+),([^,]+),", line)
+        if match:
+            midpoint = (_ass_seconds(match.group(1)) + _ass_seconds(match.group(2))) / 2
+            scene = next(
+                (
+                    item for item in shot_plan
+                    if item["start_seconds"] <= midpoint < item["end_seconds"]
+                ),
+                None,
+            )
+            if scene and (
+                scene["camera"] in {"himel", "niha"}
+                or scene["background"] == "pexels_context"
+            ):
+                line = re.sub(r"\\\\pos\\(\\d+,775\\)", r"\\pos(960,775)", line)
+        aligned_ass_lines.append(line)
+
+    ass_path.write_text("".join(aligned_ass_lines), encoding="utf-8")
     print(
         f"Visual plan: {len(shot_plan)} scenes, "
         f"{sum(1 for item in shot_plan if item['camera'] in {'himel', 'niha'})} close-ups, "

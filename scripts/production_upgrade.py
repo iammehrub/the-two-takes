@@ -328,13 +328,23 @@ def _make_studio_png():
     return pngfile
 
 
-def _make_clip_segment(input_path, output_path, seconds, start=0):
+def _make_clip_segment(input_path, output_path, seconds, start=0, section="REAL-LIFE SCENE"):
+    """Render a silent, looping contextual cutaway with a consistent section label."""
+    section_safe = _drawtext_escape(str(section or "REAL-LIFE SCENE").upper()[:26])
+    video_filter = (
+        f"scale={VIDEO_W}:{VIDEO_H}:force_original_aspect_ratio=increase,"
+        f"crop={VIDEO_W}:{VIDEO_H},fps={FPS},setsar=1,"
+        "drawbox=x=70:y=54:w=470:h=52:color=0x2b211c@0.90:t=fill,"
+        "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
+        f"text='{section_safe}':x=92:y=69:fontsize=22:fontcolor=white:borderw=0"
+    )
     _run([
-        "ffmpeg","-y","-ss",str(start),"-i",str(input_path),"-t",str(seconds),
-        "-vf",f"scale={VIDEO_W}:{VIDEO_H}:force_original_aspect_ratio=increase,crop={VIDEO_W}:{VIDEO_H},fps={FPS},setsar=1",
-        "-an","-c:v","libx264","-preset",ENCODE_PRESET,"-crf",ENCODE_CRF,
-        "-pix_fmt","yuv420p",str(output_path)
-    ], label=f"Footage segment {output_path.name}")
+        "ffmpeg", "-y", "-stream_loop", "-1", "-ss", str(start),
+        "-i", str(input_path), "-t", str(seconds),
+        "-vf", video_filter,
+        "-an", "-c:v", "libx264", "-preset", ENCODE_PRESET, "-crf", ENCODE_CRF,
+        "-pix_fmt", "yuv420p", str(output_path)
+    ], label=f"Contextual footage segment {output_path.name}")
 
 
 def _drawtext_escape(value):
@@ -389,8 +399,8 @@ def _make_studio_segment(studio, output_path, seconds, camera="wide", section=""
     ], label=f"Studio {camera} shot {output_path.name}")
 
 def render_video(wav, clips, srt, title):
-    """Render a paced, consistent wide-shot episode with speaker-aligned captions."""
-    print("=== WIDE-SHOT TWO TAKES RENDER START ===")
+    """Render alternating host shots with relevant real-life contextual cutaways."""
+    print("=== DYNAMIC TWO TAKES RENDER START ===")
     started = time.time()
     audio_duration = app.duration(wav)
     timing_path = Path(app.WORK) / "tts_segments.json"
@@ -481,6 +491,15 @@ def render_video(wav, clips, srt, title):
     }
 
     scene_files = []
+    clip_pool = list(clips or [])
+    clip_cursor = 0
+    conversation_shot_index = 0
+    shot_plan = []
+    used_visual_credits = []
+
+    conversation_turn_types = {"question", "reaction", "follow_up", "clarification"}
+    contextual_turn_types = {"story", "language_tip"}
+
     for index, group in enumerate(groups):
         scene_start = max(0.0, group["start"])
         scene_end = (
@@ -495,20 +514,84 @@ def render_video(wav, clips, srt, title):
 
         turn_type = group["turn_type"]
         speaker = group["speaker"]
-        # Keep one consistent wide two-host composition throughout the episode.
-        camera = "wide"
-
         section = section_labels.get(turn_type, "TWO TAKES CONVERSATION")
+
+        # Establish the two-host view, then alternate selected conversational
+        # beats with the active speaker's close-up. Lesson/practice beats return
+        # to the two-shot so viewers retain spatial context.
+        camera = "wide"
+        if turn_type in conversation_turn_types and scene_seconds >= 2.8:
+            if conversation_shot_index % 2 == 1:
+                camera = speaker.lower()
+            conversation_shot_index += 1
+
         scene_path = scene_dir / f"scene_{index:03d}.mp4"
-        _make_studio_segment(
-            poster_png,
-            scene_path,
-            scene_seconds,
-            camera=camera,
-            section=section,
-            speaker=speaker,
+        use_contextual_footage = (
+            bool(clip_pool)
+            and scene_seconds >= 2.5
+            and turn_type in contextual_turn_types
         )
+
+        if use_contextual_footage:
+            clip_record = clip_pool[clip_cursor % len(clip_pool)]
+            if isinstance(clip_record, (list, tuple)):
+                clip_path = str(clip_record[0])
+                clip_page = str(clip_record[2]) if len(clip_record) > 2 else ""
+                clip_creator = str(clip_record[3]) if len(clip_record) > 3 else ""
+            else:
+                clip_path = str(clip_record)
+                clip_page = ""
+                clip_creator = ""
+            _make_clip_segment(
+                clip_path,
+                scene_path,
+                scene_seconds,
+                section=section,
+            )
+            clip_cursor += 1
+            background_type = "pexels_context"
+            used_visual_credits.append({
+                "source": "Pexels",
+                "creator": clip_creator,
+                "source_page": clip_page,
+            })
+        else:
+            _make_studio_segment(
+                poster_png,
+                scene_path,
+                scene_seconds,
+                camera=camera,
+                section=section,
+                speaker=speaker,
+            )
+            background_type = "studio"
+
         scene_files.append(scene_path)
+        shot_plan.append({
+            "scene": len(shot_plan) + 1,
+            "start_seconds": round(scene_start, 3),
+            "end_seconds": round(scene_end, 3),
+            "speaker": speaker,
+            "turn_type": turn_type,
+            "camera": camera if background_type == "studio" else "contextual_cutaway",
+            "background": background_type,
+        })
+
+    shot_plan_path = Path(app.WORK) / "visual_shot_plan.json"
+    shot_plan_path.write_text(
+        json.dumps(shot_plan, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    credits_path = Path(app.WORK) / "visual_credits.json"
+    credits_path.write_text(
+        json.dumps(used_visual_credits, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(
+        f"Visual plan: {len(shot_plan)} scenes, "
+        f"{sum(1 for item in shot_plan if item['camera'] in {'himel', 'niha'})} close-ups, "
+        f"{sum(1 for item in shot_plan if item['background'] == 'pexels_context')} contextual cutaways."
+    )
 
     if not scene_files:
         raise RuntimeError("The visual editor did not produce any scene segments.")
@@ -592,11 +675,11 @@ def render_video(wav, clips, srt, title):
             "-c:a", "aac", "-b:a", "192k",
             "-shortest", "-movflags", "+faststart", str(final),
         ],
-        label="Render consistent wide-shot episode with speaker-positioned captions",
+        label="Render dynamic Two Takes episode with speaker-positioned captions",
     )
     quality_check(final)
     print(
-        f"=== WIDE-SHOT RENDER COMPLETE: {len(scene_files)} scenes "
+        f"=== DYNAMIC RENDER COMPLETE: {len(scene_files)} scenes "
         f"in {(time.time() - started) / 60:.1f} min ==="
     )
     return final
@@ -797,7 +880,7 @@ def render_shorts(wav, title, topic):
 # Warm English-learning podcast presentation with original Two Takes Podcast branding.
 VISUAL_STYLE = {
     "thumbnail": "16:9 vibrant 2D cartoon podcast studio; bold white and yellow ENGLISH PODCAST / with TWO HOSTS! headline; bright blue LEARN DAILY DIALOGUES banner; Two Takes Podcast channel name; high contrast and clean outlines",
-    "video": "Use one consistent wide two-host Two Takes Podcast studio composition throughout; add short section labels, speaker-positioned captions, and gold emphasis on lesson vocabulary; no camera cuts, close-ups, or unrelated stock footage.",
+    "video": "Alternate a stable two-host wide shot with selected active-speaker close-ups during conversation; return to the two-shot for hooks, teaching, practice and recap. Use only topic-relevant Pexels cutaways for story and phrase-in-context beats. Preserve speaker-positioned captions and gold emphasis on target vocabulary.",
     "branding": "TWO TAKES PODCAST original branding; no copied logos, characters, artwork, or distinctive visual assets",
 }
 

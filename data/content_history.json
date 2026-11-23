@@ -354,8 +354,17 @@
     "video_id": "wXHVXA3qxls",
     "title": "Can You Understand This Cafe Conversation? An A2 Listening Test",
     "topic": "Can You Understand This Cafe Conversation? An A2 Listening Test",
+    "link": "https://youtu.be/wXHVXA3qxls",
     "kind": "Podcast",
     "published": "2026-11-22T10:22:49.091684+00:00",
-    "script_sha256": "9d6c4181eba13869bf82fceebee8e3718f7f49bbb57e4eed8ada752d624cb0f5"
+    "notified_at": "2026-11-22T10:22:50.401287+00:00"
+  },
+  {
+    "video_id": "dcrTVj3PnoM",
+    "title": "How to Fix a Wrong Restaurant Order in English",
+    "topic": "How to Explain a Wrong Order at a Restaurant",
+    "kind": "Podcast",
+    "published": "2026-11-23T11:20:14.713571+00:00",
+    "script_sha256": "bd1b620c82e89ede04c76ff9563f7de2edf95f505880a65324f87439f93622ac"
   }
 ]

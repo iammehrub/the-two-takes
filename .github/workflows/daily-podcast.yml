@@ -365,6 +365,8 @@ jobs:
             work/youtube_shorts.json
             work/production_report.json
             work/production_report.txt
+            work/visual_shot_plan.json
+            work/visual_credits.json
             work/dialogue_qc.json
             work/learning_phrases.json
             work/practice_pause_windows.json

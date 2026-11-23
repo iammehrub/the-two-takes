@@ -638,6 +638,11 @@ CURRENT DRAFT JSON:
 
         turn_types = [beat["turn_type"] for beat in beats]
         first_three_turns = " ".join(beat["text"] for beat in beats[:3])
+        first_hook_words = (
+            len(re.findall(r"\b[\w’'-]+\b", beats[0]["text"]))
+            if beats else 0
+        )
+        hook_length_ok = 6 <= first_hook_words <= 12
         unwanted_intro = re.compile(
             r"\b(?:welcome\s+(?:back\s+)?(?:to|everyone|everybody)|"
             r"this\s+is\s+(?:the\s+)?two\s+takes\s+podcast|"
@@ -648,6 +653,7 @@ CURRENT DRAFT JSON:
         required_structure_ok = (
             bool(beats)
             and turn_types[0] == "hook"
+            and hook_length_ok
             and "welcome" not in turn_types[:5]
             and turn_types.count("language_tip") >= 3
             and turn_types.count("practice") >= 3
@@ -656,7 +662,11 @@ CURRENT DRAFT JSON:
             and not unwanted_intro.search(first_three_turns)
         )
         if not required_structure_ok:
-            last_problem = "episode is missing the direct hook/phrase/practice/recap/outro structure or contains an unwanted intro"
+            last_problem = (
+                f"opening hook must be 6–12 words (found {first_hook_words})"
+                if beats and not hook_length_ok
+                else "episode is missing the direct hook/phrase/practice/recap/outro structure or contains an unwanted intro"
+            )
             print(last_problem)
             continue
 
@@ -670,6 +680,13 @@ CURRENT DRAFT JSON:
         from dialogue_qc import evaluate_dialogue, write_report
         dialogue_qc_report = evaluate_dialogue(beats)
         write_report(app.WORK, dialogue_qc_report)
+        if dialogue_qc_report["score"] < 55:
+            last_problem = (
+                f"dialogue quality score too low "
+                f"({dialogue_qc_report['score']}/100); regenerate for a more natural conversation"
+            )
+            print(last_problem)
+            continue
 
         same_speaker_run = 0
         previous_speaker = None
@@ -963,29 +980,31 @@ def split_for_kokoro(script, max_chars=420):
 def delivery_speed(turn_type, delivery):
     """Use small speed differences to support tone; Kokoro has no emotion-control input."""
     delivery_speeds = {
-        "warm": 0.97,
-        "curious": 1.00,
-        "amused": 1.02,
-        "surprised": 1.02,
-        "thoughtful": 0.93,
+        # Kokoro exposes speed rather than an emotion-control input. Keep
+        # differences subtle enough for clear learner-facing pronunciation.
+        "warm": 0.96,
+        "curious": 1.01,
+        "amused": 1.04,
+        "surprised": 1.05,
+        "thoughtful": 0.92,
         "reassuring": 0.94,
-        "excited": 1.03,
-        "emphatic": 0.98,
-        "calm": 0.95,
-        "playful": 1.02,
+        "excited": 1.05,
+        "emphatic": 1.00,
+        "calm": 0.94,
+        "playful": 1.04,
         "neutral": 0.98,
     }
     if delivery in delivery_speeds and delivery != "neutral":
         return delivery_speeds[delivery]
     return {
-        "hook": 1.01,
+        "hook": 1.02,
         "question": 1.00,
-        "story": 0.95,
-        "reaction": 1.01,
+        "story": 0.94,
+        "reaction": 1.02,
         "follow_up": 1.00,
         "clarification": 0.96,
         "language_tip": 0.97,
-        "practice": 0.94,
+        "practice": 0.93,
         "recap": 0.97,
     }.get(turn_type, 0.98)
 
@@ -1059,9 +1078,13 @@ def tts(script):
                     "end": round(cursor + pause, 3),
                 })
             elif text.endswith("...") or text.endswith("…"):
-                pause = 0.34
+                pause = 0.40
+            elif delivery in {"thoughtful", "reassuring"}:
+                pause = 0.38
+            elif delivery in {"surprised", "excited", "emphatic"}:
+                pause = 0.18
             elif next_turn_index != turn_index:
-                pause = 0.34 if next_speaker != speaker else 0.24
+                pause = 0.36 if next_speaker != speaker else 0.25
             elif next_speaker != speaker:
                 pause = 0.29
             elif text.endswith("?"):

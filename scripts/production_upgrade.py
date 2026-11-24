@@ -730,6 +730,29 @@ def render_shorts(wav, title, topic):
             .replace(":", "\\:")
             .replace("'", "\\'")
         )
+        # Put the first spoken line of this excerpt on screen immediately.
+        # The hook card is confined to the vertical Short; the episode camera
+        # composition and background remain untouched.
+        opening_segment = next(
+            (
+                item for item in timing
+                if float(item.get("start", -1)) >= clip_start - 0.05
+                and float(item.get("start", -1)) < clip_end
+                and str(item.get("text", "")).strip()
+            ),
+            {},
+        )
+        opening_hook = re.sub(
+            r"[^A-Za-z0-9 ?!.,'’-]", " ",
+            str(opening_segment.get("text") or short_title),
+        )
+        opening_hook = re.sub(r"\\s+", " ", opening_hook).strip()[:88]
+        hook_text_file = output_dir / f"{stem}_opening_hook.txt"
+        hook_text_file.write_text(
+            textwrap.fill(opening_hook or short_title, width=27),
+            encoding="utf-8",
+        )
+        hook_text_path = str(hook_text_file.resolve()).replace("\\", "/").replace(":", "\\:")
         font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         # Use the already-rendered episode as the sole source. Its voice/music mix
         # and speaker-positioned captions are already baked in, so do not add them
@@ -742,6 +765,11 @@ def render_shorts(wav, title, topic):
             "drawbox=x=48:y=50:w=984:h=124:color=0x211914@0.90:t=fill,"
             f"drawtext=fontfile={font}:text='TWO TAKES PODCAST':"
             "x=(w-text_w)/2:y=88:fontsize=42:fontcolor=white,"
+            "drawbox=x=48:y=245:w=984:h=210:color=0x211914@0.90:t=fill:"
+            "enable='between(t,0,1.6)',"
+            f"drawtext=fontfile={font}:textfile='{hook_text_path}':"
+            "x=(w-text_w)/2:y=295:fontsize=48:line_spacing=8:fontcolor=white:"
+            "enable='between(t,0,1.6)',"
             "drawbox=x=48:y=1710:w=984:h=132:color=0x211914@0.90:t=fill,"
             f"drawtext=fontfile={font}:text='FULL EPISODE ON CHANNEL':"
             "x=(w-text_w)/2:y=1750:fontsize=34:fontcolor=white"
@@ -776,7 +804,9 @@ def render_shorts(wav, title, topic):
             "end_seconds": clip_end,
             "duration_seconds": round(clip_duration, 2),
             "captions_file": subtitle_file.name,
-            "note": "Review the excerpt and title before publishing; no views are guaranteed.",
+            "opening_hook": opening_hook,
+            "opening_hook_file": hook_text_file.name,
+            "note": "Opening hook is shown during the first 1.6 seconds; review the excerpt and title before publishing; no views are guaranteed.",
         })
         print(f"Created vertical Short: {output_video}")
 

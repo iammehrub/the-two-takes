@@ -1322,12 +1322,16 @@ def youtube_upload_one_short(topic):
         if "#shorts" not in short_title.lower():
             short_title = (short_title + " #Shorts")[:100]
 
-        description_parts = [
+        description_parts = []
+        if episode_url:
+            # The YouTube Data API upload endpoint does not expose Studio's
+            # related-video selector. Put the full episode URL first so the
+            # Short still has a direct, visible conversion path.
+            description_parts.append(f"▶ WATCH THE FULL EPISODE: {episode_url}")
+        description_parts.extend([
             "Learn one useful English idea in under a minute with Himel and Niha.",
             "Listen, repeat the phrase, and write your own example in the comments.",
-        ]
-        if episode_url:
-            description_parts.append(f"Watch the full conversation: {episode_url}")
+        ])
         hashtags = selected.get("hashtag_suggestions", [])
         if not isinstance(hashtags, list):
             hashtags = []
@@ -1380,6 +1384,8 @@ def youtube_upload_one_short(topic):
                 "kind": "Short",
                 "link": f"https://youtube.com/shorts/{video_id}",
                 "source_episode_title": str(selected.get("source_episode_title", ""))[:100],
+                "source_episode_url": episode_url,
+                "opening_hook": str(selected.get("opening_hook", ""))[:180],
                 "scheduled_for": publish_time.isoformat(timespec="seconds"),
                 "timezone": "Asia/Dhaka",
                 "file": short_file.name,
@@ -1411,6 +1417,13 @@ def create_growth_pack(title, topic, script, hook):
                     title_options = [str(x).strip() for x in raw if str(x).strip()][:3] or [title]
         except (json.JSONDecodeError, OSError):
             pass
+
+    thumbnail_text = ""
+    thumbnail_path = WORK / "thumbnail_text.txt"
+    try:
+        thumbnail_text = thumbnail_path.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
 
     hashtags = ["#EnglishLearning", "#SpeakEnglish", "#EnglishSpeaking"]
     hashtag_file = WORK / "hashtags.json"
@@ -1542,6 +1555,27 @@ def create_growth_pack(title, topic, script, hook):
         "episode_title": title,
         "rendered_shorts": rendered_shorts,
         "title_options": title_options,
+        "thumbnail_text": thumbnail_text,
+        "packaging_experiments": [
+            {
+                "variant": "search intent",
+                "title": title_options[0] if title_options else title,
+                "thumbnail": thumbnail_text,
+                "hypothesis": "A concrete learner problem should make the promise immediately clear."
+            },
+            {
+                "variant": "practice intent",
+                "title": title_options[1] if len(title_options) > 1 else title,
+                "thumbnail": thumbnail_text,
+                "hypothesis": "A practice-session framing may attract viewers ready to speak along."
+            },
+            {
+                "variant": "curiosity",
+                "title": title_options[2] if len(title_options) > 2 else title,
+                "thumbnail": thumbnail_text,
+                "hypothesis": "A specific awkward moment may create curiosity without misleading clickbait."
+            }
+        ],
         "topic": topic,
         "hook": hook,
         "hashtags": hashtags,
@@ -1586,6 +1620,12 @@ def create_growth_pack(title, topic, script, hook):
         f"Primary title: {title}\n\n"
         "Title options:\n" +
         "\n".join(f"- {x}" for x in title_options) +
+        "\n\nThumbnail text:\n" + (thumbnail_text or "Not generated") +
+        "\n\nPackaging test variants:\n" +
+        "\n".join(
+            f"- {item['variant']}: {item['title']} | {item['thumbnail']}"
+            for item in pack["packaging_experiments"]
+        ) +
         "\n\nHashtags:\n" +
         " ".join(hashtags) +
         "\n\nPinned comment:\n" +

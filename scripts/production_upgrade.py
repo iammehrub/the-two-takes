@@ -41,7 +41,7 @@ def _ts(seconds):
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 
-def _caption_chunks(text, max_words=5):
+def _caption_chunks(text, max_words=4):
     words = re.findall(r"\S+", text.strip())
     return [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words) if words[i:i + max_words]]
 
@@ -124,7 +124,7 @@ def make_srt(script, audio_seconds):
         speaker = str(seg.get("speaker", "")).strip().title()
         if speaker not in {"Himel", "Niha"} or end <= start or not text:
             continue
-        chunks = _caption_chunks(text, max_words=5)
+        chunks = _caption_chunks(text, max_words=4)
         total_words = sum(len(chunk.split()) for chunk in chunks) or 1
         cursor = start
         for index, chunk in enumerate(chunks):
@@ -169,8 +169,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         escaped = _ass_caption_text(caption, highlight_words)
         ass_lines.append(
             f"Dialogue: 0,{_ass_ts(start)},{_ass_ts(end)},{speaker},,0,0,0,,"
-            f"{{\\an5\\pos({x_position},775)\\fs27\\b1\\c{accent}}}{speaker.upper()}"
-            f"\\N{{\\fs36\\b1\\c&H00FFFFFF&}}{escaped}\n"
+            f"{{\\an5\\fad(70,70)\\pos({x_position},775)\\fs27\\b1\\c{accent}}}{speaker.upper()}"
+            f"\\N{{\\fad(70,70)\\fs38\\b1\\c&H00FFFFFF&}}{escaped}\n"
         )
     ass_path.write_text("".join(ass_lines), encoding="utf-8")
     print(
@@ -619,7 +619,7 @@ def _write_short_captions(timing, start_seconds, end_seconds, output_path):
         if clipped_end <= clipped_start:
             continue
 
-        chunks = _caption_chunks(text, max_words=5)
+        chunks = _caption_chunks(text, max_words=4)
         total_words = sum(len(chunk.split()) for chunk in chunks) or 1
         cursor = clipped_start
         for index, chunk in enumerate(chunks):
@@ -730,6 +730,29 @@ def render_shorts(wav, title, topic):
             .replace(":", "\\:")
             .replace("'", "\\'")
         )
+        # Put the first spoken line of this excerpt on screen immediately.
+        # The hook card is confined to the vertical Short; the episode camera
+        # composition and background remain untouched.
+        opening_segment = next(
+            (
+                item for item in timing
+                if float(item.get("start", -1)) >= clip_start - 0.05
+                and float(item.get("start", -1)) < clip_end
+                and str(item.get("text", "")).strip()
+            ),
+            {},
+        )
+        opening_hook = re.sub(
+            r"[^A-Za-z0-9 ?!.,'’-]", " ",
+            str(opening_segment.get("text") or short_title),
+        )
+        opening_hook = re.sub(r"\s+", " ", opening_hook).strip()[:88]
+        hook_text_file = output_dir / f"{stem}_opening_hook.txt"
+        hook_text_file.write_text(
+            textwrap.fill(opening_hook or short_title, width=27),
+            encoding="utf-8",
+        )
+        hook_text_path = str(hook_text_file.resolve()).replace("\\", "/").replace(":", "\\:")
         font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         # Use the already-rendered episode as the sole source. Its voice/music mix
         # and speaker-positioned captions are already baked in, so do not add them
@@ -742,6 +765,11 @@ def render_shorts(wav, title, topic):
             "drawbox=x=48:y=50:w=984:h=124:color=0x211914@0.90:t=fill,"
             f"drawtext=fontfile={font}:text='TWO TAKES PODCAST':"
             "x=(w-text_w)/2:y=88:fontsize=42:fontcolor=white,"
+            "drawbox=x=48:y=245:w=984:h=210:color=0x211914@0.90:t=fill:"
+            "enable='between(t,0,1.6)',"
+            f"drawtext=fontfile={font}:textfile='{hook_text_path}':"
+            "x=(w-text_w)/2:y=295:fontsize=48:line_spacing=8:fontcolor=white:"
+            "enable='between(t,0,1.6)',"
             "drawbox=x=48:y=1710:w=984:h=132:color=0x211914@0.90:t=fill,"
             f"drawtext=fontfile={font}:text='FULL EPISODE ON CHANNEL':"
             "x=(w-text_w)/2:y=1750:fontsize=34:fontcolor=white"
@@ -776,7 +804,9 @@ def render_shorts(wav, title, topic):
             "end_seconds": clip_end,
             "duration_seconds": round(clip_duration, 2),
             "captions_file": subtitle_file.name,
-            "note": "Review the excerpt and title before publishing; no views are guaranteed.",
+            "opening_hook": opening_hook,
+            "opening_hook_file": hook_text_file.name,
+            "note": "Opening hook is shown during the first 1.6 seconds; review the excerpt and title before publishing; no views are guaranteed.",
         })
         print(f"Created vertical Short: {output_video}")
 

@@ -746,7 +746,7 @@ def render_shorts(wav, title, topic):
             r"[^A-Za-z0-9 ?!.,'’-]", " ",
             str(opening_segment.get("text") or short_title),
         )
-        opening_hook = re.sub(r"\\s+", " ", opening_hook).strip()[:88]
+        opening_hook = re.sub(r"\s+", " ", opening_hook).strip()[:88]
         hook_text_file = output_dir / f"{stem}_opening_hook.txt"
         hook_text_file.write_text(
             textwrap.fill(opening_hook or short_title, width=27),

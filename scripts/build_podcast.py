@@ -1322,12 +1322,16 @@ def youtube_upload_one_short(topic):
         if "#shorts" not in short_title.lower():
             short_title = (short_title + " #Shorts")[:100]
 
-        description_parts = [
+        description_parts = []
+        if episode_url:
+            # The YouTube Data API upload endpoint does not expose Studio's
+            # related-video selector. Put the full episode URL first so the
+            # Short still has a direct, visible conversion path.
+            description_parts.append(f"▶ WATCH THE FULL EPISODE: {episode_url}")
+        description_parts.extend([
             "Learn one useful English idea in under a minute with Himel and Niha.",
             "Listen, repeat the phrase, and write your own example in the comments.",
-        ]
-        if episode_url:
-            description_parts.append(f"Watch the full conversation: {episode_url}")
+        ])
         hashtags = selected.get("hashtag_suggestions", [])
         if not isinstance(hashtags, list):
             hashtags = []
@@ -1380,6 +1384,8 @@ def youtube_upload_one_short(topic):
                 "kind": "Short",
                 "link": f"https://youtube.com/shorts/{video_id}",
                 "source_episode_title": str(selected.get("source_episode_title", ""))[:100],
+                "source_episode_url": episode_url,
+                "opening_hook": str(selected.get("opening_hook", ""))[:180],
                 "scheduled_for": publish_time.isoformat(timespec="seconds"),
                 "timezone": "Asia/Dhaka",
                 "file": short_file.name,

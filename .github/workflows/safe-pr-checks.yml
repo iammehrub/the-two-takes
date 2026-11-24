@@ -1,0 +1,30 @@
+name: Two Takes — Safe PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile podcast scripts
+        run: |
+          python -m py_compile \
+            scripts/openai_pipeline.py \
+            scripts/production_upgrade.py \
+            scripts/build_podcast.py \
+            scripts/episode_qc.py \
+            scripts/dialogue_qc.py \
+            scripts/audio_enhancements.py

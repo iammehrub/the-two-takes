@@ -1418,6 +1418,13 @@ def create_growth_pack(title, topic, script, hook):
         except (json.JSONDecodeError, OSError):
             pass
 
+    thumbnail_text = ""
+    thumbnail_path = WORK / "thumbnail_text.txt"
+    try:
+        thumbnail_text = thumbnail_path.read_text(encoding="utf-8").strip()
+    except OSError:
+        pass
+
     hashtags = ["#EnglishLearning", "#SpeakEnglish", "#EnglishSpeaking"]
     hashtag_file = WORK / "hashtags.json"
     if hashtag_file.exists():
@@ -1548,6 +1555,27 @@ def create_growth_pack(title, topic, script, hook):
         "episode_title": title,
         "rendered_shorts": rendered_shorts,
         "title_options": title_options,
+        "thumbnail_text": thumbnail_text,
+        "packaging_experiments": [
+            {
+                "variant": "search intent",
+                "title": title_options[0] if title_options else title,
+                "thumbnail": thumbnail_text,
+                "hypothesis": "A concrete learner problem should make the promise immediately clear."
+            },
+            {
+                "variant": "practice intent",
+                "title": title_options[1] if len(title_options) > 1 else title,
+                "thumbnail": thumbnail_text,
+                "hypothesis": "A practice-session framing may attract viewers ready to speak along."
+            },
+            {
+                "variant": "curiosity",
+                "title": title_options[2] if len(title_options) > 2 else title,
+                "thumbnail": thumbnail_text,
+                "hypothesis": "A specific awkward moment may create curiosity without misleading clickbait."
+            }
+        ],
         "topic": topic,
         "hook": hook,
         "hashtags": hashtags,
@@ -1592,6 +1620,12 @@ def create_growth_pack(title, topic, script, hook):
         f"Primary title: {title}\n\n"
         "Title options:\n" +
         "\n".join(f"- {x}" for x in title_options) +
+        "\n\nThumbnail text:\n" + (thumbnail_text or "Not generated") +
+        "\n\nPackaging test variants:\n" +
+        "\n".join(
+            f"- {item['variant']}: {item['title']} | {item['thumbnail']}"
+            for item in pack["packaging_experiments"]
+        ) +
         "\n\nHashtags:\n" +
         " ".join(hashtags) +
         "\n\nPinned comment:\n" +

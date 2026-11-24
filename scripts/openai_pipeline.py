@@ -453,12 +453,14 @@ TITLE/PACKAGING RULES:
 CONTENT / RETENTION RULES:
 - Write an original 1,300–1,450 word two-host script, aiming for approximately 9–11 minutes of spoken audio before the musical tail. Keep language at A2–B1: short sentences, familiar words, and explain any necessary idiom.
 - First 15 seconds: the first spoken line must be a direct, natural 6–12-word hook about the learner's problem. Himel then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
-- Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
+- Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–5:30); guided practice and short learner challenges (5:30–9:00); final 60 seconds: one specific speaking task and one easy comment question.
+- Every 60–90 seconds, reset attention with a concrete viewer task: choose the better reply, predict the next line, spot the mistake, complete a sentence, or answer a short listening question. Use a short "practice" turn that invites the viewer to answer aloud; the renderer inserts a real response pause after practice invitations. Do not ask vague rhetorical questions.
 - The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
 - Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.
 - In repetition practice, put each model phrase and its repeat invitation in separate short dialogue turns. The renderer inserts a real 2.5-second silent response gap after each practice turn. Do not write stage directions or pretend spoken words are silence.
 - Return the 3–5 exact target phrases in the "target_phrases" JSON array. Every target phrase must appear verbatim in the spoken dialogue and be short enough to highlight in captions.
 - Keep each target phrase short and clear enough to work as an on-screen caption in a vertical Short. The existing video renderer displays speaker-aligned captions; do not add a separate screen_text field unless the renderer is updated to use it.
+- Include at least six distinct, useful "practice" turns across the episode, not all grouped together. Space viewer challenges roughly 60–90 seconds apart and make each one require a spoken answer, a choice, or a completed phrase.
 - The final practice task must tell viewers exactly what to say aloud or type in the comments. Ask one direct, easy-to-answer question.
 - Make Himel and Niha react to each other frequently. Most turns should be 1–3 sentences, with natural follow-up questions, clarification, small personal examples, and gentle humor.
 - Use clear turn_type labels: hook, question, story, reaction, follow_up, clarification, language_tip, practice, recap, and outro. The first dialogue item must be "hook"; include several language_tip and practice turns; include at least one recap and one final outro turn.
@@ -656,7 +658,7 @@ CURRENT DRAFT JSON:
             and hook_length_ok
             and "welcome" not in turn_types[:5]
             and turn_types.count("language_tip") >= 3
-            and turn_types.count("practice") >= 3
+            and turn_types.count("practice") >= 6
             and "recap" in turn_types
             and turn_types[-1] == "outro"
             and not unwanted_intro.search(first_three_turns)
@@ -718,6 +720,10 @@ CURRENT DRAFT JSON:
                     str(obj.get("title", "")).strip()
                     or "Speak English More Naturally"
                 )
+                if len(title) > 60:
+                    last_problem = f"primary title exceeds 60 characters ({len(title)}); rewrite it around one specific learner problem"
+                    print(last_problem)
+                    continue
                 topic = str(obj.get("topic", "")).strip() or forced_topic
 
                 # If the model ignored the mandatory topic, reject this draft
@@ -781,14 +787,17 @@ CURRENT DRAFT JSON:
                 if not isinstance(title_options, list):
                     title_options = []
                 title_options = [
-                    str(x).strip()[:100]
+                    str(x).strip()
                     for x in title_options
-                    if str(x).strip()
+                    if str(x).strip() and len(str(x).strip()) <= 60
                 ][:3] or [title]
 
                 thumbnail_text = str(
                     obj.get("thumbnail_text", "")
                 ).strip()
+                thumbnail_words = re.findall(r"[A-Za-z0-9']+", thumbnail_text)
+                if not 2 <= len(thumbnail_words) <= 4:
+                    thumbnail_text = " ".join(str(topic).split()[:3]).upper()
                 if not thumbnail_text:
                     thumbnail_text = "SPEAK MORE NATURALLY"
 

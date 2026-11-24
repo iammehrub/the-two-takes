@@ -363,8 +363,17 @@
     "video_id": "dcrTVj3PnoM",
     "title": "How to Fix a Wrong Restaurant Order in English",
     "topic": "How to Explain a Wrong Order at a Restaurant",
+    "link": "https://youtu.be/dcrTVj3PnoM",
     "kind": "Podcast",
     "published": "2026-11-23T11:20:14.713571+00:00",
-    "script_sha256": "bd1b620c82e89ede04c76ff9563f7de2edf95f505880a65324f87439f93622ac"
+    "notified_at": "2026-11-23T11:20:15.666156+00:00"
+  },
+  {
+    "video_id": "l56TJ9Oc4AQ",
+    "title": "Explain a Problem & Ask for Help in English",
+    "topic": "How to Explain a Problem and Ask for Help in English",
+    "kind": "Podcast",
+    "published": "2026-11-24T12:49:09.304853+00:00",
+    "script_sha256": "8aa3e5df260d560dd55a388751224c7d7f4d61b7861910c50132b286ffac949c"
   }
 ]

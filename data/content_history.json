@@ -372,8 +372,17 @@
     "video_id": "l56TJ9Oc4AQ",
     "title": "Explain a Problem & Ask for Help in English",
     "topic": "How to Explain a Problem and Ask for Help in English",
+    "link": "https://youtu.be/l56TJ9Oc4AQ",
     "kind": "Podcast",
     "published": "2026-11-24T12:49:09.304853+00:00",
-    "script_sha256": "8aa3e5df260d560dd55a388751224c7d7f4d61b7861910c50132b286ffac949c"
+    "notified_at": "2026-11-24T12:49:14.123419+00:00"
+  },
+  {
+    "video_id": "cqK5oyZ6f58",
+    "title": "Can You Understand Fast Everyday English? A Listening Challenge",
+    "topic": "Can You Understand Fast Everyday English? A Listening Challenge",
+    "kind": "Podcast",
+    "published": "2026-11-25T11:49:45.962943+00:00",
+    "script_sha256": "df43fcf436a12ff508ab65eecfabab44718eda7546fb33829cb048699d856466"
   }
 ]

@@ -312,30 +312,32 @@ def make_episode(news):
     # Evergreen, searchable English-learning promises only. News is deliberately
     # excluded so the channel has one clear audience and repeatable format.
     fallback_topic_bank = [
-        "What to Say When You Don't Understand Someone",
-        "How to Keep a Conversation Going When Your Mind Goes Blank",
-        "Can You Understand This Cafe Conversation? An A2 Listening Test",
-        "How to Ask Someone to Repeat Themselves Politely",
-        "How to Disagree Politely Without Sounding Rude",
-        "How to Answer Tell Me About Yourself Naturally",
-        "How to Make Small Talk Without Awkward Silence",
-        "How to Explain a Problem and Ask for Help in English",
-        "How to Explain a Wrong Order at a Restaurant",
-        "Can You Understand Fast Everyday English? A Listening Challenge",
-        "How to Tell a Short Story About Yesterday",
-        "How to Handle an English Phone Call When You Cannot Hear Clearly",
-        "How to Respond Naturally to Surprising News",
-        "How to Start and End a Conversation Naturally",
-        "How to Stop Translating Every Sentence in Your Head",
-        "How to Make a Request Without Sounding Rude",
-        "How to Recover When You Forget an English Word",
-        "How to Talk About Plans and Invitations",
-        "How to Explain Your Opinion in Simple English",
-        "How to Ask for Clarification in a Class or Meeting",
-        "Listen and Answer: The Story of a Missed Bus",
-        "How to Reply Naturally to What Have You Been Up To",
-        "How to Respond When Someone Gives You Unexpected Advice",
-        "How to Keep a Phone Conversation Going in English",
+        # Ordered four-week test slate: practical real-life situations, with listening
+        # challenges interleaved so the format does not become repetitive.
+        "How to Leave a Clear Voice Message in English",
+        "Can You Understand an Airport Announcement in English? A2 Listening Test",
+        "How to Make an Appointment by Phone in English",
+        "How to Ask for Directions and Confirm the Route",
+        "How to Return an Item to a Shop Politely",
+        "Can You Understand a Hotel Check-In? A2 Listening Test",
+        "How to Invite a Friend and Agree on a Time",
+        "How to Explain That You Are Running Late",
+        "Can You Follow a Bus Station Conversation? A2 Listening Test",
+        "How to Ask a Neighbour for a Small Favour",
+        "How to Describe a Simple Problem to a Doctor in English",
+        "Can You Understand a Fast Shop Conversation? A2 Listening Test",
+        "How to Ask for a Recommendation in a Bookshop",
+        "How to Ask for a Different Size in a Clothing Shop",
+        "How to Give a Friendly Compliment and Reply",
+        "How to Explain a Small Mistake and Apologise",
+        "How to Respond When Someone Changes the Plan",
+        "How to Make a Simple Suggestion in English",
+        "How to Ask Hotel Staff for Help in English",
+        "How to Confirm Important Details Before You Leave",
+        "How to Tell Someone You Need More Time",
+        "How to Talk About a Film You Just Watched",
+        "How to Change a Meeting Time Politely",
+        "Listen and Answer: Someone Gives You New Directions",
     ]
 
     current_stories = []
@@ -385,7 +387,7 @@ REFERENCE FORMAT: SPEAK ENGLISH WITH CLASS / ENGLISH-LEARNING PODCAST GENRE — 
 - NO INTRO: do not greet or welcome viewers, introduce the hosts or channel, announce the episode, or insert an opening music sting. No spoken branding before the conversation.
 - MAIN CONVERSATION: Himel and Niha should feel like real friends/teachers talking about one continuous topic. Use personal examples, questions, follow-up questions, light disagreement, clarification, and natural reactions. Do not read a lecture.
 - LESSON ARCHITECTURE: Hook -> real conversation -> phrase tour -> speaking/shadowing practice -> recap -> concise sign-off.
-- MAIN DISCUSSION: aim for 0:35–3:30, using stories, follow-up questions, gentle disagreement, clarification and natural reactions.
+- MAIN DISCUSSION: aim for 0:35–3:00, using one concise real-life example, follow-up questions, gentle disagreement, clarification and natural reactions. Do not let a personal story delay the lesson.
 - TRANSITION: the production system supplies the short instrumental interlude automatically; do not add a host line saying "music plays".
 - PHRASE TOUR: teach 3–5 useful everyday phrases/words. Mark explanation turns "language_tip"; explain each meaning simply and give a natural example.
 - SPEAKING PRACTICE: include 3–5 practical model phrases with short repeat invitations. Keep each model phrase and its invitation in separate "practice" turns.
@@ -452,9 +454,11 @@ TITLE/PACKAGING RULES:
 
 CONTENT / RETENTION RULES:
 - Write an original 1,300–1,450 word two-host script, aiming for approximately 9–11 minutes of spoken audio before the musical tail. Keep language at A2–B1: short sentences, familiar words, and explain any necessary idiom.
-- First 15 seconds: Himel states a relatable learner problem, then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting.
-- Follow this timed teaching structure: Hook and promise (0:00–0:15); model dialogue using the target phrases (0:15–2:00); break down 3–5 key phrases with slow pronunciation, one everyday example, and one common learner mistake per phrase (2:00–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
-- The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture.
+- First 12 seconds: Himel states a relatable learner problem, then gives the concrete one-sentence promise: "By the end of this, you'll be able to ____." No welcome, channel intro, episode announcement, or opening sting. By 30 seconds, the viewer must have heard the first useful phrase or attempted the first listening task.
+- Follow this timed teaching structure: Hook and promise (0:00–0:12); immediate model/example or first listening challenge (0:12–0:30); real-life dialogue and explanation (0:30–2:30); teach 3–5 key phrases with simple meanings, natural examples and common mistakes (2:30–6:00); repeat with us (6:00–9:00); final 60 seconds: one specific speaking task and one easy comment question.
+- The hosts should model one realistic everyday situation and show the target language in context before explaining it. Do not turn the episode into a lecture. Start the first example immediately after the promise; no long anecdote or background setup.
+- For every listening-challenge episode, play the first short listening sample and ask the viewer to answer within the first 20 seconds. Do not explain the challenge for a minute before letting the viewer try it.
+- For every role-play episode, demonstrate a useful line within the first 30 seconds. The viewer should receive a practical result before the one-minute mark.
 - Teach 3–5 key phrases, not six by default. Reuse the same phrases naturally in the model dialogue, explanations, and repetition practice.
 - In repetition practice, put each model phrase and its repeat invitation in separate short dialogue turns. The renderer inserts a real 2.5-second silent response gap after each practice turn. Do not write stage directions or pretend spoken words are silence.
 - Return the 3–5 exact target phrases in the "target_phrases" JSON array. Every target phrase must appear verbatim in the spoken dialogue and be short enough to highlight in captions.
@@ -491,15 +495,29 @@ RETURN ONLY VALID JSON:
 
     from content_guard import is_duplicate, normalize_text
 
-    # Build a deterministic pool of unused topics so the model cannot get
-    # stuck regenerating the same rejected subject four times.
+    # Filter exact and semantically similar topics BEFORE asking the model.
+    # This avoids wasting generation attempts on subjects already covered.
     recent_normalized = normalize_text(recent_context)
-    fresh_topics = [
-        topic for topic in topic_bank
-        if normalize_text(topic) not in recent_normalized
-    ]
+    fresh_topics = []
+    for candidate in topic_bank:
+        if normalize_text(candidate) in recent_normalized:
+            continue
+        duplicate_topic, duplicate_reason = is_duplicate(
+            app.ROOT, "", candidate, ""
+        )
+        if duplicate_topic:
+            print(
+                f"Skipping previously covered topic: {candidate} "
+                f"({duplicate_reason})"
+            )
+            continue
+        fresh_topics.append(candidate)
+
     if not fresh_topics:
-        fresh_topics = list(topic_bank)
+        raise RuntimeError(
+            "The unused topic slate is exhausted. Add new distinct ideas to "
+            "fallback_topic_bank before the next scheduled episode."
+        )
 
     last_problem = None
 

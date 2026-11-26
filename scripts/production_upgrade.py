@@ -537,7 +537,15 @@ def render_video(wav, clips, srt, title):
         .replace(":", "\\:")
         .replace("'", "\\'")
     )
-    video_filter = f"[0:v:0]subtitles='{subtitle_path}',format=yuv420p[vout]"
+    # Apply gentle continuous movement to the full episode after scene assembly.
+    # The camera remains wide; only a slow 3.5% zoom and small pan are introduced.
+    video_filter = (
+        f"[0:v:0]zoompan=z='min(1.0+0.000002*on,1.035)':"
+        f"x='iw/2-iw/zoom/2+12*sin(on/5400)':"
+        f"y='ih/2-ih/zoom/2+6*sin(on/3600)':"
+        f"d=1:s={VIDEO_W}x{VIDEO_H}:fps={FPS},"
+        f"subtitles='{subtitle_path}',format=yuv420p[vout]"
+    )
     practice_pause_path = Path(app.WORK) / "practice_pause_windows.json"
     try:
         practice_pause_windows = json.loads(practice_pause_path.read_text(encoding="utf-8"))

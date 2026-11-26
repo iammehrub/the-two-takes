@@ -1663,16 +1663,22 @@ def main():
     from episode_qc import create_report
     create_report(ROOT, script, wav, final, srt)
 
-    # Optional promotion assets must never block the main episode upload.
-    shorts_renderer = globals().get("render_shorts")
-    if callable(shorts_renderer):
-        try:
-            shorts_manifest = shorts_renderer(wav, title, topic)
-            print(f"Vertical Shorts ready for review: {len(shorts_manifest)}")
-        except Exception as exc:
-            print(f"Shorts rendering failed; continuing with the full episode: {exc}")
+    # Shorts are paused for the four-week long-form-only experiment.
+    enable_shorts = os.environ.get("ENABLE_SHORTS", "false").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+    if enable_shorts:
+        shorts_renderer = globals().get("render_shorts")
+        if callable(shorts_renderer):
+            try:
+                shorts_manifest = shorts_renderer(wav, title, topic)
+                print(f"Vertical Shorts ready for review: {len(shorts_manifest)}")
+            except Exception as exc:
+                print(f"Shorts rendering failed; continuing with the full episode: {exc}")
+        else:
+            print("Shorts renderer is not configured; continuing with the full episode.")
     else:
-        print("Shorts renderer is not configured; continuing with the full episode.")
+        print("Shorts are disabled (ENABLE_SHORTS=false); skipping vertical rendering.")
 
     print("\nCreating thumbnail...")
     thumb = make_thumbnail(title, topic)
@@ -1691,13 +1697,16 @@ def main():
         clips
     )
 
-    print("\nScheduling up to three discovery Shorts on separate days (best-effort)...")
-    try:
-        youtube_upload_one_short(topic)
-    except Exception as exc:
-        # The full episode is already uploaded; do not fail or repeat it because
-        # an optional promotional Short failed.
-        print(f"Short publishing failed; full episode remains published: {exc}")
+    if enable_shorts:
+        print("\nScheduling up to three discovery Shorts on separate days (best-effort)...")
+        try:
+            youtube_upload_one_short(topic)
+        except Exception as exc:
+            # The full episode is already uploaded; do not fail or repeat it because
+            # an optional promotional Short failed.
+            print(f"Short publishing failed; full episode remains published: {exc}")
+    else:
+        print("Short publishing skipped (four-week long-form-only experiment).")
 
     print("\n" + "=" * 60)
     print("EPISODE COMPLETE")
